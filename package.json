@@ -215,6 +215,9 @@
         }
       }
     },
+    "activationEvents": [
+      "onLanguage:solidity"
+    ],
     "languages": [
       {
         "id": "solidity",
