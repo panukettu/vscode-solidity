@@ -22,12 +22,12 @@
     "Juan Blanco"
   ],
   "bugs": {
-    "url": "https://github.com/juanfranblanco/vscode-solidity/issues"
+    "url": "https://github.com/panukettu/vscode-solidity/issues"
   },
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/juanfranblanco/vscode-solidity"
+    "url": "https://github.com/panukettu/vscode-solidity"
   },
   "categories": [
     "Programming Languages",
