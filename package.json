@@ -9,7 +9,7 @@
     "solium",
     "solhint"
   ],
-  "version": "0.3.165",
+  "version": "0.4.0",
   "publisher": "0xp",
   "license": "MIT",
   "engines": {
@@ -33,9 +33,9 @@
     "Programming Languages",
     "Snippets"
   ],
-  "main": "./out/src/extension.js",
+  "main": "./out/extension.js",
   "bin": {
-    "vscode-solidity-server": "./out/src/server.js"
+    "vscode-solidity-server": "./out/server.js"
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -43,8 +43,8 @@
     "prepublishOnly": "tsup",
     "build:cli": "tsup src/server.ts -d dist/cli && sh scripts/add_shebang.sh dist/cli/server.js",
     "compilees": "npm run esbuild",
-    "compiletsup": "tsup",
-    "compile": "tsc -p ./",
+    "compile": "tsup",
+    "compiletsup": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "test": "nyc --require ts-node/register --require source-map-support/register mocha test/**/*.spec.ts",
     "esbuild-base": "npx esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
