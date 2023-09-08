@@ -18,7 +18,6 @@ import {
   TransportKind,
 } from "vscode-languageclient/node";
 
-import { lintAndfixCurrentDocument } from "./server/linter/soliumClientFixer";
 // tslint:disable-next-line:no-duplicate-imports
 import { workspace, WorkspaceFolder } from "vscode";
 import { formatDocument } from "./client/formatter/formatter";
@@ -98,7 +97,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("solidity.fixDocument", () => {
-      lintAndfixCurrentDocument();
+      // lintAndfixCurrentDocument();
     })
   );
 
@@ -243,7 +242,7 @@ export async function activate(context: vscode.ExtensionContext) {
       configurationSection: "solidity",
       // Notify the server about file changes to '.sol.js files contain in the workspace (TODO node, linter)
       fileEvents: vscode.workspace.createFileSystemWatcher(
-        "{**/remappings.txt,**/.solhint.json,**/.soliumrc.json,**/brownie-config.yaml}"
+        "{**/remappings.txt,**/.solhint.json,**/brownie-config.yaml}"
       ),
     },
     initializationOptions: context.extensionPath,

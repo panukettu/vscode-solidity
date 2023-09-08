@@ -1,5 +1,5 @@
 {
-  "name": "vscode-solidity",
+  "name": "vsc-solidity",
   "description": "adds kek grammar and removes codegen stuff",
   "keywords": [
     "solidity",
@@ -9,14 +9,14 @@
     "solium",
     "solhint"
   ],
-  "version": "0.0.165",
+  "version": "0.3.165",
   "publisher": "0xp",
   "license": "MIT",
   "engines": {
     "vscode": "^1.77.0"
   },
   "files": [
-    "/dist/cli"
+    "/out"
   ],
   "contributors": [
     "Juan Blanco"
@@ -33,18 +33,28 @@
     "Programming Languages",
     "Snippets"
   ],
-  "main": "./out/src/extension",
+  "main": "./out/src/extension.js",
   "bin": {
-    "vscode-solidity-server": "./dist/cli/server.js"
+    "vscode-solidity-server": "./out/src/server.js"
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "package": "vsce package",
-    "prepublishOnly": "tsc --noEmit && npm run build:cli",
+    "prepublishOnly": "tsup",
     "build:cli": "tsup src/server.ts -d dist/cli && sh scripts/add_shebang.sh dist/cli/server.js",
+    "compilees": "npm run esbuild",
+    "compiletsup": "tsup",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "test": "nyc --require ts-node/register --require source-map-support/register mocha test/**/*.spec.ts"
+    "test": "nyc --require ts-node/register --require source-map-support/register mocha test/**/*.spec.ts",
+    "esbuild-base": "npx esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "esbuild-server": "npx esbuild ./src/server.ts --bundle --outfile=out/server.js --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base && npm run esbuild-server -- --sourcemap",
+    "test-compile": "tsc -p ./"
+  },
+  "vsce": {
+    "dependencies": true,
+    "useYarn": false
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
@@ -54,23 +64,32 @@
     "prettier": "^2.8.4",
     "prettier-plugin-solidity": "^1.1.2",
     "solc": "^0.8.19",
-    "solhint": "^3.4.0",
-    "solium": "^1.2.5",
+    "solhint": "^3.6.2",
     "solparse-exp-jb": "3.0.3",
     "vscode-languageclient": "^8.1.0",
     "vscode-languageserver": "^8.1.0",
     "vscode-languageserver-textdocument": "^1.0.8",
-    "vscode-uri": "3.0.2",
+    "vscode-uri": "3.0.7",
     "yaml-js": "0.2.3"
   },
   "devDependencies": {
+    "@enio.ai/data-ferret": "^2.0.1",
+    "@types/glob": "^8.1.0",
     "@types/node": "^11.15.3",
     "@types/vscode": "^1.77.0",
+    "class-utils": "^0.3.6",
+    "esbuild": "0.19.2",
+    "esbuild-plugin-copy": "^2.1.1",
+    "lodash.unset": "^4.5.2",
+    "obj-walker": "^1.7.0",
+    "reftools": "^1.1.9",
+    "safe-clone-deep": "^1.1.5",
     "ts-node": "^7.0.1",
     "tslint": "^5.20.1",
-    "tsup": "^7.1.0",
+    "tsup": "^7.2.0",
     "typescript": "^5.0.4",
-    "vsce": "^2.12.0"
+    "vsce": "^2.15.0",
+    "what-is-circular": "^1.0.1"
   },
   "nyc": {
     "extension": [
@@ -215,9 +234,6 @@
         }
       }
     },
-    "activationEvents": [
-      "onLanguage:solidity"
-    ],
     "languages": [
       {
         "id": "solidity",
