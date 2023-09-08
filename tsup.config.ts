@@ -29,8 +29,8 @@ export default defineConfig(async () => {
       "yaml-js",
     ],
     treeshake: true,
-    splitting: false,
-    minify: true,
+    splitting: true,
+    minify: false,
     clean: true,
     async onSuccess() {
       execSync("cp ./package.json ./out/package.json");

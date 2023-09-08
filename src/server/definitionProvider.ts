@@ -109,7 +109,6 @@ export class SolidityDefinitionProvider {
     this.currentItem = documentContractSelected.getSelectedItem(
       this.currentOffset
     );
-
     const references =
       documentContractSelected.getSelectedTypeReferenceLocation(
         this.currentOffset

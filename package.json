@@ -9,7 +9,7 @@
     "solium",
     "solhint"
   ],
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "0xp",
   "license": "MIT",
   "engines": {
@@ -40,11 +40,11 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "package": "vsce package",
-    "prepublishOnly": "tsup",
+    "prepublishOnly": "npm run compile",
     "build:cli": "tsup src/server.ts -d dist/cli && sh scripts/add_shebang.sh dist/cli/server.js",
     "compilees": "npm run esbuild",
     "compile": "tsup",
-    "compiletsup": "tsc -p ./",
+    "compiletsc": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "test": "nyc --require ts-node/register --require source-map-support/register mocha test/**/*.spec.ts",
     "esbuild-base": "npx esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",

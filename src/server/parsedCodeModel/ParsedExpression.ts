@@ -368,17 +368,38 @@ export class ParsedExpressionCall extends ParsedExpression {
           this.reference = foundResults[0];
         }
       } else {
-        // if (this.name !== SolidityDefinitionProvider.currentItem.name) return;
         const name =
           SolidityDefinitionProvider.currentOffset > 0
             ? SolidityDefinitionProvider.currentItem.name
             : this.name;
-        this.reference = locate(
-          this.parent.document,
-          "getAllContracts",
-          (item) => item.findMethodsInScope(name)[0],
-          this.parent.document?.innerContracts
-        );
+
+        try {
+          this.reference = locate(
+            this.parent.document,
+            "getAllContracts",
+            (item) => item.getInnerMethodCalls().find((c) => c.name === name),
+            this.parent.document?.innerContracts
+          );
+        } catch (e) {
+          console.debug(e.message);
+          try {
+            const found =
+              // @ts-expect-error
+              SolidityDefinitionProvider.currentItem.parent.findMethodsInScope(
+                name
+              );
+            if (found.length > 0) {
+              this.reference = found[0];
+            } else {
+              throw Error("Nope");
+            }
+          } catch (e) {
+            const found = this.parent.findMethodsInScope(name);
+            if (found.length > 0) {
+              this.reference = found[0];
+            }
+          }
+        }
       }
     }
   }

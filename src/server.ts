@@ -31,7 +31,6 @@ import { CodeWalkerService } from "./server/parsedCodeModel/codeWalkerService";
 import { replaceRemappings } from "./common/util";
 import {
   findFirstRootProjectFile,
-  initialiseProject,
   loadRemappings,
 } from "./common/projectService";
 
@@ -488,11 +487,11 @@ connection.onDidChangeWatchedFiles((_change) => {
 });
 documents.onDidOpen((handler) => {
   try {
-    if (!codeWalkerService) {
+    if (codeWalkerService === null) {
       initWorkspaceRootFolder(handler.document.uri);
       initCurrentProjectInWorkspaceRootFsPath(handler.document.uri);
       remappings = loadRemappings(rootPath, []);
-      packageDefaultDependenciesContractsDirectory = "src";
+      // packageDefaultDependenciesContractsDirectory = "src";
       getCodeWalkerService();
     }
   } catch (e) {
