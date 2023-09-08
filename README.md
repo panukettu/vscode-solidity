@@ -1,6 +1,8 @@
-# Solidity support for Visual Studio code
+# Solidity support for Visual Studio code (FORK)
 
 [![Version](https://vsmarketplacebadges.dev/version/juanblanco.solidity.png)](https://marketplace.visualstudio.com/items?itemName=juanblanco.solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/juanblanco.solidity.png)](https://marketplace.visualstudio.com/items?itemName=juanblanco.solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/juanblanco.solidity.png)](https://marketplace.visualstudio.com/items?itemName=juanblanco.solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/juanblanco.solidity.png)](https://marketplace.visualstudio.com/items?itemName=juanblanco.solidity#review-details)
+
+## in this fork Go To Definition and Auto Completions work on global using for injections. Also this loads all sol files to cache on project open.
 
 Solidity is the language used in Ethereum to create smart contracts, this extension provides:
 
@@ -18,10 +20,7 @@ Solidity is the language used in Ethereum to create smart contracts, this extens
 - Compilation supporting EIP82 (dappfile and dependency packages)
 - Support for different solidity versions (Remote and local)
 - Download source code and Abi from Etherscan
-- Code generation using [Nethereum](https://github.com/Nethereum/Nethereum), it includes currently the default template for Nethereum service, dtos generation.
-  (Open 'contractName.json' after compilation from the bin folder. Press <kbd>F1</kbd> and press Solidity: Code generate from compilation output..)
-  Auto generation of Nethereum files on compilation
-- Linting using [Solhint](https://github.com/protofire/solhint) or [Ethlint](https://github.com/duaraghav8/Ethlint)
+- Linting using [Solhint](https://github.com/protofire/solhint)
 
 It is also available as a standalone LSP:
 
