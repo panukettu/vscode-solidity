@@ -9,7 +9,7 @@
     "diamond",
     "solhint"
   ],
-  "version": "0.5.0",
+  "version": "0.5.2",
   "publisher": "0xp",
   "license": "MIT",
   "engines": {
@@ -112,10 +112,6 @@
       "type": "object",
       "title": "Solidity configuration",
       "properties": {
-        "codelens-sample.enableCodeLens": {
-          "type": "boolean",
-          "default": true
-        },
         "solidity.nodemodulespackage": {
           "type": "string",
           "default": "solc",
@@ -151,8 +147,7 @@
           "type": "string",
           "enum": [
             "",
-            "solhint",
-            "solium"
+            "solhint"
           ],
           "default": "solhint",
           "description": "Enables linting using either solium (ethlint) or solhint. Possible options 'solhint' and 'solium', the default is solhint"
@@ -174,24 +169,6 @@
           ],
           "description": "Enables / disables the solidity formatter prettier (default) or forge (note it needs to be installed)"
         },
-        "solidity.soliumRules": {
-          "type": [
-            "object"
-          ],
-          "default": {
-            "imports-on-top": 0,
-            "variable-declarations": 0,
-            "indentation": [
-              "off",
-              4
-            ],
-            "quotes": [
-              "off",
-              "double"
-            ]
-          },
-          "description": "Solium linting validation rules"
-        },
         "solidity.enabledAsYouTypeCompilationErrorCheck": {
           "type": "boolean",
           "default": true,
@@ -200,7 +177,7 @@
         "solidity.validationDelay": {
           "type": "number",
           "default": 1500,
-          "description": "Delay to trigger the validation of the changes of the current document (compilation, solium)"
+          "description": "Delay to trigger the validation of the changes of the current document (compilation)"
         },
         "solidity.packageDefaultDependenciesDirectory": {
           "type": [

@@ -4,12 +4,14 @@
 
 # Fork Features
 
+- Bundles all dependencies
 - Removes nethereum and solium related things.
 - Go To Definition, References and Auto Completions work on global using for injections.
 - Loads all sol files to cache on project open.
 - Auto-completes individual symbol imports
 - Minimal support for signature help
 - Adds non-standard TextMate grammar "kek" for more detailed theming
+- Natspec displays from @inheritdoc
 - CodeLens:
   - Preview bytes4 selector of function without compiling
   - Preview keccak256 hash of literal string  

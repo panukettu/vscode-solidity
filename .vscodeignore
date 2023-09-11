@@ -6,9 +6,11 @@ src/**
 **/*.map
 *.vsix
 .gitignore
-# node_modules/**
+node_modules/**
 tsconfig.json
 vsc-extension-quickstart.md
 tslint.json
 tsup.config.ts
 dist
+pnpm-lock.yaml
+scripts/**

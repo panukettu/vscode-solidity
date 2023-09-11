@@ -27,10 +27,11 @@ export default defineConfig(async () => {
       "vscode-languageserver-textdocument",
       "vscode-uri",
       "yaml-js",
+      "viem",
     ],
     treeshake: true,
-    splitting: false,
-    minify: false,
+    splitting: true,
+    minify: true,
     clean: true,
     async onSuccess() {
       execSync("cp ./package.json ./out/package.json");
