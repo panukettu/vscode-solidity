@@ -10,6 +10,43 @@ import { fileURLToPath } from "url";
 import * as path from "path";
 import { DotCompletionService } from "./parsedCodeModel/codeCompletion/dotCompletionService";
 
+const existingFuncRegexp = new RegExp(/(.*?\(.*?\))/s);
+const innerImportRegexp = new RegExp(/(import\s\{)/s);
+const importRegexp = new RegExp(/(import\s)(?!\{)/s);
+const fromRegexp = new RegExp(/(import\s\{.*?\}\sfrom)/s);
+const findFromItem = new RegExp(/import\s\{(.*?)\W/s);
+
+const textEdit = (path: string, range: vscode.Range, prefix: string) => {
+  return vscode.InsertReplaceEdit.create(prefix + path + '";', range, range);
+};
+
+const getImportPath = (
+  file: string,
+  dependencies: string[],
+  document: vscode.TextDocument,
+  walker: CodeWalkerService
+): [string, boolean] => {
+  const item = path.join(file);
+  const dependency = dependencies.find((x) => item.startsWith(x));
+  const remapping = walker.project.findRemappingForFile(item);
+  if (remapping) {
+    if (remapping != null) {
+      return [remapping.createImportFromFile(item).split("\\").join("/"), true];
+    } else {
+      if (dependency) {
+        const importPath = item.substr(dependency.length + 1);
+        return [importPath.split("\\").join("/"), false];
+      }
+      let rel = relative(fileURLToPath(document.uri), item);
+      const folders = rel.split("\\");
+      rel = folders.join("/");
+      if (rel.startsWith("../")) {
+        rel = rel.substr(1);
+      }
+      return [rel, folders.length < 3 ? true : false];
+    }
+  }
+};
 export class CompletionService {
   public rootPath: string;
 
@@ -22,11 +59,14 @@ export class CompletionService {
     position: vscode.Position,
     walker: CodeWalkerService
   ): CompletionItem[] {
-    let completionItems = [];
+    let completionItems: CompletionItem[] = [];
     let triggeredByEmit = false;
     let triggeredByImport = false;
+    let triggeredByInnerImport = false;
+    let triggeredByFrom = false;
     let triggeredByRevert = false;
     let triggeredByDotStart = 0;
+    let line: string;
     try {
       const offset = document.offsetAt(position);
 
@@ -36,32 +76,34 @@ export class CompletionService {
       );
 
       const lines = document.getText().split(/\r?\n/g);
+      line = lines[position.line];
       triggeredByDotStart = DotCompletionService.getTriggeredByDotStart(
         lines,
         position
       );
       // triggered by emit is only possible with ctrl space
-      triggeredByEmit =
-        getAutocompleteVariableNameTrimmingSpaces(
-          lines[position.line],
-          position.character - 1
-        ) === "emit";
-      triggeredByImport =
-        getAutocompleteVariableNameTrimmingSpaces(
-          lines[position.line],
-          position.character - 1
-        ) === "import";
-      triggeredByRevert =
-        getAutocompleteVariableNameTrimmingSpaces(
-          lines[position.line],
-          position.character - 1
-        ) === "revert";
+      const autoCompleteVariable = getAutocompleteVariableNameTrimmingSpaces(
+        line,
+        position.character - 1
+      );
+
+      triggeredByEmit = autoCompleteVariable === "emit";
+      triggeredByFrom = fromRegexp.test(line);
+      triggeredByRevert = autoCompleteVariable === "revert";
+      if (!triggeredByFrom) {
+        triggeredByInnerImport = innerImportRegexp.test(line);
+        if (!triggeredByInnerImport) {
+          triggeredByImport = importRegexp.test(line);
+        }
+      }
       //  TODO: this does not work due to the trigger.
       // || (lines[position.line].trimLeft().startsWith('import "') && lines[position.line].trimLeft().lastIndexOf('"') === 7);
 
       if (triggeredByDotStart > 0) {
+        const text = line.slice(position.character);
+        const isReplacingExistingCall = existingFuncRegexp.test(text);
         const globalVariableContext = GetContextualAutoCompleteByGlobalVariable(
-          lines[position.line],
+          line,
           triggeredByDotStart
         );
         if (globalVariableContext != null) {
@@ -77,57 +119,81 @@ export class CompletionService {
             )
           );
         }
+
+        if (isReplacingExistingCall) {
+          completionItems = completionItems.map((c) => ({
+            ...c,
+            insertText: "",
+          }));
+        }
         return completionItems;
       }
-      if (triggeredByImport) {
-        const files = glob.sync(this.rootPath + "/**/*.sol");
-        files.forEach((item) => {
-          const dependenciesDirectories = walker.project.packagesDir.map((x) =>
+
+      if (triggeredByImport || triggeredByFrom) {
+        const hasSourceDir =
+          walker.packageDefaultDependenciesContractsDirectory !== "";
+        const sourcesDir =
+          "/" + walker.packageDefaultDependenciesContractsDirectory;
+        const files = glob.sync(
+          this.rootPath + (hasSourceDir ? sourcesDir : "") + "/**/*.sol"
+        );
+        const prefix = line[position.character] === '"' ? "" : '"';
+        const fromIndex = line.indexOf('from "');
+        const editRange = vscode.Range.create(
+          {
+            ...position,
+            character:
+              fromIndex !== -1
+                ? fromIndex + (prefix ? 5 : 6)
+                : position.character,
+          },
+          {
+            ...position,
+            character: line.length,
+          }
+        );
+        const fromItem = triggeredByFrom ? findFromItem.exec(line) : "";
+        const itemName = fromItem.length > 1 && fromItem[1];
+        files.forEach((file) => {
+          const dependencies = walker.project.packagesDir.map((x) =>
             path.join(this.rootPath, x)
           );
 
-          item = path.join(item);
-          const foundDependency = dependenciesDirectories.find((x) =>
-            item.startsWith(x)
+          const [importPath, select] = getImportPath(
+            file,
+            dependencies,
+            document,
+            walker
           );
-          if (foundDependency !== undefined) {
-            let pathLibrary = item.substr(foundDependency.length + 1);
-            pathLibrary = pathLibrary.split("\\").join("/");
-            const completionItem = CompletionItem.create(pathLibrary);
-            completionItem.kind = CompletionItemKind.Reference;
-            completionItem.insertText = '"' + pathLibrary + '";';
-            completionItems.push(completionItem);
-          } else {
-            const remapping = walker.project.findRemappingForFile(item);
-            if (remapping != null) {
-              let pathLibrary = remapping.createImportFromFile(item);
-              pathLibrary = pathLibrary.split("\\").join("/");
-              const completionItem = CompletionItem.create(pathLibrary);
-              completionItem.kind = CompletionItemKind.Reference;
-              completionItem.insertText = '"' + pathLibrary + '";';
-              completionItems.push(completionItem);
-            } else {
-              let rel = relative(fileURLToPath(document.uri), item);
-              rel = rel.split("\\").join("/");
-              if (rel.startsWith("../")) {
-                rel = rel.substr(1);
+          console.log(importPath);
+          const completionItem = CompletionItem.create(importPath);
+          completionItem.textEdit = textEdit(importPath, editRange, prefix);
+          completionItem.kind = CompletionItemKind.File;
+
+          if (itemName) {
+            const doc = walker.parsedDocumentsCache.find(
+              (d) => d.sourceDocument.absolutePath === file
+            );
+            if (doc) {
+              const item = doc.findItem(itemName);
+              if (item) {
+                completionItem.preselect = true;
+                completionItem.detail = item.getContractNameOrGlobal();
+                completionItem.kind = item.createCompletionItem().kind;
+                completionItem.documentation = item.getMarkupInfo();
               }
-              const completionItem = CompletionItem.create(rel);
-              completionItem.kind = CompletionItemKind.Reference;
-              completionItem.insertText = '"' + rel + '";';
-              completionItems.push(completionItem);
             }
+          } else if (select) {
+            completionItem.preselect = select;
           }
+          completionItems.push(completionItem);
         });
 
         return completionItems;
       }
 
       if (triggeredByEmit) {
-        if (
-          documentContractSelected.selectedContract !== undefined &&
-          documentContractSelected.selectedContract !== null
-        ) {
+        if (documentContractSelected.selectedContract != null) {
           completionItems = completionItems.concat(
             documentContractSelected.selectedContract.getAllEventsCompletionItems()
           );
@@ -137,10 +203,7 @@ export class CompletionService {
           );
         }
       } else if (triggeredByRevert) {
-        if (
-          documentContractSelected.selectedContract !== undefined &&
-          documentContractSelected.selectedContract !== null
-        ) {
+        if (documentContractSelected.selectedContract != null) {
           completionItems = completionItems.concat(
             documentContractSelected.selectedContract.getAllErrorsCompletionItems()
           );
@@ -150,13 +213,11 @@ export class CompletionService {
           );
         }
       } else {
-        if (
-          documentContractSelected.selectedContract !== undefined &&
-          documentContractSelected.selectedContract !== null
-        ) {
-          const selectedContract = documentContractSelected.selectedContract;
+        if (documentContractSelected.selectedContract != null) {
           completionItems = completionItems.concat(
-            selectedContract.getSelectedContractCompletionItems(offset)
+            documentContractSelected.selectedContract.getSelectedContractCompletionItems(
+              offset
+            )
           );
         } else {
           completionItems = completionItems.concat(
@@ -165,6 +226,7 @@ export class CompletionService {
         }
       }
     } catch (error) {
+      console.log(error.message);
       // graceful catch
     } finally {
       completionItems = completionItems.concat(GetCompletionTypes());
@@ -172,6 +234,47 @@ export class CompletionService {
       completionItems = completionItems.concat(GeCompletionUnits());
       completionItems = completionItems.concat(GetGlobalFunctions());
       completionItems = completionItems.concat(GetGlobalVariables());
+    }
+    if (triggeredByInnerImport) {
+      try {
+        const hasPreviousItems = line.indexOf(",") !== -1;
+        const selectionStart = {
+          line: position.line,
+          character: hasPreviousItems
+            ? line.indexOf(",") + 1
+            : line.indexOf("{") + 1,
+        };
+        const selectionEnd = {
+          line: position.line,
+          character: line.indexOf("}") + 1,
+        };
+        // const range = vscode.Range.create(position, lineEnd);
+        const editRange = vscode.Range.create(selectionStart, selectionEnd);
+        const filePath = fileURLToPath(document.uri);
+        const result = completionItems.map((i) => {
+          if (!i.data?.absolutePath) return i;
+          let rel = relative(filePath, i.data.absolutePath);
+          rel = rel.split("\\").join("/");
+          if (rel.startsWith("../")) {
+            rel = rel.substr(1);
+          }
+          const prefix = hasPreviousItems ? " " : "";
+          const importPath = i.data.remappedPath ?? rel;
+          return {
+            ...i,
+            preselect: true,
+            textEdit: vscode.InsertReplaceEdit.create(
+              prefix + i.insertText + '} from "' + importPath + '";',
+              editRange,
+              editRange
+            ),
+          };
+        });
+
+        return result;
+      } catch (e) {
+        console.log(e.message);
+      }
     }
     return completionItems;
   }

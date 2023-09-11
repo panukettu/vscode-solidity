@@ -136,7 +136,17 @@ export class ParsedCode {
         this.contract.name
       );
     } else {
-      return "Global";
+      const item = this.document.findItem(this.name);
+      if (item) {
+        return "(Global) " + item.element.type;
+      } else {
+        const item = this.document.findType(this.name);
+        if (item) {
+          return item.element.type;
+        } else {
+          return "";
+        }
+      }
     }
   }
 
@@ -155,10 +165,28 @@ export class ParsedCode {
       let comment = "";
       let currentLine = position.line - 1;
       while (this.isCommentLine(document, currentLine)) {
+        const content = document
+          .getText(this.getLineRange(currentLine))
+          .trimStart();
+        const inherits = content.match(/(?<=@inheritdoc\s)(\w+)/g);
+        if (inherits?.length > 0) {
+          const inheritFrom = inherits[0];
+          const inheritDoc = this.document
+            .getAllContracts()
+            .find((d) => d.name === inheritFrom);
+          if (inheritDoc) {
+            const item = this.document.getSelectedItem(this.element.start);
+            const itemInherit = inheritDoc.findMethodsInScope(item.name);
+            if (itemInherit?.length > 0) {
+              comment = itemInherit[0].getComment() + comment;
+            }
+          }
+        }
         comment =
           "\t" +
           document.getText(this.getLineRange(currentLine)).trimStart() +
           comment;
+
         currentLine = currentLine - 1;
       }
       this.comment = comment;
@@ -220,9 +248,18 @@ export class ParsedCode {
     }
     return false;
   }
-
   public createCompletionItem(): CompletionItem {
     return null;
+  }
+  public initCompletionItem(): CompletionItem {
+    const completionItem = CompletionItem.create(this.name);
+    completionItem.data = {
+      absolutePath: this.document.sourceDocument.absolutePath,
+      remappedPath: this.document.sourceDocument.project
+        .findRemappingForFile(this.document.sourceDocument.absolutePath)
+        .createImportFromFile(this.document.sourceDocument.absolutePath),
+    };
+    return completionItem;
   }
 
   public isCurrentElementedSelected(offset: number): boolean {

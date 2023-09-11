@@ -1,40 +1,48 @@
 "use strict";
+import {
+  CodeLens,
+  CompletionItem,
+  createConnection,
+  Diagnostic,
+  Hover,
+  InitializeResult,
+  Location,
+  ProposedFeatures,
+  Range,
+  SignatureHelp,
+  TextDocumentPositionParams,
+  TextDocuments,
+  TextDocumentSyncKind,
+  WorkspaceFolder,
+} from "vscode-languageserver/node";
+import { TextDocument as DocumentExecuteCommand } from "vscode";
 import { compilerType, SolcCompiler } from "./common/solcCompiler";
-import Linter from "./server/linter/linter";
-import SolhintService from "./server/linter/solhint";
-import { CompilerError } from "./server/solErrorsToDiagnostics";
 import { CompletionService } from "./server/completionService";
 import {
+  SignatureHelpProvider,
   SolidityDefinitionProvider,
   SolidityHoverProvider,
   SolidityReferencesProvider,
 } from "./server/definitionProvider";
-import {
-  createConnection,
-  TextDocuments,
-  InitializeResult,
-  Diagnostic,
-  ProposedFeatures,
-  TextDocumentPositionParams,
-  CompletionItem,
-  Location,
-  SignatureHelp,
-  TextDocumentSyncKind,
-  WorkspaceFolder,
-  Hover,
-} from "vscode-languageserver/node";
+import Linter from "./server/linter/linter";
+import SolhintService from "./server/linter/solhint";
+import { CompilerError } from "./server/solErrorsToDiagnostics";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { URI } from "vscode-uri";
 
-import { CodeWalkerService } from "./server/parsedCodeModel/codeWalkerService";
-import { replaceRemappings } from "./common/util";
 import {
   findFirstRootProjectFile,
   loadRemappings,
 } from "./common/projectService";
+import { replaceRemappings } from "./common/util";
+import { CodeWalkerService } from "./server/parsedCodeModel/codeWalkerService";
 
 import packageJson from "../package.json";
+import {
+  ExecuteCommandProvider,
+  SERVER_COMMANDS_LIST,
+} from "./server/commandProvider";
 
 interface SoliditySettings {
   // option for backward compatibilities, please use "linter" option instead
@@ -278,66 +286,6 @@ function updateSoliditySettings(soliditySettings: SoliditySettings) {
   startValidation();
 }
 
-connection.onSignatureHelp((): SignatureHelp => {
-  return null;
-});
-
-connection.onCompletion(
-  (textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-    let completionItems = [];
-    const document = documents.get(textDocumentPosition.textDocument.uri);
-    const projectRootPath = initCurrentProjectInWorkspaceRootFsPath(
-      document.uri
-    );
-
-    const service = new CompletionService(projectRootPath);
-
-    completionItems = completionItems.concat(
-      service.getAllCompletionItems(
-        document,
-        textDocumentPosition.position,
-        getCodeWalkerService()
-      )
-    );
-    return [...new Set(completionItems)];
-  }
-);
-
-connection.onReferences((handler: TextDocumentPositionParams): Location[] => {
-  initWorkspaceRootFolder(handler.textDocument.uri);
-  initCurrentProjectInWorkspaceRootFsPath(handler.textDocument.uri);
-
-  return SolidityReferencesProvider.provideReferences(
-    documents.get(handler.textDocument.uri),
-    handler.position,
-    getCodeWalkerService()
-  );
-});
-
-connection.onDefinition(
-  (handler: TextDocumentPositionParams): Thenable<Location | Location[]> => {
-    initWorkspaceRootFolder(handler.textDocument.uri);
-    initCurrentProjectInWorkspaceRootFsPath(handler.textDocument.uri);
-
-    return SolidityDefinitionProvider.provideDefinition(
-      documents.get(handler.textDocument.uri),
-      handler.position,
-      getCodeWalkerService()
-    );
-  }
-);
-
-connection.onHover((handler: TextDocumentPositionParams): Hover | undefined => {
-  initWorkspaceRootFolder(handler.textDocument.uri);
-  initCurrentProjectInWorkspaceRootFsPath(handler.textDocument.uri);
-  const provider = new SolidityHoverProvider();
-  return provider.provideHover(
-    documents.get(handler.textDocument.uri),
-    handler.position,
-    getCodeWalkerService()
-  );
-});
-
 // This handler resolve additional information for the item selected in
 // the completion list.
 // connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
@@ -435,12 +383,19 @@ connection.onInitialize((params): InitializeResult => {
     capabilities: {
       completionProvider: {
         resolveProvider: false,
-        triggerCharacters: ["."],
+        triggerCharacters: [".", "/", '"', "'", "*"],
       },
       definitionProvider: true,
       referencesProvider: true,
       hoverProvider: true,
+      signatureHelpProvider: {
+        workDoneProgress: false,
+        triggerCharacters: ["(", ","],
+      },
       textDocumentSync: TextDocumentSyncKind.Full,
+      executeCommandProvider: {
+        commands: Object.values(SERVER_COMMANDS_LIST),
+      },
     },
   };
 
@@ -479,12 +434,98 @@ connection.onInitialized(() => {
   }
 });
 
+connection.onSignatureHelp((handler): SignatureHelp => {
+  initWorkspaceRootFolder(handler.textDocument.uri);
+  initCurrentProjectInWorkspaceRootFsPath(handler.textDocument.uri);
+
+  return new SignatureHelpProvider().provideSignatureHelp(
+    documents.get(handler.textDocument.uri),
+    handler.position,
+    getCodeWalkerService()
+  );
+});
+
+connection.onCompletion(
+  (textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
+    const document = documents.get(textDocumentPosition.textDocument.uri);
+    const projectRootPath = initCurrentProjectInWorkspaceRootFsPath(
+      document.uri
+    );
+
+    const service = new CompletionService(projectRootPath);
+
+    const completionItems = service.getAllCompletionItems(
+      document,
+      textDocumentPosition.position,
+      getCodeWalkerService()
+    );
+    return [...new Set(completionItems)];
+  }
+);
+
+connection.onReferences((handler: TextDocumentPositionParams): Location[] => {
+  initWorkspaceRootFolder(handler.textDocument.uri);
+  initCurrentProjectInWorkspaceRootFsPath(handler.textDocument.uri);
+
+  return SolidityReferencesProvider.provideReferences(
+    documents.get(handler.textDocument.uri),
+    handler.position,
+    getCodeWalkerService()
+  );
+});
+
+connection.onDefinition(
+  (handler: TextDocumentPositionParams): Location | Location[] => {
+    initWorkspaceRootFolder(handler.textDocument.uri);
+    initCurrentProjectInWorkspaceRootFsPath(handler.textDocument.uri);
+    return SolidityDefinitionProvider.provideDefinition(
+      documents.get(handler.textDocument.uri),
+      handler.position,
+      getCodeWalkerService()
+    );
+  }
+);
+
+connection.onHover((handler: TextDocumentPositionParams): Hover | undefined => {
+  initWorkspaceRootFolder(handler.textDocument.uri);
+  initCurrentProjectInWorkspaceRootFsPath(handler.textDocument.uri);
+  const provider = new SolidityHoverProvider();
+  return provider.provideHover(
+    documents.get(handler.textDocument.uri),
+    handler.position,
+    getCodeWalkerService()
+  );
+});
+
+type CommandParamsBase = [
+  DocumentExecuteCommand & { uri: { external: string } },
+  any[]
+];
+
+connection.onExecuteCommand((args) => {
+  const [document, range] = args.arguments as CommandParamsBase;
+  initWorkspaceRootFolder(document.uri.external);
+  initCurrentProjectInWorkspaceRootFsPath(document.uri.external);
+  try {
+    return ExecuteCommandProvider.executeCommand(
+      args,
+      documents.get(document.uri.external),
+      Range.create(range[0], range[1]),
+      getCodeWalkerService()
+    );
+  } catch (e) {
+    console.log(e.message);
+    return null;
+  }
+});
+
 connection.onDidChangeWatchedFiles((_change) => {
   if (linter !== null) {
     linter.loadFileConfig(rootPath);
   }
   validateAllDocuments();
 });
+
 documents.onDidOpen((handler) => {
   try {
     if (codeWalkerService === null) {

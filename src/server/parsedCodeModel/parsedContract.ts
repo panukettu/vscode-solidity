@@ -14,6 +14,8 @@ import { ParsedStruct } from "./ParsedStruct";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
 import { ParsedUsing } from "./parsedUsing";
+import { relative } from "path";
+import { fileURLToPath } from "url";
 
 export enum ContractType {
   contract,
@@ -373,7 +375,29 @@ export class ParsedContract
     }
     return [this.createNotFoundReferenceLocationResult()];
   }
-
+  public getAllItems(): ParsedCode[] {
+    const structMembers = this.structs
+      .map((s) => s.getInnerMembers())
+      .flatMap((s) => s);
+    const functionMembers = this.functions
+      .map((f) => f.getAllItems())
+      .flatMap((s) => s);
+    return []
+      .concat(this.functions)
+      .concat(functionMembers)
+      .concat(this.errors)
+      .concat(this.events)
+      .concat(this.structs)
+      .concat(structMembers)
+      .concat(this.stateVariables)
+      .concat(this.customTypes)
+      .concat(this.using)
+      .concat(this.contractIsStatements)
+      .concat(this.expressions)
+      .concat(this.constructorFunction)
+      .concat(this.fallbackFunction)
+      .concat(this.receiveFunction);
+  }
   public override getSelectedItem(offset: number): ParsedCode {
     let selectedItem: ParsedCode = null;
     if (this.isCurrentElementedSelected(offset)) {
@@ -721,9 +745,9 @@ export class ParsedContract
     }
   }
 
-  public override createCompletionItem(): CompletionItem {
+  public createCompletionItem(): CompletionItem {
     if (this.completionItem === null) {
-      const completionItem = CompletionItem.create(this.name);
+      const completionItem = this.initCompletionItem();
       if (this.contractType === ContractType.interface) {
         completionItem.kind = CompletionItemKind.Interface;
       } else {
@@ -731,6 +755,7 @@ export class ParsedContract
       }
 
       completionItem.insertText = this.name;
+
       completionItem.detail =
         "(" +
         this.getContractTypeName(this.contractType) +
@@ -738,7 +763,6 @@ export class ParsedContract
         this.name +
         ") in " +
         this.document.sourceDocument.absolutePath;
-
       this.completionItem = completionItem;
     }
     return this.completionItem;
@@ -919,12 +943,9 @@ export class ParsedContract
     parentStatement: any,
     child: ParsedExpression
   ) {
+    if (!statement) return;
     try {
-      if (
-        statement !== undefined &&
-        statement.type !== undefined &&
-        statement.type !== null
-      ) {
+      if (statement.type != null) {
         switch (statement.type) {
           case "CallExpression": // e.g. Func(x, y)
             const callExpression = ParsedExpression.createFromElement(

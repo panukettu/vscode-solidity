@@ -7,7 +7,7 @@ export default defineConfig(async () => {
     entry: ["src/extension.ts", "src/server.ts"],
     external: ["vscode", "typescript"],
     format: "cjs",
-    outDir: "./out",
+    outDir: "./out/src/",
     platform: "node",
     sourcemap: false,
     bundle: true,
@@ -29,17 +29,19 @@ export default defineConfig(async () => {
       "yaml-js",
     ],
     treeshake: true,
-    splitting: true,
+    splitting: false,
     minify: false,
     clean: true,
     async onSuccess() {
       execSync("cp ./package.json ./out/package.json");
-      execSync("cp ./node_modules/@solidity-parser/parser/dist/*.tokens ./out");
-      if (!existsSync("./out/antlr")) {
-        mkdirSync("./out/antlr", {});
+      execSync(
+        "cp ./node_modules/@solidity-parser/parser/dist/*.tokens ./out/src/"
+      );
+      if (!existsSync("./out/src/antlr")) {
+        mkdirSync("./out/src/antlr", {});
       }
       execSync(
-        "cp ./node_modules/@solidity-parser/parser/dist/antlr/*.tokens ./out/antlr"
+        "cp ./node_modules/@solidity-parser/parser/dist/antlr/*.tokens ./out/src/antlr"
       );
     },
   };

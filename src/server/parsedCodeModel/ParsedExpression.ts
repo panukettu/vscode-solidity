@@ -1,4 +1,3 @@
-import { registerClassTypes, setConfig } from "@enio.ai/data-ferret";
 import { CompletionItem } from "vscode-languageserver";
 import { SolidityDefinitionProvider } from "../definitionProvider";
 import { IParsedExpressionContainer } from "./IParsedExpressionContainer";
@@ -14,8 +13,6 @@ export enum ExpressionType {
   Call,
   Identifier,
 }
-
-registerClassTypes(ParsedCode, ParsedFunction, ParsedStruct, ParsedContract);
 
 export class ParsedExpression extends ParsedCode {
   public parent: ParsedExpression = null;
@@ -312,7 +309,7 @@ export class ParsedExpressionCall extends ParsedExpression {
     this.initReference();
     this.initExpressionType();
     let results: FindTypeReferenceLocationResult[] = [];
-    if (this.reference !== null && this.reference.isTheSame(parsedCode)) {
+    if (this.reference != null && this.reference.isTheSame(parsedCode)) {
       results.push(this.createFoundReferenceLocationResult());
     }
     if (this.parent !== null) {
@@ -381,22 +378,33 @@ export class ParsedExpressionCall extends ParsedExpression {
             this.parent.document?.innerContracts
           );
         } catch (e) {
-          console.debug(e.message);
+          console.log(e.message);
           try {
-            const found =
-              // @ts-expect-error
-              SolidityDefinitionProvider.currentItem.parent.findMethodsInScope(
-                name
-              );
-            if (found.length > 0) {
-              this.reference = found[0];
-            } else {
-              throw Error("Nope");
+            // @ts-expect-error
+            if (SolidityDefinitionProvider.currentItem?.parent) {
+              const found =
+                // @ts-expect-error
+                SolidityDefinitionProvider.currentItem.parent.findMethodsInScope(
+                  name
+                );
+              if (found.length > 0) {
+                this.reference = found[0];
+              } else {
+                throw Error("No method reference found");
+              }
             }
+            throw Error("No parent reference found");
           } catch (e) {
+            console.log(e.message);
             const found = this.parent.findMethodsInScope(name);
             if (found.length > 0) {
               this.reference = found[0];
+            } else {
+              const found = this.parent.findTypeInScope(this.name);
+              if (found) {
+                this.reference = found;
+              }
+              throw Error("No reference found for" + this.name);
             }
           }
         }
@@ -534,7 +542,6 @@ export class ParsedExpressionIdentifier extends ParsedExpression {
     this.initReference();
     this.initExpressionType();
     let results: FindTypeReferenceLocationResult[] = [];
-
     if (this.reference !== null && this.reference.isTheSame(parsedCode)) {
       results.push(this.createFoundReferenceLocationResult());
     }
@@ -694,8 +701,8 @@ export function locate<Item, Result>(
 
   // fallback
   for (const imported of document.importedDocuments) {
-    const data = imported[importDataSelector];
-    for (const item of typeof data === "function" ? data() : data) {
+    const data = imported[importDataSelector]();
+    for (const item of data) {
       const result = check(item);
       if (result) {
         return result;

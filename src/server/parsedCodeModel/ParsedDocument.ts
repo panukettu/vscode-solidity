@@ -1,16 +1,3 @@
-import { ParsedEnum } from "./ParsedEnum";
-import { ParsedEvent } from "./ParsedEvent";
-import { ParsedFunction } from "./ParsedFunction";
-import { ParsedStruct } from "./ParsedStruct";
-import { ParsedContract } from "./parsedContract";
-import { ParsedUsing } from "./parsedUsing";
-import { ParsedImport } from "./ParsedImport";
-import { ParsedError } from "./ParsedError";
-import { ParsedConstant } from "./ParsedConstant";
-import { SourceDocument } from "../../common/model/sourceDocument";
-import { ParsedDeclarationType } from "./parsedDeclarationType";
-import { ParsedCustomType } from "./ParsedCustomType";
-import { URI } from "vscode-uri";
 import {
   CompletionItem,
   Hover,
@@ -18,10 +5,28 @@ import {
   Range,
   TextDocument,
 } from "vscode-languageserver";
-import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
-import { ParsedExpression } from "./ParsedExpression";
+import { URI } from "vscode-uri";
+import { SourceDocument } from "../../common/model/sourceDocument";
 import { IParsedExpressionContainer } from "./IParsedExpressionContainer";
+import { ParsedConstant } from "./ParsedConstant";
+import { ParsedCustomType } from "./ParsedCustomType";
+import { ParsedEnum } from "./ParsedEnum";
+import { ParsedError } from "./ParsedError";
+import { ParsedEvent } from "./ParsedEvent";
+import { ParsedExpression } from "./ParsedExpression";
+import { ParsedFunction } from "./ParsedFunction";
+import { ParsedImport } from "./ParsedImport";
+import { ParsedStruct } from "./ParsedStruct";
+import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
+import { ParsedContract } from "./parsedContract";
+import { ParsedDeclarationType } from "./parsedDeclarationType";
+import { ParsedUsing } from "./parsedUsing";
 
+const refMap = new Map<string, boolean>();
+
+type ParsedType = ParsedContract | ParsedFunction | ParsedStruct | ParsedCode;
+
+type Infer<T> = T extends infer Item ? Item : ParsedCode;
 export class ParsedDocument
   extends ParsedCode
   implements IParsedExpressionContainer
@@ -57,14 +62,27 @@ export class ParsedDocument
 
   public getDocumentsThatReference(document: ParsedDocument): ParsedDocument[] {
     let returnItems: ParsedDocument[] = [];
+    const id = this.sourceDocument.absolutePath.concat(
+      document.sourceDocument.absolutePath
+    );
+    const id2 = document.sourceDocument.absolutePath.concat(
+      this.sourceDocument.absolutePath
+    );
+    if (refMap.has(id) || refMap.has(id2)) {
+      return returnItems;
+    }
+
     if (
       this.isTheSame(document) || // it is the doc so needs be added as a flag for the reference return it later on can be filtered dup
       this.sourceDocument.absolutePath === document.sourceDocument.absolutePath
     ) {
       returnItems.push(this);
+
       return returnItems;
     }
 
+    refMap.set(id, true);
+    refMap.set(id2, true);
     this.imports.forEach(
       (x) =>
         (returnItems = returnItems.concat(
@@ -87,6 +105,7 @@ export class ParsedDocument
 
   public getAllContracts(): ParsedContract[] {
     let returnItems: ParsedContract[] = [];
+
     returnItems = returnItems.concat(this.innerContracts);
     this.importedDocuments.forEach((document) => {
       returnItems = returnItems.concat(document.innerContracts);
@@ -397,6 +416,7 @@ export class ParsedDocument
             x.getAllReferencesToSelected(offset, documents)
           ))
       );
+
       this.errors.forEach(
         (x) =>
           (results = results.concat(
@@ -453,6 +473,31 @@ export class ParsedDocument
     return null;
   }
 
+  public findItem<T extends ParsedCode>(name: string): T {
+    return this.getTypes().find((t) => t.name === name) as unknown as T;
+  }
+
+  public getTypes<T extends ParsedType>(): T[] {
+    const structMembers = this.structs
+      .map((s) => s.getInnerMembers())
+      .flatMap((s) => s);
+    const functionMembers = this.functions
+      .map((f) => f.getAllItems())
+      .flatMap((s) => s);
+    return []
+      .concat(this.functions)
+      .concat(functionMembers)
+      .concat(this.innerContracts)
+      .concat(this.errors)
+      .concat(this.events)
+      .concat(this.structs)
+      .concat(structMembers)
+      .concat(this.usings)
+      .concat(this.customTypes)
+      .concat(this.constants)
+      .concat(this.imports)
+      .concat(this.expressions);
+  }
   public override getSelectedItem(offset: number): ParsedCode {
     let selectedItem: ParsedCode = null;
     if (this.isCurrentElementedSelected(offset)) {
@@ -648,6 +693,20 @@ export class ParsedDocument
     }
   }
 
+  public getGlobals(): ParsedCode[] {
+    let types: ParsedCode[] = [];
+    types
+      .concat(this.getAllGlobalConstants())
+      .concat(this.getAllGlobalCustomTypes())
+      .concat(this.getAllGlobalStructs())
+      .concat(this.getAllGlobalEnums())
+      .concat(this.getAllContracts())
+      .concat(this.getAllGlobalFunctions())
+      .concat(this.getAllGlobalErrors());
+
+    return types;
+  }
+
   public findType(name: string): ParsedCode {
     let typesParsed: ParsedCode[] = [];
     typesParsed = typesParsed
@@ -822,6 +881,7 @@ export class ParsedDocument
     parentStatement: any,
     child: ParsedExpression
   ) {
+    if (!statement) return;
     try {
       if (
         statement !== undefined &&

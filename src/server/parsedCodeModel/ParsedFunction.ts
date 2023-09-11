@@ -77,7 +77,14 @@ export class ParsedFunction
     }
     return results;
   }
-
+  public getAllItems(): ParsedCode[] {
+    return []
+      .concat(this.input)
+      .concat(this.output)
+      .concat(this.expressions)
+      .concat(this.variables)
+      .concat(this.modifiers);
+  }
   public override getSelectedItem(offset: number): ParsedCode {
     let selectedItem: ParsedCode = null;
     if (this.isCurrentElementedSelected(offset)) {
@@ -145,6 +152,39 @@ export class ParsedFunction
 
   public generateSelectedNatspec(offset: number): string {
     return this.generateNatSpec();
+  }
+  public getSelector(): string {
+    let selectors = [];
+    for (const input of this.input) {
+      let selector: string;
+      if (input.type.valueType) {
+        selector = input.type.name;
+      } else {
+        const item = this.contract
+          .getAllStructs()
+          .find((s) => s.name === input.type.name);
+        if (item) {
+          selector = item.abiType;
+        } else {
+          if (
+            this.contract.getAllEnums().find((s) => s.name === input.type.name)
+          ) {
+            selector = "uint8";
+          } else {
+            const customType = this.contract
+              .getAllCustomTypes()
+              .find((s) => s.name === input.type.name);
+            if (customType) {
+              selector = customType.isType;
+            } else {
+              selector = "address";
+            }
+          }
+        }
+      }
+      selectors.push(selector + (input.type.isArray ? "[]" : ""));
+    }
+    return `${this.name}(${selectors.join(",")})`;
   }
 
   public override initialise(
@@ -313,7 +353,7 @@ export class ParsedFunction
 
   public createCompletionItem(skipFirstParamSnipppet = false): CompletionItem {
     if (this.completionItem === null) {
-      const completionItem = CompletionItem.create(this.name);
+      const completionItem = this.initCompletionItem();
       completionItem.kind = CompletionItemKind.Function;
       const paramsSnippet = ParsedParameter.createFunctionParamsSnippet(
         this.element.params,
@@ -324,13 +364,12 @@ export class ParsedFunction
       );
       if (returnParamsInfo !== "") {
         returnParamsInfo = " returns (" + returnParamsInfo + ")";
+        completionItem.command = {
+          command: "editor.action.triggerParameterHints",
+          title: "trigger parameter hint",
+        };
       }
-      let contractName = "";
-      if (!this.isGlobal) {
-        contractName = this.contract.name;
-      } else {
-        contractName = this.document.getGlobalPathInfo();
-      }
+
       completionItem.insertTextFormat = 2;
       let closingSemi = ";";
       if (this.isModifier) {
@@ -339,23 +378,17 @@ export class ParsedFunction
 
       completionItem.insertText =
         this.name + "(" + paramsSnippet + ")" + closingSemi;
-      let functionType = "Function";
-      if (this.isModifier) {
-        functionType = "Modifier";
-      }
 
       completionItem.documentation = this.getMarkupInfo();
-      // completionItem.detail = this.getDetail();
+      completionItem.detail = this.getDetail();
+
       this.completionItem = completionItem;
     }
     return this.completionItem;
   }
 
   public getDetail() {
-    let functionType = "Function";
-    if (this.isModifier) {
-      functionType = "Modifier";
-    }
+    let functionType = this.getParsedObjectType();
     return (
       functionType +
       ": " +
@@ -385,6 +418,10 @@ export class ParsedFunction
   }
 
   public override getParsedObjectType(): string {
+    if (!this.contract) {
+      return "Free Function";
+    }
+
     if (this.isModifier) {
       return "Modifier";
     }
@@ -399,6 +436,7 @@ export class ParsedFunction
     if (this.isFallback) {
       return "Fallback";
     }
+
     return "Function";
   }
 
@@ -426,7 +464,7 @@ export class ParsedFunction
       this.element.returnParams
     );
     if (returnParamsInfo !== "") {
-      returnParamsInfo = " returns (" + returnParamsInfo + ")";
+      returnParamsInfo = "returns (" + returnParamsInfo + ")";
     }
     return (
       this.getDeclaration() +
@@ -434,10 +472,18 @@ export class ParsedFunction
       this.name +
       "(" +
       paramsInfo +
-      ") \n\t\t\t\t" +
+      ")\n\t" +
       this.modifiers.map((x) => x.name).join(" ") +
+      "\n\t" +
       returnParamsInfo
     );
+  }
+  public getSig(): string {
+    const paramsInfo = ParsedParameter.createParamsInfoForSig(
+      this.element.params
+    );
+
+    return this.getDeclaration() + " " + this.name + "(" + paramsInfo + ")";
   }
 
   public override getSelectedTypeReferenceLocation(

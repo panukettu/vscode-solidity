@@ -3,10 +3,12 @@ import { ParsedDocument } from "./ParsedDocument";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedContract } from "./parsedContract";
 import { ParsedUsing } from "./parsedUsing";
+import { valueTypeReg, valueTypes } from "./ParsedCodeTypeHelper";
 
 export class ParsedDeclarationType extends ParsedCode {
   public isArray: boolean;
   public isMapping: boolean;
+  public valueType: boolean;
   public parentTypeName: any = null;
   public type: ParsedCode = null;
 
@@ -40,11 +42,14 @@ export class ParsedDeclarationType extends ParsedCode {
     this.isArray = element.array_parts.length > 0;
     this.isMapping = false;
     const literalType = element.literal;
+
     if (typeof literalType.type !== "undefined") {
       this.isMapping = literalType.type === "MappingExpression";
       this.name = "mapping"; // do something here
       // suffixType = '(' + this.getTypeString(literalType.from) + ' => ' + this.getTypeString(literalType.to) + ')';
     }
+
+    this.valueType = !this.isMapping && valueTypeReg.test(this.name);
   }
 
   public override getInnerCompletionItems(): CompletionItem[] {

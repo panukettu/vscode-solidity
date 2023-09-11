@@ -5,7 +5,6 @@ import * as workspaceUtil from "./workspaceUtil";
 import * as fs from "fs";
 import * as path from "path";
 import * as fsex from "fs-extra";
-import * as https from "https";
 import {
   SolcCompiler,
   compilerType,
@@ -21,7 +20,7 @@ export class Compiler {
 
   constructor(solcCachePath: string) {
     this.solcCachePath = solcCachePath;
-    this.outputChannel = vscode.window.createOutputChannel("Solidity compiler");
+    this.outputChannel = vscode.window.createOutputChannel("Solidity Compiler");
   }
 
   public outputCompilerInfoEnsuringInitialised() {
@@ -155,6 +154,7 @@ export class Compiler {
       vscode.window.showWarningMessage("No solidity files (*.sol) found");
       return;
     }
+
     return new Promise((resolve, reject) => {
       this.initialiseCompiler(overrideDefaultCompiler).then(() => {
         try {

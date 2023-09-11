@@ -1,15 +1,15 @@
 {
   "name": "vsc-solidity",
-  "description": "adds kek grammar and removes codegen stuff",
+  "description": "Solidity extension with improved support for file level patterns, forked from juanblanco/solidity extension",
   "keywords": [
     "solidity",
     "ethereum",
     "blockchain",
     "compiler",
-    "solium",
+    "diamond",
     "solhint"
   ],
-  "version": "0.4.1",
+  "version": "0.5.0",
   "publisher": "0xp",
   "license": "MIT",
   "engines": {
@@ -19,7 +19,8 @@
     "/out"
   ],
   "contributors": [
-    "Juan Blanco"
+    "Juan Blanco",
+    "panukettu"
   ],
   "bugs": {
     "url": "https://github.com/panukettu/vscode-solidity/issues"
@@ -33,9 +34,9 @@
     "Programming Languages",
     "Snippets"
   ],
-  "main": "./out/extension.js",
+  "main": "./out/src/extension.js",
   "bin": {
-    "vscode-solidity-server": "./out/server.js"
+    "vscode-solidity-server": "./out/src/server.js"
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -53,7 +54,7 @@
     "test-compile": "tsc -p ./"
   },
   "vsce": {
-    "dependencies": true,
+    "dependencies": false,
     "useYarn": false
   },
   "dependencies": {
@@ -61,11 +62,12 @@
     "axios": "^1.4.0",
     "fs-extra": "^4.0.3",
     "glob": "^8.1.0",
-    "prettier": "^2.8.4",
-    "prettier-plugin-solidity": "^1.1.2",
+    "prettier": "^2.8.8",
+    "prettier-plugin-solidity": "^1.1.3",
     "solc": "^0.8.19",
     "solhint": "^3.6.2",
     "solparse-exp-jb": "3.0.3",
+    "viem": "^1.10.8",
     "vscode-languageclient": "^8.1.0",
     "vscode-languageserver": "^8.1.0",
     "vscode-languageserver-textdocument": "^1.0.8",
@@ -110,6 +112,10 @@
       "type": "object",
       "title": "Solidity configuration",
       "properties": {
+        "codelens-sample.enableCodeLens": {
+          "type": "boolean",
+          "default": true
+        },
         "solidity.nodemodulespackage": {
           "type": "string",
           "default": "solc",
@@ -248,6 +254,26 @@
       }
     ],
     "commands": [
+      {
+        "title": "Solidity: Preview Sig",
+        "command": "solidity.lens.funcSig",
+        "category": "solidity.codelens"
+      },
+      {
+        "title": "Solidity: Literal String keccak256",
+        "command": "solidity.lens.keccak256",
+        "category": "solidity.codelens"
+      },
+      {
+        "title": "Solidity: Enable CodeLens",
+        "command": "solidity.enableCodeLens",
+        "category": "solidity.codelens"
+      },
+      {
+        "title": "Solidity: Disable Codelens",
+        "command": "solidity.disableCodeLens",
+        "category": "solidity.codelens"
+      },
       {
         "command": "solidity.compile.active",
         "title": "Solidity: Compile Contract"

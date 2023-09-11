@@ -121,7 +121,6 @@ export class CodeWalkerService {
       false,
       selectedSourceDocument
     );
-    // console.debug("selectedDocument", selectedSourceDocument.absolutePath);
     // sourceDocuments.documents.forEach((sourceDocumentItem) => {
     //   if (sourceDocumentItem !== selectedSourceDocument) {
     //     const documentImport = this.parseDocumentChanged(
@@ -129,7 +128,7 @@ export class CodeWalkerService {
     //       false,
     //       sourceDocumentItem
     //     );
-    //     // selectedDocument.addImportedDocument(documentImport);
+    //     selectedDocument.addImportedDocument(documentImport);
     //   }
     // });
     this.parsedDocumentsCache.forEach((element) => {
@@ -220,7 +219,7 @@ export class CodeWalkerService {
     const foundDocument = this.parsedDocumentsCache.find(
       (x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath
     );
-    if (foundDocument !== undefined && foundDocument !== null) {
+    if (foundDocument != null) {
       if (
         foundDocument.sourceDocument.unformattedCode ===
         sourceDocument.unformattedCode
@@ -234,18 +233,17 @@ export class CodeWalkerService {
     const newDocument: ParsedDocument = new ParsedDocument();
     try {
       const result = solparse.parse(documentText);
-      if (fixedSource) {
-        newDocument.initialiseDocument(
-          result,
-          null,
-          sourceDocument,
-          documentText
-        );
-      } else {
-        newDocument.initialiseDocument(result, null, sourceDocument, null);
-      }
+
+      newDocument.initialiseDocument(
+        result,
+        null,
+        sourceDocument,
+        fixedSource ? documentText : null
+      );
+
       this.parsedDocumentsCache.push(newDocument);
     } catch (error) {
+      console.log(error.message);
       /*
         // if we error parsing (cannot cater for all combos) we fix by removing current line.
         const lines = documentText.split(/\r?\n/g);
@@ -291,18 +289,17 @@ export class CodeWalkerService {
     }
     try {
       const result = solparse.parse(documentText);
-      if (fixedSource) {
-        newDocument.initialiseDocument(
-          result,
-          null,
-          sourceDocument,
-          documentText
-        );
-      } else {
-        newDocument.initialiseDocument(result, null, sourceDocument, null);
-      }
+
+      newDocument.initialiseDocument(
+        result,
+        null,
+        sourceDocument,
+        fixedSource ? documentText : null
+      );
+
       this.parsedDocumentsCache.push(newDocument);
     } catch (error) {
+      console.log(error.message);
       // console.log(JSON.stringify(error));
       /*
             // if we error parsing (cannot cater for all combos) we fix by removing current line.

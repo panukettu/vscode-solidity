@@ -1,8 +1,21 @@
-# Solidity support for Visual Studio code (FORK)
+# Solidity for Visual Studio Code
 
-[![Version](https://vsmarketplacebadges.dev/version/juanblanco.solidity.png)](https://marketplace.visualstudio.com/items?itemName=juanblanco.solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/juanblanco.solidity.png)](https://marketplace.visualstudio.com/items?itemName=juanblanco.solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/juanblanco.solidity.png)](https://marketplace.visualstudio.com/items?itemName=juanblanco.solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/juanblanco.solidity.png)](https://marketplace.visualstudio.com/items?itemName=juanblanco.solidity#review-details)
+[![Version](https://vsmarketplacebadges.dev/version/0xp.vsvsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/0xp.vsvsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/0xp.vsvsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/0xp.vsvsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity#review-details)
 
-## in this fork Go To Definition and Auto Completions work on global using for injections. Also this loads all sol files to cache on project open.
+# Fork Features
+
+- Removes nethereum and solium related things.
+- Go To Definition, References and Auto Completions work on global using for injections.
+- Loads all sol files to cache on project open.
+- Auto-completes individual symbol imports
+- Minimal support for signature help
+- Adds non-standard TextMate grammar "kek" for more detailed theming
+- CodeLens:
+  - Preview bytes4 selector of function without compiling
+  - Preview keccak256 hash of literal string  
+    <br>
+
+# Original Features
 
 Solidity is the language used in Ethereum to create smart contracts, this extension provides:
 
@@ -21,13 +34,6 @@ Solidity is the language used in Ethereum to create smart contracts, this extens
 - Support for different solidity versions (Remote and local)
 - Download source code and Abi from Etherscan
 - Linting using [Solhint](https://github.com/protofire/solhint)
-
-It is also available as a standalone LSP:
-
-```sh
-npm install -g @juanfranblanco/vscode-solidity-server
-vscode-solidity-server --stdio
-```
 
 # Instructions
 
@@ -85,50 +91,6 @@ You can install solc using npm at the root of your project as follows.
 
 ````
 npm install solc
-```"onEnterRules": [
-    {
-      "beforeText": {
-        "pattern": "^\\s*/\\*\\*(?!/)([^\\*]|\\*(?!/))*$"
-      },
-      "afterText": {
-        "pattern": "^\\s*\\*/$"
-      },
-      "action": {
-        "indent": "indentOutdent",
-        "appendText": " * "
-      }
-    },
-    {
-      "beforeText": {
-        "pattern": "^\\s*/\\*\\*(?!/)([^\\*]|\\*(?!/))*$"
-      },
-      "action": {
-        "indent": "none",
-        "appendText": " * "
-      }
-    },
-    {
-      "beforeText": {
-        "pattern": "^(\\t|[ ])*[ ]\\*([ ]([^\\*]|\\*(?!/))*)?$"
-      },
-      "previousLineText": {
-        "pattern": "(?=^(\\s*(/\\*\\*|\\*)).*)(?=(?!(\\s*\\*/)))"
-      },
-      "action": {
-        "indent": "none",
-        "appendText": "* "
-      }
-    },
-    {
-      "beforeText": {
-        "pattern": "^(\\t|[ ])*[ ]\\*/\\s*$"
-      },
-      "action": {
-        "indent": "none",
-        "removeText": 1
-      }
-    }
-  ]
 
 The default module package is "solc", but you may want to use other node module containing a compiler, this can be configured in the settings:
 ![image](https://user-images.githubusercontent.com/562371/112137067-b668b400-8bc7-11eb-90bc-73e972da98d6.png)
@@ -185,7 +147,7 @@ This is the default now, so you don't need to set it.
 
 ````
 
-"solidity.packageDefaultDependenciesContractsDirectory": "",
+"solidity.packageDefaultDependenciesContractsDirectory": "src",
 "solidity.packageDefaultDependenciesDirectory": ["node_modules", "lib"],
 
 ```
@@ -200,10 +162,6 @@ Solution
 | │ xx.sol
 │ └───node_modules
 │  
-└───Nethereum_Project
-| │ xx.cs
-| │ yy.cs
-|
 └───Web3Js_Project
 | │ xx.js
 | │ yy.js
@@ -214,7 +172,7 @@ Your user settings configuration will need to represent the full structure:
 
 ```
 
-"solidity.packageDefaultDependenciesContractsDirectory": "",
+"solidity.packageDefaultDependenciesContractsDirectory": "src",
 "solidity.packageDefaultDependenciesDirectory": "solidity_project/node_modules"
 
 ```
@@ -350,18 +308,6 @@ This is the default linter now.
 
 NOTE: Solhint plugins are not supported yet.
 
-### Solium / Ethlint
-
-Solium is also supported by the extension https://github.com/duaraghav8/Solium, you can configure it using the following user settings:
-
-```json
-"solidity.linter": "solium",
-"solidity.soliumRules": {
-    "quotes": ["error", "double"],
-    "indentation": ["error", 4]
-},
-```
-
 # Formatting using Prettier and the Prettier Solidity Plugin
 
 Formatting is provided thanks to the Prettier plugin for Solidity for more info check https://prettier.io/ and https://github.com/prettier-solidity/prettier-plugin-solidity
@@ -398,51 +344,11 @@ Formatting can also be performed with `forge fmt` by [Foundry](https://getfoundr
 
 ![image](https://user-images.githubusercontent.com/89424366/199959085-d7393779-801b-45d7-aebe-a9c4d25b1571.png)
 
-# Code generation Nethereum
-
-The extension integrates with the Nethereum code generator to create Contract integration definitions. You can either generate the api for a single contract, all compiled contracts, or automatically every time you compile a smart contract solidity file.
-
-The simplest way to code generate a the contract definition for a smart contract is to right click and select the project / language you require:
-
-![Screenshot](screenshots/compile-codegnerate-nethereum.png)
-
-## Automatic code generation and the Nethereum Code generation settings file.
-
-If you want to automatically code generate your api, every time to you compile, you can do this creating a file "nethereum-gen.settings" at the root of your project, with the following contents. You can create it automatically using the context menu too.
-
-```json
-{
-  "projectName": "Solidity.Samples",
-  "namespace": "Solidity.Samples",
-  "lang": 0,
-  "autoCodeGen": true,
-  "projectPath": "../SoliditySamples"
-}
-```
-
-"lang" indicates what language to generate the code, 0 = CSharp, 1 = Vb.Net and 3 = FSharp
-
-The "projectName" and "namespace" settings will be used for the manual code generation also.
-
-Use the "projectPath" to set the relative path of your .Net project, this allows to work in a "solution" mode so you can work as an both in Visual Studio Code and Visual Studio (Fat) with your .Net project, or two windows of vscode.
-
 ## Abi contract code generation
 
 You may have only the abi of a smart contract and want to code generate the contract definition. Just create a file containing the abi, with the extension `.abi` and another with the `.bin` content (if needed) and use this context menu.
 
 ![Screenshot](screenshots/abigeneration.png)
-
-## Single smart contract manual code generation
-
-To code generate the Nethereum contract api from a single smart contract, you need to select the compiled "json" output file from the "bin" folder, press F1 and start typing "Solidity: Code generate" and select what language you want to generate for the current selected file.
-
-## All smart contracts manual code generation
-
-To code generate the Nethereum contract for all smart contracts already compiled, just press F1, and start typing "Solidity: Code generate" and select the option for all contracts for your desired language.
-
-### (Deprecated) Analysis of smart contracts with Mythx
-
-Mythx analysis tool, has been moved to its own stand alone extension, [please download it here](https://marketplace.visualstudio.com/items?itemName=MythX.mythxvsc).
 
 ## Contributing / Issues / Requests
 
