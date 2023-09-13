@@ -177,7 +177,7 @@ export class ParsedCode {
         objectType ? objectType : this.getParsedObjectType().toLowerCase()
       }) ${grandparent ? grandparent + "." : ""}${parent}${itemInfo}`,
       "```",
-      withComment ? "--- \n" + (this.getComment(formatComment) || "") : "",
+      withComment ? "--- \n \n" + (this.getComment(formatComment) || "") : "",
     ].join("\n");
 
     return text;
@@ -211,7 +211,7 @@ export class ParsedCode {
             const item = this.document.getSelectedItem(this.element.start);
             const itemInherit = inheritDoc.findMethodsInScope(item.name);
             if (itemInherit?.length > 0) {
-              content = itemInherit[0].getComment();
+              content = itemInherit[0].getComment().trimStart();
             }
           }
         }
