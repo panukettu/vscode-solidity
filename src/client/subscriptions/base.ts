@@ -99,7 +99,7 @@ export function baseSubscriptions(
       async provideDocumentFormattingEdits(
         document: vscode.TextDocument
       ): Promise<vscode.TextEdit[]> {
-        return formatDocument(document, context);
+        return await formatDocument(document, context);
       },
     })
   );

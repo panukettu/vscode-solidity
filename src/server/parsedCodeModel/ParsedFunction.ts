@@ -15,6 +15,7 @@ import { IParsedExpressionContainer } from "./IParsedExpressionContainer";
 import whatIsCircular from "what-is-circular";
 
 import unset from "lodash.unset";
+import { InnerElement } from "./Types";
 
 export class ParsedFunction
   extends ParsedCode
@@ -30,6 +31,7 @@ export class ParsedFunction
   public isFallback = false;
   public isReceive = false;
   public id: any;
+  public element: InnerElement = null;
   private completionItem: CompletionItem = null;
 
   public override getAllReferencesToSelected(
@@ -210,30 +212,30 @@ export class ParsedFunction
 
   public initialiseParameters() {
     this.input = ParsedParameter.extractParameters(
-      this.element.params,
+      this.element?.params,
       this.contract,
       this.document,
-      this
+      this,
+      true,
+      false
     );
     this.output = ParsedParameter.extractParameters(
-      this.element.returnParams,
+      this.element?.returnParams?.params,
       this.contract,
       this.document,
-      this
+      this,
+      false,
+      true
     );
   }
 
   public initialiseModifiers() {
-    if (
-      this.element.modifiers !== undefined &&
-      this.element.modifiers !== null
-    ) {
-      this.element.modifiers.forEach((element) => {
-        const parsedModifier = new ParsedModifierArgument();
-        parsedModifier.initialiseModifier(element, this, this.document);
-        this.modifiers.push(parsedModifier);
-      });
-    }
+    if (this.element.modifiers == null) return;
+    this.element.modifiers.forEach((element) => {
+      const parsedModifier = new ParsedModifierArgument();
+      parsedModifier.initialiseModifier(element, this, this.document);
+      this.modifiers.push(parsedModifier);
+    });
   }
 
   public findVariableDeclarationsInScope(
@@ -244,10 +246,7 @@ export class ParsedFunction
       this.element.is_abstract === false ||
       this.element.is_abstract === undefined
     ) {
-      if (
-        this.element.body !== "undefined" &&
-        this.element.body.type === "BlockStatement"
-      ) {
+      if (this.element.body && this.element.body.type === "BlockStatement") {
         result = result.concat(
           this.findVariableDeclarationsInInnerScope(offset, this.element.body)
         );
@@ -399,16 +398,41 @@ export class ParsedFunction
     );
   }
 
-  public override getInfo(): string {
+  public override getInfo(extra?: string): string {
+    return this.createSimpleDetail(
+      this.getRootName(),
+      "",
+      this.getSignature(false) + (extra ? extra : ""),
+      this.contract
+        ? (
+            this.contract.getContractTypeName(this.contract.contractType) +
+            " " +
+            this.getParsedObjectType()
+          ).toLowerCase()
+        : "",
+      true,
+      false
+    );
     const functionType = this.getParsedObjectType();
+    let parentInfo = this.getContractNameOrGlobal();
+    let parentType = "";
+    let parentName = "";
+    const separator = parentInfo.indexOf(":");
+    if (separator !== -1) {
+      parentName = parentInfo.slice(separator + 1);
+      parentType = parentInfo.slice(0, separator);
+    }
     return (
       "### " +
-      functionType +
-      ": " +
+      parentName +
+      (parentName ? "." : "") +
       this.name +
       "\n" +
       "#### " +
-      this.getContractNameOrGlobal() +
+      parentType +
+      " " +
+      functionType +
+      "\n" +
       "\n" +
       "\t" +
       this.getSignature() +
@@ -458,7 +482,7 @@ export class ParsedFunction
     return "function";
   }
 
-  public getSignature(): string {
+  public getSignature(includeDeclaration = true, isModifier = false): string {
     const paramsInfo = ParsedParameter.createParamsInfo(this.element.params);
     let returnParamsInfo = ParsedParameter.createParamsInfo(
       this.element.returnParams
@@ -466,15 +490,15 @@ export class ParsedFunction
     if (returnParamsInfo !== "") {
       returnParamsInfo = "returns (" + returnParamsInfo + ")";
     }
+    const prefix = includeDeclaration ? this.getDeclaration() + " " : "";
     return (
-      this.getDeclaration() +
-      " " +
+      prefix +
       this.name +
       "(" +
       paramsInfo +
-      ")\n\t" +
+      ") " +
       this.modifiers.map((x) => x.name).join(" ") +
-      "\n\t" +
+      " " +
       returnParamsInfo
     );
   }

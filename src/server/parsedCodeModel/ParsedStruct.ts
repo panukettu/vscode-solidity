@@ -1,16 +1,13 @@
-import { ParsedContract } from "./parsedContract";
-import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
-import { ParsedDeclarationType } from "./parsedDeclarationType";
-import { ParsedStructVariable } from "./ParsedStructVariable";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import { valueTypeReg } from "./ParsedCodeTypeHelper";
 import { ParsedDocument } from "./ParsedDocument";
-import {
-  CompletionItem,
-  CompletionItemKind,
-  Location,
-} from "vscode-languageserver";
-import { valueTypeReg, valueTypes } from "./ParsedCodeTypeHelper";
 import { ParsedEnum } from "./ParsedEnum";
 import { ParsedParameter } from "./ParsedParameter";
+import { ParsedStructVariable } from "./ParsedStructVariable";
+import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
+import { ParsedContract } from "./parsedContract";
+import { Element, LiteralMapping } from "./Types";
+import { providerRequest } from "../definitionProvider";
 
 export class ParsedStruct extends ParsedCode {
   public properties: ParsedStructVariable[] = [];
@@ -18,6 +15,7 @@ export class ParsedStruct extends ParsedCode {
   private completionItem: CompletionItem = null;
   public abiType: string;
   public hasMapping: boolean;
+  public element: Element;
 
   public initialise(
     element: any,
@@ -31,20 +29,45 @@ export class ParsedStruct extends ParsedCode {
     this.name = element.name;
     this.document = document;
     this.isGlobal = isGlobal;
-
-    if (this.element.body !== "undefined") {
+    if (this.element.body?.length) {
       this.element.body.forEach((structBodyElement) => {
         if (structBodyElement.type === "DeclarativeExpression") {
           const literalType = structBodyElement.literal.literal;
-          const isMapping = literalType?.type === "MappingExpression";
 
-          const isValueType = !isMapping && valueTypeReg.test(literalType);
+          const isMapping = literalType?.type === "MappingExpression";
+          const isValueType =
+            !isMapping && valueTypeReg.test(literalType as unknown as string);
           let typeRef: ParsedStruct | ParsedEnum;
+
           if (!isValueType && !isMapping) {
             if (contract?.findType) {
-              typeRef = contract.findType(literalType) as typeof typeRef;
-            } else if (document?.findType) {
-              typeRef = document.findType(literalType) as typeof typeRef;
+              typeRef = contract.findType(literalType as any) as typeof typeRef;
+            }
+            if (!typeRef && !typeRef?.name && document?.findType) {
+              typeRef = document.findType(literalType as any) as typeof typeRef;
+            }
+          } else if (isMapping) {
+            const toType = (literalType as LiteralMapping).to.literal;
+            let resultingType = "";
+            if (toType.type === "MappingExpression") {
+              resultingType = toType.to.literal;
+            } else {
+              resultingType = toType;
+            }
+
+            const isValueType = valueTypeReg.test(resultingType);
+            if (!isValueType) {
+              if (providerRequest.selectedDocument) {
+                typeRef = providerRequest.selectedDocument.findType(
+                  resultingType
+                ) as typeof typeRef;
+              }
+              if (!typeRef?.name && contract?.findType) {
+                typeRef = contract.findType(resultingType) as typeof typeRef;
+              }
+              if (!typeRef?.name && document?.findItem) {
+                typeRef = document.findItem(resultingType) as typeof typeRef;
+              }
             }
           }
 
@@ -65,6 +88,8 @@ export class ParsedStruct extends ParsedCode {
       this.abiType = this.hasMapping
         ? "invalid"
         : `(${this.properties.map((p) => p.abiType)})`;
+    } else {
+      console.debug("No body for struct", element);
     }
   }
 
@@ -162,7 +187,7 @@ export class ParsedStruct extends ParsedCode {
             .map((p) =>
               p
                 ? "\t" +
-                  ParsedParameter.getParamInfo(p.element) +
+                  ParsedParameter.getParamInfo(p.element as any) +
                   " " +
                   p.name +
                   "\n"

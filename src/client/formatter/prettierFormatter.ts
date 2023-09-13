@@ -3,42 +3,35 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as workspaceUtil from "../workspaceUtil";
 
-export function formatDocument(
+export async function formatDocument(
   document: vscode.TextDocument,
   context: vscode.ExtensionContext
-): vscode.TextEdit[] {
+): Promise<vscode.TextEdit[]> {
   const rootPath = workspaceUtil.getCurrentProjectInWorkspaceRootFsPath();
-  const ignoreOptions = { ignorePath: path.join(rootPath, ".prettierignore") };
-  const fileInfo = prettier.getFileInfo.sync(
-    document.uri.fsPath,
-    ignoreOptions
-  );
+
+  const fileInfo = await prettier.getFileInfo(document.uri.fsPath, {
+    ignorePath: path.join(rootPath, ".prettierignore"),
+  });
   if (!fileInfo.ignored) {
     const source = document.getText();
 
-    const pluginPath = path.join(
-      context.extensionPath,
-      "node_modules",
-      "prettier-plugin-solidity"
-    );
-    const options = {
-      parser: "solidity-parse",
-      pluginSearchDirs: [context.extensionPath],
-      plugins: [pluginPath],
-    };
-    //
-    const config = prettier.resolveConfig.sync(document.uri.fsPath, options);
+    const config = await prettier.resolveConfig(document.uri.fsPath);
     if (config !== null) {
-      prettier.clearConfigCache();
+      await prettier.clearConfigCache();
     }
-    Object.assign(options, config);
+
     const firstLine = document.lineAt(0);
     const lastLine = document.lineAt(document.lineCount - 1);
     const fullTextRange = new vscode.Range(
       firstLine.range.start,
       lastLine.range.end
     );
-    const formatted = prettier.format(source, options);
+
+    const formatted = await prettier.format(source, {
+      ...config,
+      parser: "solidity-parse",
+      plugins: [require("prettier-plugin-solidity")],
+    });
     return [vscode.TextEdit.replace(fullTextRange, formatted)];
   }
 }

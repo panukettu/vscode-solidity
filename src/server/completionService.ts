@@ -130,10 +130,8 @@ export class CompletionService {
       }
 
       if (triggeredByImport || triggeredByFrom) {
-        const hasSourceDir =
-          walker.packageDefaultDependenciesContractsDirectory !== "";
-        const sourcesDir =
-          "/" + walker.packageDefaultDependenciesContractsDirectory;
+        const hasSourceDir = walker.resolvedSources !== "";
+        const sourcesDir = "/" + walker.resolvedSources;
         const files = glob.sync(
           this.rootPath + (hasSourceDir ? sourcesDir : "") + "/**/*.sol"
         );
@@ -155,7 +153,7 @@ export class CompletionService {
         const fromItem = triggeredByFrom ? findFromItem.exec(line) : "";
         const itemName = fromItem.length > 1 && fromItem[1];
         files.forEach((file) => {
-          const dependencies = walker.project.packagesDir.map((x) =>
+          const dependencies = walker.project.libs.map((x) =>
             path.join(this.rootPath, x)
           );
 

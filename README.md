@@ -4,18 +4,37 @@
 
 # Fork Features
 
-- Bundles all dependencies
-- Removes nethereum and solium related things.
+- Bundles all js dependencies
+- Removes nethereum, solium and dAppproject related things.
 - Go To Definition, References and Auto Completions work on global using for injections.
 - Loads all sol files to cache on project open.
 - Auto-completes individual symbol imports
 - Minimal support for signature help
-- Adds non-standard TextMate grammar "kek" for more detailed theming
-- Natspec displays from @inheritdoc
-- CodeLens:
-  - Preview bytes4 selector of function without compiling
-  - Preview keccak256 hash of literal string  
+- Adds non-standard TextMate-grammar "kek" for more detailed theming
+- Natspec displays from `@inheritdoc`
+- Adds some CodeLens:
+  - Preview bytes4 selector of functions without compilation (should work on structs and custom types as well)
+  - Preview hash of eg. keccak256("some.string")
     <br>
+
+# Fork Config Changes
+
+- solidity.nodemodulespackage -> solidity.compilerPackage
+  - Default: "solc"
+- solidity.packageDefaultDependenciesDirectory -> solidity.libs
+  - Default: ["node_modules", "lib"]
+- solidity.packageDefaultDependenciesContractsDirectory -> solidity.libSources
+  - Default: ["src", "contracts"]
+
+# New Config
+
+- solidity.sources (string):
+  - Your solidity source folder.
+  - Tries to get from foundry.toml or hardhat.config.js if not set.
+  - Default: ""
+- solidity.initExclude (string[]):
+  - Exclude some folders from initial parsing. eg. ["temp", "test"]
+  - Default: []
 
 # Original Features
 

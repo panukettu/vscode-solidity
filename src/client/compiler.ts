@@ -12,6 +12,7 @@ import {
   RemoteReleases,
 } from "../common/solcCompiler";
 import { errorsToDiagnostics } from "./solErrorsToDiaganosticsClient";
+import { SoliditySettings } from "../server";
 
 export class Compiler {
   private solcCachePath: string;
@@ -243,23 +244,27 @@ export class Compiler {
     this.outputChannel.appendLine(this.solcCachePath);
     this.outputChannel.clear();
     this.outputChannel.show();
-    const remoteCompiler = vscode.workspace
+    const compileUsingRemoteVersion = vscode.workspace
       .getConfiguration("solidity")
       .get<string>("compileUsingRemoteVersion");
-    const localCompiler = vscode.workspace
+    const compileUsingLocalVersion = vscode.workspace
       .getConfiguration("solidity")
       .get<string>("compileUsingLocalVersion");
-    const nodeModulePackage = vscode.workspace
+    const compilerPackage = vscode.workspace
       .getConfiguration("solidity")
-      .get<string>("nodemodulespackage");
+      .get<string>("compilerPackage");
     const compilerSetting = vscode.workspace
       .getConfiguration("solidity")
       .get<string>("defaultCompiler");
     const defaultCompiler = compilerType[compilerSetting];
     this.outputChannel.appendLine("Initialising compiler with settings:");
-    this.outputChannel.appendLine("Remote compiler: " + remoteCompiler);
-    this.outputChannel.appendLine("Local compiler: " + localCompiler);
-    this.outputChannel.appendLine("Node compiler module: " + nodeModulePackage);
+    this.outputChannel.appendLine(
+      "Remote compiler: " + compileUsingRemoteVersion
+    );
+    this.outputChannel.appendLine(
+      "Local compiler: " + compileUsingLocalVersion
+    );
+    this.outputChannel.appendLine("Node compiler module: " + compilerPackage);
     this.outputChannel.appendLine("Default compiler: " + compilerSetting);
 
     if (overrideDefaultCompiler != null) {
@@ -272,9 +277,11 @@ export class Compiler {
     );
     return new Promise((resolve, reject) => {
       this.solc.initialiseAllCompilerSettings(
-        remoteCompiler,
-        localCompiler,
-        nodeModulePackage,
+        {
+          compileUsingRemoteVersion,
+          compileUsingLocalVersion,
+          compilerPackage,
+        } as SoliditySettings,
         defaultCompiler
       );
 

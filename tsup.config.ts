@@ -1,15 +1,17 @@
 import { exec, execSync } from "child_process";
-import { existsSync, mkdirSync } from "fs";
-import { defineConfig, type Options } from "tsup";
+import { existsSync, mkdirSync, unlinkSync } from "fs";
 
-export default defineConfig(async () => {
+import { defineConfig, type Options } from "tsup";
+import pkg from "glob";
+const { glob } = pkg;
+export default defineConfig(async (opts) => {
   return {
-    entry: ["src/extension.ts", "src/server.ts"],
+    entry: ["src/server.ts", "src/extension.ts"],
     external: ["vscode", "typescript"],
     format: "cjs",
     outDir: "./out/src/",
     platform: "node",
-    sourcemap: false,
+    sourcemap: !!opts.watch,
     bundle: true,
     noExternal: [
       // /(?:[^vscode]).*?([\w\-]+)/,
@@ -17,10 +19,11 @@ export default defineConfig(async () => {
       "axios",
       "fs-extra",
       "glob",
-      "prettier",
-      "prettier-plugin-solidity",
+      "fast-equals",
       "solc",
       "solhint",
+      "prettier",
+      "prettier-plugin-solidity",
       "solparse-exp-jb",
       "vscode-languageclient",
       "vscode-languageserver",
@@ -31,9 +34,10 @@ export default defineConfig(async () => {
     ],
     treeshake: true,
     splitting: true,
-    minify: true,
+    minify: false,
     clean: true,
     async onSuccess() {
+      if (opts.watch) return;
       execSync("cp ./package.json ./out/package.json");
       execSync(
         "cp ./node_modules/@solidity-parser/parser/dist/*.tokens ./out/src/"
@@ -44,6 +48,21 @@ export default defineConfig(async () => {
       execSync(
         "cp ./node_modules/@solidity-parser/parser/dist/antlr/*.tokens ./out/src/antlr"
       );
+
+      const files = [
+        ...glob.sync("./out/src/postcss-*.js"),
+        ...glob.sync("./out/src/angular-*.js"),
+        ...glob.sync("./out/src/flow-*.js"),
+        ...glob.sync("./out/src/typescript-*.js"),
+        ...glob.sync("./out/src/babel-*.js"),
+      ];
+
+      console.debug("deleted", files);
+      if (files.length > 0) {
+        for (const file of files) {
+          unlinkSync(file);
+        }
+      }
     },
   };
 });

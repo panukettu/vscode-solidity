@@ -21,12 +21,12 @@ import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedContract } from "./parsedContract";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
 import { ParsedUsing } from "./parsedUsing";
+import { Element } from "./Types";
 
 const refMap = new Map<string, boolean>();
 
 type ParsedType = ParsedContract | ParsedFunction | ParsedStruct | ParsedCode;
 
-type Infer<T> = T extends infer Item ? Item : ParsedCode;
 export class ParsedDocument
   extends ParsedCode
   implements IParsedExpressionContainer
@@ -54,11 +54,11 @@ export class ParsedDocument
   public selectedImport: ParsedImport;
   public selectedError: ParsedError;
   public selectedConstant: ParsedConstant;
-  public selectedElement: any;
+  public selectedElement: Element | null = null;
 
   public sourceDocument: SourceDocument;
   public fixedSource: string = null;
-  public element: any;
+  public element: Element;
 
   public getDocumentsThatReference(document: ParsedDocument): ParsedDocument[] {
     let returnItems: ParsedDocument[] = [];
@@ -134,6 +134,7 @@ export class ParsedDocument
   public getAllGlobalStructs(): ParsedStruct[] {
     let returnItems: ParsedStruct[] = [];
     returnItems = returnItems.concat(this.structs);
+
     this.importedDocuments.forEach((document) => {
       returnItems = this.mergeArrays(returnItems, document.structs);
     });
@@ -270,8 +271,8 @@ export class ParsedDocument
   }
 
   public initialiseDocument(
-    documentElement: any,
-    selectedElement: any = null,
+    documentElement: Element,
+    selectedElement: Element = null,
     sourceDocument: SourceDocument,
     fixedSource: string = null
   ) {
@@ -474,29 +475,141 @@ export class ParsedDocument
   }
 
   public findItem<T extends ParsedCode>(name: string): T {
-    return this.getTypes().find((t) => t.name === name) as unknown as T;
+    return this.getTypes(true).find((t) => t.name === name) as unknown as T;
   }
 
-  public getTypes<T extends ParsedType>(): T[] {
+  public getTypes<T extends ParsedType>(withImports = true): T[] {
+    const results = [];
+
     const structMembers = this.structs
       .map((s) => s.getInnerMembers())
       .flatMap((s) => s);
+    const structMembersInner = this.innerContracts
+      .map((s) => s.getAllStructs(true))
+      .map((i) => i.map((s) => s.getInnerMembers()).flatMap((s) => s))
+      .flatMap((s) => s);
+
     const functionMembers = this.functions
       .map((f) => f.getAllItems())
       .flatMap((s) => s);
-    return []
+
+    const fundctionMembersInner = this.innerContracts
+      .map((s) => s.getAllFunctions(true))
+      .map((i) => i.map((s) => s.getInnerMembers()).flatMap((s) => s))
+      .flatMap((s) => s);
+
+    const returnVs = results
       .concat(this.functions)
       .concat(functionMembers)
+      .concat(fundctionMembersInner)
       .concat(this.innerContracts)
       .concat(this.errors)
       .concat(this.events)
       .concat(this.structs)
       .concat(structMembers)
+      .concat(structMembersInner)
       .concat(this.usings)
       .concat(this.customTypes)
       .concat(this.constants)
-      .concat(this.imports)
       .concat(this.expressions);
+
+    if (withImports) {
+      for (const imported of this.importedDocuments) {
+        results.concat(imported.getTypes<T>(false));
+        for (const innerImport of imported.importedDocuments) {
+          if (innerImport !== this) {
+            results.concat(innerImport.getTypes<T>(false));
+            for (const superInnerImport of innerImport.importedDocuments) {
+              if (innerImport !== this) {
+                results.concat(superInnerImport.getTypes<T>(false));
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return returnVs;
+  }
+
+  public brute<T extends ParsedType>(name: string, withImports = true): T[] {
+    const results = [];
+    let localResults = [];
+    const structMembers = this.structs
+      .map((s) => s.getInnerMembers())
+      .flatMap((s) => s);
+
+    localResults = structMembers.filter((s) => s.name === name);
+    if (localResults.length > 0) {
+      return localResults;
+    }
+    const structMembersInner = this.innerContracts
+      .map((s) => s.getAllStructs(true))
+      .map((i) => i.map((s) => s.getInnerMembers()).flatMap((s) => s))
+      .flatMap((s) => s);
+    localResults = structMembersInner.filter((s) => s.name === name);
+    if (localResults.length > 0) {
+      return localResults;
+    }
+    const functionMembers = this.functions
+      .map((f) => f.getAllItems())
+      .flatMap((s) => s);
+    localResults = functionMembers.filter((s) => s.name === name);
+    if (localResults.length > 0) {
+      return localResults;
+    }
+    const fundctionMembersInner = this.innerContracts
+      .map((s) => s.getAllFunctions(true))
+      .map((i) => i.map((s) => s.getInnerMembers()).flatMap((s) => s))
+      .flatMap((s) => s);
+    localResults = fundctionMembersInner.filter((s) => s.name === name);
+    if (localResults.length > 0) {
+      return localResults;
+    }
+    const returnVs = results
+      .concat(this.functions)
+      .concat(this.innerContracts)
+      .concat(this.errors)
+      .concat(this.events)
+      .concat(this.structs)
+      .concat(this.usings)
+      .concat(this.customTypes)
+      .concat(this.constants)
+      .concat(this.expressions);
+
+    localResults = returnVs.filter((i) => i.name === name);
+
+    if (localResults.length > 0) {
+      return localResults;
+    }
+
+    if (withImports) {
+      for (const imported of this.importedDocuments) {
+        const result0 = imported.brute<T>(name, false);
+        if (result0.length > 0) {
+          return result0;
+        }
+
+        for (const innerImport of imported.importedDocuments) {
+          if (innerImport !== this) {
+            const result1 = imported.brute<T>(name, false);
+            if (result1.length > 0) {
+              return result1;
+            }
+            for (const superInnerImport of innerImport.importedDocuments) {
+              if (innerImport !== this) {
+                const result2 = imported.brute<T>(name, false);
+                if (result2.length > 0) {
+                  return result2;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return returnVs.filter((i) => i.name === name);
   }
   public override getSelectedItem(offset: number): ParsedCode {
     let selectedItem: ParsedCode = null;
@@ -515,6 +628,7 @@ export class ParsedDocument
         .concat(this.expressions);
 
       for (const item of allItems) {
+        if (item == null) continue;
         selectedItem = item.getSelectedItem(offset);
         if (selectedItem !== null) {
           return selectedItem;
@@ -603,9 +717,38 @@ export class ParsedDocument
         ))
     );
 
+    const structMembers = this.structs
+      .map((s) => s.getInnerMembers())
+      .flatMap((s) => s);
+
+    const functionMembers = this.functions
+      .map((f) => f.getAllItems())
+      .flatMap((s) => s);
+
+    structMembers.forEach(
+      (x) =>
+        (results = this.mergeArrays(
+          results,
+          x.getAllReferencesToObject(parsedCode)
+        ))
+    );
+    functionMembers.forEach(
+      (x) =>
+        (results = this.mergeArrays(
+          results,
+          x.getAllReferencesToObject(parsedCode)
+        ))
+    );
+
     return results;
   }
+  public getFunctionReference(offset: number) {
+    const results = this.getSelectedTypeReferenceLocation(offset);
 
+    return results.filter(
+      (r) => r.reference?.element?.type === "FunctionDeclaration"
+    );
+  }
   public getSelectedTypeReferenceLocation(
     offset: number
   ): FindTypeReferenceLocationResult[] {
@@ -640,6 +783,7 @@ export class ParsedDocument
           x.getSelectedTypeReferenceLocation(offset)
         ))
     );
+
     this.structs.forEach(
       (x) =>
         (results = this.mergeArrays(
@@ -678,6 +822,29 @@ export class ParsedDocument
         ))
     );
     this.expressions.forEach(
+      (x) =>
+        (results = this.mergeArrays(
+          results,
+          x.getSelectedTypeReferenceLocation(offset)
+        ))
+    );
+
+    const structMembers = this.structs
+      .map((s) => s.getInnerMembers())
+      .flatMap((s) => s);
+
+    const functionMembers = this.functions
+      .map((f) => f.getAllItems())
+      .flatMap((s) => s);
+
+    structMembers.forEach(
+      (x) =>
+        (results = this.mergeArrays(
+          results,
+          x.getSelectedTypeReferenceLocation(offset)
+        ))
+    );
+    functionMembers.forEach(
       (x) =>
         (results = this.mergeArrays(
           results,

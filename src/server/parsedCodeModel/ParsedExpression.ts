@@ -9,6 +9,7 @@ import { ParsedVariable } from "./ParsedVariable";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedContract } from "./parsedContract";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
+import { Element } from "./Types";
 export enum ExpressionType {
   Call,
   Identifier,
@@ -17,6 +18,7 @@ export enum ExpressionType {
 export class ParsedExpression extends ParsedCode {
   public parent: ParsedExpression = null;
   public child: ParsedExpression = null;
+  public element: Element;
   public expressionObjectType: ExpressionType;
   public reference: ParsedCode = null;
   public expressionType: ParsedDeclarationType = null;
@@ -701,6 +703,7 @@ export function locate<Item, Result>(
 
   // fallback
   for (const imported of document.importedDocuments) {
+    // @ts-expect-error
     const data = imported[importDataSelector]();
     for (const item of data) {
       const result = check(item);

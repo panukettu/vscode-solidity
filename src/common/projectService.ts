@@ -8,6 +8,8 @@ import { Package } from "./model/package";
 import { Project } from "./model/project";
 import * as util from "./util";
 import { Remapping } from "./model/remapping";
+import { SoliditySettings } from "../server";
+import glob from "glob";
 
 // TODO: These are temporary constants until standard agreed
 // A project standard is needed so each project can define where it store its project dependencies
@@ -31,9 +33,9 @@ const projectFilesAtRoot = [
 ];
 
 // These are set using user configuration settings
-let defaultPackageDependenciesDirectory = "lib";
-let packageDependenciesContractsDirectory = "src";
-let defaultPackageDependenciesContractsDirectories = ["", "src", "contracts"];
+let libLocations = "lib";
+let defaultSourceLocation = "src";
+let sourceLocationsLibs = ["", "src", "contracts"];
 
 export function findFirstRootProjectFile(
   rootPath: string,
@@ -46,42 +48,6 @@ export function findFirstRootProjectFile(
   );
 }
 
-function createPackage(rootPath: string, packageContractsDirectory: string) {
-  const projectPackageFile = path.join(rootPath, packageConfigFileName);
-  if (fs.existsSync(projectPackageFile)) {
-    // TODO: automapper
-    const packageConfig = readYamlSync(projectPackageFile);
-    // TODO: throw expection / warn user of invalid package file
-    const projectPackage = new Package(packageContractsDirectory);
-    projectPackage.absoluletPath = rootPath;
-    if (packageConfig) {
-      if (packageConfig.layout !== undefined) {
-        if (projectPackage.build_dir !== undefined) {
-          projectPackage.build_dir = packageConfig.layout.build_dir;
-        }
-        if (projectPackage.sol_sources !== undefined) {
-          projectPackage.sol_sources = packageConfig.layout.sol_sources;
-        }
-      }
-      if (projectPackage.name !== undefined) {
-        projectPackage.name = packageConfig.name;
-      } else {
-        projectPackage.name = path.basename(rootPath);
-      }
-
-      if (projectPackage.version !== undefined) {
-        projectPackage.version = packageConfig.name;
-      }
-
-      if (projectPackage.dependencies !== undefined) {
-        projectPackage.dependencies = packageConfig.dependencies;
-      }
-    }
-    return projectPackage;
-  }
-  return null;
-}
-
 function readYamlSync(filePath: string) {
   const fileContent = fs.readFileSync(filePath);
   return yaml.load(fileContent);
@@ -89,60 +55,95 @@ function readYamlSync(filePath: string) {
 
 export function initialiseProject(
   rootPath: string,
-  packageDefaultDependenciesDirectories: string[],
-  packageDefaultDependenciesContractsDirectory: string,
-  remappings: string[]
-): Project {
-  packageDependenciesContractsDirectory =
-    packageDefaultDependenciesContractsDirectory;
-
-  const projectPackage = createProjectPackage(
-    rootPath,
-    packageDefaultDependenciesContractsDirectory
-  );
+  settings: SoliditySettings
+): {
+  project: Project;
+  sources: string;
+  remappings: string[];
+} {
   // adding defaults to packages
-  const packegesContractsDirectories = [
-    ...new Set(
-      defaultPackageDependenciesContractsDirectories.concat(
-        packageDefaultDependenciesContractsDirectory
-      )
-    ),
-  ];
-  const packageDependencies: Package[] = loadAllPackageDependencies(
-    packageDefaultDependenciesDirectories,
+
+  const sourceLocationDefined = settings.sources !== "";
+  const configSources = Array.from(
+    new Set(
+      [
+        getSourcesLocationFromFoundryConfig(rootPath),
+        getSourcesLocationFromHardhatConfig(rootPath),
+      ].filter((c) => typeof c === "string")
+    )
+  );
+
+  const sources = sourceLocationDefined
+    ? settings.sources
+    : configSources.find((s) => typeof s === "string") ?? settings.sources;
+
+  const projectPackage = createDefaultPackage(rootPath, sources);
+
+  const dependencies: Package[] = loadAllPackageDependencies(
+    settings.libs,
     rootPath,
     projectPackage,
-    packegesContractsDirectories
+    settings.libSources
   );
-  remappings = loadRemappings(rootPath, remappings);
-  return new Project(
-    projectPackage,
-    packageDependencies,
-    packageDefaultDependenciesDirectories,
-    remappings
-  );
+  const remappings = loadRemappings(rootPath, settings.remappings);
+  return {
+    project: new Project(
+      projectPackage,
+      dependencies,
+      settings.libs,
+      remappings,
+      rootPath
+    ),
+    sources: sources,
+    remappings: remappings,
+  };
 }
 
 function loadAllPackageDependencies(
-  packageDefaultDependenciesDirectories: string[],
+  libs: string[],
   rootPath: string,
   projectPackage: Package,
-  packageDependenciesContractsDirectories: string[]
+  sources: string[]
 ) {
-  let packageDependencies: Package[] = [];
-  packageDefaultDependenciesDirectories.forEach((packageDirectory) => {
-    packageDependencies = packageDependencies.concat(
-      loadDependencies(
-        rootPath,
-        projectPackage,
-        packageDirectory,
-        packageDependenciesContractsDirectories
-      )
+  let dependencies: Package[] = [];
+  libs.forEach((libDirectory) => {
+    dependencies = dependencies.concat(
+      loadDependencies(rootPath, projectPackage, libDirectory, sources)
     );
   });
-  return packageDependencies;
+  return dependencies;
 }
 
+function getSourcesLocationFromHardhatConfig(rootPath: string): string | null {
+  const hardhatConfigFile = path.join(rootPath, hardhatConfigFileName);
+  if (fs.existsSync(hardhatConfigFile)) {
+    const config = require(hardhatConfigFile);
+    const sourceLocation: string = config["paths"]["sources"];
+    if (sourceLocation) {
+      return sourceLocation;
+    }
+  }
+  return null;
+}
+
+function getSourcesLocationFromFoundryConfig(rootPath: string): string | null {
+  const foundryConfigFile = path.join(rootPath, foundryConfigFileName);
+  if (fs.existsSync(foundryConfigFile)) {
+    try {
+      const fileContent = fs.readFileSync(foundryConfigFile, "utf8");
+      const configOutput = toml.parse(fileContent);
+      const sourceLocation: string = configOutput["profile"]["default"]["src"];
+      if (!sourceLocation) {
+        return null;
+      }
+      return sourceLocation;
+    } catch (error) {
+      console.log("sol.foundry.sources", error.message);
+    }
+    return null;
+  }
+  return null;
+}
 function getRemappingsFromFoundryConfig(rootPath: string): string[] {
   const foundryConfigFile = path.join(rootPath, foundryConfigFileName);
   if (fs.existsSync(foundryConfigFile)) {
@@ -159,8 +160,7 @@ function getRemappingsFromFoundryConfig(rootPath: string): string[] {
       }
       return remappingsLoaded;
     } catch (error) {
-      // ignore error
-      // console.log(JSON.stringify(error));
+      console.log("remappings", error.message);
     }
     return;
   }
@@ -219,7 +219,7 @@ export function loadRemappings(
   rootPath: string,
   remappings: string[]
 ): string[] {
-  if (remappings === undefined) {
+  if (!remappings) {
     remappings = [];
   }
 
@@ -227,8 +227,8 @@ export function loadRemappings(
   // but changing to remappings over foundry
   remappings =
     getRemappingsFromBrownieConfig(rootPath) ??
-    getRemappingsFromRemappingsFile(rootPath) ??
     getRemappingsFromFoundryConfig(rootPath) ??
+    getRemappingsFromRemappingsFile(rootPath) ??
     remappings;
 
   return remappings;
@@ -237,74 +237,34 @@ export function loadRemappings(
 function loadDependencies(
   rootPath: string,
   projectPackage: Package,
-  packageDirectory: string,
-  dependencyAlternativeSmartContractDirectories: string[],
-  depPackages: Array<Package> = new Array<Package>()
+  libLocation: string,
+  libSourcesLocations: string[],
+  libPackages: Array<Package> = new Array<Package>()
 ) {
-  if (projectPackage.dependencies !== undefined) {
-    Object.keys(projectPackage.dependencies).forEach((dependency) => {
-      if (
-        !depPackages.some(
-          (existingDepPack: Package) => existingDepPack.name === dependency
-        )
-      ) {
-        const depPackageDependencyPath = path.join(
-          rootPath,
-          packageDirectory,
-          dependency
-        );
-        const depPackage = createPackage(depPackageDependencyPath, "");
-        depPackage.sol_sources_alternative_directories =
-          dependencyAlternativeSmartContractDirectories;
+  const libPath = path.join(projectPackage.absoluletPath, libLocation);
+  if (!fs.existsSync(libPath)) return libPackages;
 
-        if (depPackage !== null) {
-          depPackages.push(depPackage);
-          // Assumed the package manager will install all the dependencies at root so adding all the existing ones
-          loadDependencies(
-            rootPath,
-            depPackage,
-            packageDirectory,
-            dependencyAlternativeSmartContractDirectories,
-            depPackages
-          );
-        } else {
-          // should warn user of a package dependency missing
-        }
-      }
-    });
-  }
-  // lets not skip packages in lib
-  const depPackagePath = path.join(
-    projectPackage.absoluletPath,
-    packageDirectory
-  );
-  if (fs.existsSync(depPackagePath)) {
-    const depPackagesDirectories = getDirectories(depPackagePath);
-    depPackagesDirectories.forEach((depPackageDir) => {
-      const fullPath = path.join(depPackagePath, depPackageDir);
-      let depPackage = createPackage(fullPath, null);
-      if (depPackage == null) {
-        depPackage = createDefaultPackage(fullPath);
-        depPackage.sol_sources_alternative_directories =
-          dependencyAlternativeSmartContractDirectories;
-      }
-      if (
-        !depPackages.some(
-          (existingDepPack: Package) => existingDepPack.name === depPackage.name
-        )
-      ) {
-        depPackages.push(depPackage);
-        loadDependencies(
-          rootPath,
-          depPackage,
-          packageDirectory,
-          dependencyAlternativeSmartContractDirectories,
-          depPackages
-        );
-      }
-    });
-  }
-  return depPackages;
+  getDirectories(libPath).forEach((directory) => {
+    const depPackage = createDefaultPackage(path.join(libPath, directory));
+    depPackage.sol_sources_alternative_directories = libSourcesLocations;
+    if (
+      !libPackages.some(
+        (existingDepPack: Package) => existingDepPack.name === depPackage.name
+      )
+    ) {
+      libPackages.push(depPackage);
+
+      loadDependencies(
+        rootPath,
+        depPackage,
+        libLocation,
+        libSourcesLocations,
+        libPackages
+      );
+    }
+  });
+
+  return libPackages;
 }
 
 function getDirectories(dirPath: string): string[] {
@@ -314,30 +274,9 @@ function getDirectories(dirPath: string): string[] {
   });
 }
 
-function createDefaultPackage(
-  packagePath: string,
-  packageDependencySmartContractDirectory = ""
-): Package {
-  const defaultPackage = new Package(packageDependencySmartContractDirectory);
+function createDefaultPackage(packagePath: string, sources = ""): Package {
+  const defaultPackage = new Package(sources);
   defaultPackage.absoluletPath = packagePath;
   defaultPackage.name = path.basename(packagePath);
   return defaultPackage;
-}
-
-function createProjectPackage(
-  rootPath: string,
-  packageDependencySmartContractDirectory = ""
-): Package {
-  let projectPackage = createPackage(
-    rootPath,
-    packageDependencySmartContractDirectory
-  );
-  // Default project package,this could be passed as a function
-  if (projectPackage === null) {
-    projectPackage = createDefaultPackage(
-      rootPath,
-      packageDependencySmartContractDirectory
-    );
-  }
-  return projectPackage;
 }

@@ -1,43 +1,43 @@
-import { ParsedDeclarationType } from "./parsedDeclarationType";
-import { ParsedVariable } from "./ParsedVariable";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { ParsedCodeTypeHelper } from "./ParsedCodeTypeHelper";
-import {
-  CompletionItem,
-  CompletionItemKind,
-  Hover,
-  MarkupContent,
-  MarkupKind,
-} from "vscode-languageserver";
 import { ParsedDocument } from "./ParsedDocument";
-import { ParsedContract } from "./parsedContract";
+import { ParsedVariable } from "./ParsedVariable";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
+import { ParsedContract } from "./parsedContract";
+import { ParsedDeclarationType } from "./parsedDeclarationType";
+import { Element, ElementParams, ReturnParams } from "./Types";
 
 export class ParsedParameter extends ParsedVariable {
   public parent: ParsedCode;
   private completionItem: CompletionItem = null;
+  public element: ElementParams;
+
+  public isInput: boolean = false;
+  public isOutput: boolean = false;
 
   public static extractParameters(
-    params: any,
+    params: ElementParams[],
     contract: ParsedContract,
     document: ParsedDocument,
-    parent: ParsedCode
+    parent: ParsedCode,
+    isInput: boolean,
+    isOutput: boolean
   ): ParsedParameter[] {
     const parameters: ParsedParameter[] = [];
-    if (typeof params !== "undefined" && params !== null) {
-      if (params.hasOwnProperty("params")) {
-        params = params.params;
-      }
-      params.forEach((parameterElement) => {
-        const parameter: ParsedParameter = new ParsedParameter();
-        parameter.initialiseParameter(
-          parameterElement,
-          contract,
-          document,
-          parent
-        );
-        parameters.push(parameter);
-      });
-    }
+    if (params == null) return parameters;
+    params.forEach((parameterElement) => {
+      const parameter: ParsedParameter = new ParsedParameter();
+      parameter.initialiseParameter(
+        parameterElement,
+        contract,
+        document,
+        parent
+      );
+      parameter.isInput = isInput;
+      parameter.isOutput = isOutput;
+      parameters.push(parameter);
+    });
+
     return parameters;
   }
 
@@ -77,7 +77,7 @@ export class ParsedParameter extends ParsedVariable {
     return paramsInfo;
   }
 
-  public static getParamInfo(parameterElement: any) {
+  public static getParamInfo(parameterElement: ElementParams) {
     const typeString = ParsedCodeTypeHelper.getTypeString(
       parameterElement.literal
     );
@@ -99,7 +99,7 @@ export class ParsedParameter extends ParsedVariable {
   }
 
   public static createFunctionParamsSnippet(
-    params: any,
+    params: ElementParams[],
     skipFirst = false
   ): string {
     let paramsSnippet = "";
@@ -163,7 +163,7 @@ export class ParsedParameter extends ParsedVariable {
   }
 
   public initialiseParameter(
-    element: any,
+    element: ElementParams,
     contract: ParsedContract,
     document: ParsedDocument,
     parent: ParsedCode
@@ -205,32 +205,71 @@ export class ParsedParameter extends ParsedVariable {
   }
 
   public override getParsedObjectType(): string {
-    return "Parameter";
+    if (this.isInput) {
+      return "input parameter";
+    } else if (this.isOutput) {
+      return "output parameter";
+    }
+    return "parameter";
+  }
+
+  public getComment(): string {
+    const parentComment = this.parent.getComment();
+    if (!parentComment?.length) return;
+    if (this.isInput) {
+      const regex2 = new RegExp(`@param\\s${this.name}\\s(\.*\\w)`, "g");
+      const matches = regex2.exec(parentComment);
+      if (matches?.length > 1) {
+        return matches[1];
+      }
+    } else if (this.isOutput) {
+      const regexNamed = new RegExp(`@return\\s${this.name}\\s(\.*\\w)`, "g");
+      const matchesNamed = regexNamed.exec(parentComment);
+      if (matchesNamed?.length > 1) {
+        return matchesNamed[1];
+      }
+      const regexUnnamed = new RegExp(`@return\\s+(\.+\\w)`, "g");
+      const matches = regexUnnamed.exec(parentComment);
+      if (matches?.length > 1) {
+        return matches[1];
+      }
+    }
+    return "";
   }
 
   public override getInfo(): string {
-    let name = "Name not set";
-    if (this.name !== undefined) {
-      name = this.name;
+    return this.getSimpleDetail();
+  }
+
+  public getSimpleDetail(): string {
+    let infoText = "";
+    if (this.isInput) {
+      infoText = `(...${this.getElementInfo()})`;
+    } else if (this.isOutput) {
+      infoText = `(...): ${this.getElementInfo()}`;
+    } else {
+      infoText = `: ${this.getElementInfo()}`;
     }
-    return (
-      "### " +
-      this.getParsedObjectType() +
-      ": " +
-      name +
-      "\n" +
-      "#### " +
-      this.parent.getParsedObjectType() +
-      ": " +
-      this.parent.name +
-      "\n" +
-      "#### " +
-      this.getContractNameOrGlobal() +
-      "\n" +
-      "### Type Info: \n" +
-      this.type.getInfo() +
-      "\n"
+    return this.createSimpleDetail(
+      this.getRootName(),
+      this.parent.name,
+      infoText,
+      undefined,
+      true,
+      true
     );
+  }
+
+  public getStorageType(space = true): string {
+    let result = "";
+    if (this.element.storage_location) {
+      result = this.element.storage_location + (space ? " " : "");
+    }
+    return result;
+  }
+  public getElementInfo(): string {
+    const id = this.element.id != null ? this.element.id : "";
+    return this.type.name + " " + this.getStorageType() + id;
   }
 
   public getSignature(): string {

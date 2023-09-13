@@ -9,7 +9,8 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "rootDir": ".",
-    "allowJs": false
+    "checkJs": true,
+    "allowJs": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", ".vscode-test"]

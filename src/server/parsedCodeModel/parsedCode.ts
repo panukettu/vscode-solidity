@@ -11,8 +11,10 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { URI } from "vscode-uri";
 import { ParsedContract } from "./parsedContract";
-import { HoverFeature } from "vscode-languageclient/lib/common/hover";
+import { BodyElement, Element, ElementParams, InnerElement } from "./Types";
+import { ParsedFunction } from "./ParsedFunction";
 
+const commentFormatRegexp = new RegExp(/\s(\w.+)/, "s");
 export class FindTypeReferenceLocationResult {
   public isCurrentElementSelected: boolean;
   public location: Location;
@@ -50,7 +52,7 @@ export class FindTypeReferenceLocationResult {
 }
 
 export class ParsedCode {
-  public element: any;
+  public element: Element | InnerElement | BodyElement | ElementParams;
   public name = "";
   public document: ParsedDocument;
   public contract: ParsedContract = null;
@@ -59,7 +61,7 @@ export class ParsedCode {
   public comment: string = null;
 
   public initialise(
-    element: any,
+    element: Element | BodyElement | InnerElement | ElementParams,
     document: ParsedDocument,
     contract: ParsedContract = null,
     isGlobal = false
@@ -127,7 +129,14 @@ export class ParsedCode {
       Position.create(lineNumber + 1, 0)
     );
   }
-
+  public getRootName(incldueTypeName = false): string {
+    if (this.contract != null) {
+      const prefix = incldueTypeName ? this.contract.name + "." : "";
+      return prefix + this.contract.name;
+    } else {
+      return "Global";
+    }
+  }
   public getContractNameOrGlobal(): string {
     if (this.contract != null) {
       return (
@@ -150,7 +159,31 @@ export class ParsedCode {
     }
   }
 
-  public getComment(): string {
+  public createSimpleDetail(
+    grandparent: string,
+    parent: string,
+    itemInfo: string,
+    objectType?: string,
+    withComment?: boolean,
+    formatComment?: boolean
+  ) {
+    if (grandparent === "Global") {
+      grandparent = grandparent.toLowerCase();
+    }
+
+    const text = [
+      "```solidity",
+      `(${
+        objectType ? objectType : this.getParsedObjectType().toLowerCase()
+      }) ${grandparent ? grandparent + "." : ""}${parent}${itemInfo}`,
+      "```",
+      withComment ? "--- \n" + (this.getComment(formatComment) || "") : "",
+    ].join("\n");
+
+    return text;
+  }
+
+  public getComment(format = false): string {
     if (this.comment === null && this.supportsNatSpec) {
       const uri = URI.file(
         this.document.sourceDocument.absolutePath
@@ -165,7 +198,7 @@ export class ParsedCode {
       let comment = "";
       let currentLine = position.line - 1;
       while (this.isCommentLine(document, currentLine)) {
-        const content = document
+        let content = document
           .getText(this.getLineRange(currentLine))
           .trimStart();
         const inherits = content.match(/(?<=@inheritdoc\s)(\w+)/g);
@@ -178,20 +211,23 @@ export class ParsedCode {
             const item = this.document.getSelectedItem(this.element.start);
             const itemInherit = inheritDoc.findMethodsInScope(item.name);
             if (itemInherit?.length > 0) {
-              comment = itemInherit[0].getComment() + comment;
+              content = itemInherit[0].getComment();
             }
           }
         }
-        comment =
-          "\t" +
-          document.getText(this.getLineRange(currentLine)).trimStart() +
-          comment;
+        if (format) {
+          const matches = commentFormatRegexp.exec(content);
+          content = matches?.length > 1 ? matches[1] || "" : "";
+          comment = content + comment;
+        } else {
+          comment = "\t" + content + comment;
+        }
 
         currentLine = currentLine - 1;
       }
       this.comment = comment;
     }
-    return this.comment;
+    return this.comment == null ? "" : this.comment;
   }
 
   public createFoundReferenceLocationResult(): FindTypeReferenceLocationResult {
@@ -331,10 +367,30 @@ export class ParsedCode {
   }
 
   public findMethodsInScope(name: string): ParsedCode[] {
+    let result: ParsedCode[] = [];
     if (this.contract === null) {
-      return this.document.findMethodCalls(name);
+      result = result.concat(this.document.findMethodCalls(name));
     } else {
-      return this.contract.findMethodCalls(name);
+      result = result.concat(this.contract.findMethodCalls(name));
+    }
+    if (result.length > 0) {
+      return result;
+    } else {
+      for (const inner of this.document.innerContracts) {
+        result = result.concat(inner.getInnerMethodCalls());
+      }
+    }
+
+    return result;
+  }
+  public getSelectedFunction(offset: number): ParsedFunction {
+    if (this.contract === null) {
+      const allFuncs = this.document.getFunctionReference(offset);
+      return allFuncs.find((f) =>
+        f.reference.isCurrentElementedSelected(offset)
+      )?.reference as ParsedFunction | undefined;
+    } else {
+      return this.contract.getSelectedFunction(offset);
     }
   }
 

@@ -1,26 +1,28 @@
 "use strict";
-import { Package } from "./package";
-import { Remapping, importRemappings, importRemappingArray } from "./remapping";
-import * as path from "path";
 import { glob } from "glob";
-import { debug } from "vscode";
+import * as path from "path";
+import { Package } from "./package";
+import { Remapping, importRemappingArray } from "./remapping";
 
 export class Project {
   public projectPackage: Package;
   public dependencies: Array<Package>;
-  public packagesDir: string[];
+  public libs: string[];
   public remappings: Remapping[];
+  public rootPath: string;
 
   constructor(
     projectPackage: Package,
     dependencies: Array<Package>,
-    packagesDir: string[],
-    remappings: string[]
+    libs: string[],
+    remappings: string[],
+    rootPath: string
   ) {
     this.projectPackage = projectPackage;
     this.dependencies = dependencies;
-    this.packagesDir = packagesDir;
+    this.libs = libs;
     this.remappings = importRemappingArray(remappings, this);
+    this.rootPath = rootPath;
   }
   // This will need to add the current package as a parameter to resolve version dependencies
   public findDependencyPackage(contractDependencyImport: string) {
@@ -29,26 +31,31 @@ export class Project {
     );
   }
 
-  public getAllSolFilesIgnoringDependencyFolders() {
-    const solPath =
-      this.projectPackage.getSolSourcesAbsolutePath() + "/**/*.sol";
-    const exclusions: string[] = [];
-    this.packagesDir.forEach((x) => {
-      exclusions.push(
-        path.join(this.projectPackage.getSolSourcesAbsolutePath(), x, "**")
-      );
+  public getProjectSolFiles(extraExcludes?: string[]) {
+    const sourcesPath = this.projectPackage.getSolSourcesAbsolutePath();
+    const exclusions: string[] = extraExcludes
+      ? extraExcludes.map((item) =>
+          path.join(sourcesPath, "**", item, "/**/*.sol")
+        )
+      : [];
+
+    const projectFiles = sourcesPath + "/**/*.sol";
+
+    if (this.rootPath !== sourcesPath) {
+      return glob.sync(projectFiles, { ignore: exclusions });
+    }
+
+    this.libs.forEach((libFolder) => {
+      exclusions.push(path.join(sourcesPath, libFolder, "**"));
     });
     exclusions.push(
-      path.join(
-        this.projectPackage.getSolSourcesAbsolutePath(),
-        this.projectPackage.build_dir,
-        "**"
-      )
+      path.join(sourcesPath, this.projectPackage.build_dir, "**")
     );
     this.getAllRelativeLibrariesAsExclusionsFromRemappings().forEach((x) =>
       exclusions.push(x)
     );
-    return glob.sync(solPath, { ignore: exclusions });
+
+    return glob.sync(projectFiles, { ignore: exclusions });
   }
 
   public getAllRelativeLibrariesAsExclusionsFromRemappings(): string[] {
@@ -59,8 +66,8 @@ export class Project {
 
   public getAllRelativeLibrariesRootDirsFromRemappings(): string[] {
     const results: string[] = [];
-    this.remappings.forEach((element) => {
-      const dirLib = element.getLibraryPathIfRelative(
+    this.remappings.forEach((mapping) => {
+      const dirLib = mapping.getLibraryPathIfRelative(
         this.projectPackage.getSolSourcesAbsolutePath()
       );
       if (dirLib !== null && results.find((x) => x === dirLib) === undefined) {
@@ -79,9 +86,9 @@ export class Project {
   public findImportRemapping(contractDependencyImport: string): Remapping {
     // const remappings = importRemappings("@openzeppelin/=lib/openzeppelin-contracts//\r\nds-test/=lib/ds-test/src/", this);
     const foundRemappings = [];
-    this.remappings.forEach((element) => {
-      if (element.isImportForThis(contractDependencyImport)) {
-        foundRemappings.push(element);
+    this.remappings.forEach((mapping) => {
+      if (mapping.isImportForThis(contractDependencyImport)) {
+        foundRemappings.push(mapping);
       }
     });
 
@@ -93,9 +100,9 @@ export class Project {
 
   public findRemappingForFile(filePath: string): Remapping {
     const foundRemappings = [];
-    this.remappings.forEach((element) => {
-      if (element.isFileForThis(filePath)) {
-        foundRemappings.push(element);
+    this.remappings.forEach((remapping) => {
+      if (remapping.isFileForThis(filePath)) {
+        foundRemappings.push(remapping);
       }
     });
 
@@ -105,7 +112,7 @@ export class Project {
     return null;
   }
 
-  private sortByLength(array) {
+  private sortByLength(array: any[]) {
     return array.sort(function (a, b) {
       return a.length - b.length;
     });

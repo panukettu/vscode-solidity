@@ -2,6 +2,8 @@
 import {
   CodeLens,
   CompletionItem,
+  ConfigurationParams,
+  ConfigurationRequest,
   createConnection,
   Diagnostic,
   Hover,
@@ -43,26 +45,30 @@ import {
   ExecuteCommandProvider,
   SERVER_COMMANDS_LIST,
 } from "./server/commandProvider";
+import { deepEqual } from "fast-equals";
+import { SettingsService } from "./client/settingsService";
 
-interface SoliditySettings {
+export interface SoliditySettings<T = compilerType> {
   // option for backward compatibilities, please use "linter" option instead
   linter: boolean | string;
   enabledAsYouTypeCompilationErrorCheck: boolean;
   compileUsingLocalVersion: string;
   compileUsingRemoteVersion: string;
-  nodemodulespackage: string;
-  defaultCompiler: keyof compilerType;
+  compilerPackage: string;
+  defaultCompiler: T;
   solhintRules: any;
+  initExclude: string[];
   validationDelay: number;
-  packageDefaultDependenciesDirectory: string | string[];
-  packageDefaultDependenciesContractsDirectory: string;
+  libs: string[];
+  libSources: string[];
+  sources: string;
   remappings: string[];
   remappingsWindows: string[];
   remappingsUnix: string[];
   monoRepoSupport: boolean;
 }
 
-const defaultSoliditySettings = {} as SoliditySettings;
+const defaultSoliditySettings = {} as SoliditySettings<keyof compilerType>;
 Object.entries(packageJson.contributes.configuration.properties).forEach(
   ([key, value]) => {
     const keys = key.split(".");
@@ -72,7 +78,6 @@ Object.entries(packageJson.contributes.configuration.properties).forEach(
   }
 );
 
-// import * as path from 'path';
 // Create a connection for the server
 const connection = createConnection(ProposedFeatures.all);
 
@@ -85,24 +90,18 @@ let rootPath: string;
 let solcCompiler: SolcCompiler;
 let linter: Linter = null;
 
-let enabledAsYouTypeErrorCheck = false;
-let compileUsingRemoteVersion = "";
-let compileUsingLocalVersion = "";
-let nodeModulePackage = "";
-let defaultCompiler = compilerType.embedded;
-let solhintDefaultRules = {};
-let validationDelay = 1500;
+let settings: SoliditySettings<compilerType> = {
+  ...defaultSoliditySettings,
+  defaultCompiler: compilerType[defaultSoliditySettings.defaultCompiler],
+};
+
 let solcCachePath = "";
 let hasWorkspaceFolderCapability = false;
-let monoRepoSupport = false;
-let currentOffset: number | null = null;
 // flags to avoid trigger concurrent validations (compiling is slow)
 let validatingDocument = false;
 let validatingAllDocuments = false;
-let packageDefaultDependenciesDirectory: string[] = ["lib", "node_modules"];
-let packageDefaultDependenciesContractsDirectory = "src";
+
 let workspaceFolders: WorkspaceFolder[];
-let remappings: string[];
 let selectedDocument = null;
 let selectedProjectFolder = null;
 export let codeWalkerService: CodeWalkerService = null;
@@ -111,42 +110,30 @@ export function getCodeWalkerService() {
   if (codeWalkerService !== null) {
     if (
       codeWalkerService.rootPath === selectedProjectFolder &&
-      codeWalkerService.packageDefaultDependenciesDirectory.sort().join("") ===
-        packageDefaultDependenciesDirectory.sort().join("") &&
-      codeWalkerService.packageDefaultDependenciesContractsDirectory ===
-        packageDefaultDependenciesContractsDirectory &&
-      codeWalkerService.remappings.sort().join("") ===
-        remappings.sort().join("")
+      deepEqual(codeWalkerService.settings, settings)
     ) {
       return codeWalkerService;
     }
   }
 
-  codeWalkerService = new CodeWalkerService(
+  return (codeWalkerService = new CodeWalkerService(
     selectedProjectFolder,
-    packageDefaultDependenciesDirectory,
-    packageDefaultDependenciesContractsDirectory,
-    remappings
-  );
-
-  codeWalkerService.initialiseAllDocuments();
-  return codeWalkerService;
+    settings
+  ));
 }
 
 function initWorkspaceRootFolder(uri: string) {
-  if (rootPath !== "undefined") {
-    const fullUri = URI.parse(uri);
-    if (!fullUri.fsPath.startsWith(rootPath)) {
-      if (workspaceFolders) {
-        const newRootFolder = workspaceFolders.find((x) =>
-          uri.startsWith(x.uri)
-        );
-        if (newRootFolder !== undefined) {
-          rootPath = URI.parse(newRootFolder.uri).fsPath;
-          solcCompiler.rootPath = rootPath;
-          if (linter !== null) {
-            linter.loadFileConfig(rootPath);
-          }
+  if (rootPath) return;
+
+  const fullUri = URI.parse(uri);
+  if (!fullUri.fsPath.startsWith(rootPath)) {
+    if (workspaceFolders) {
+      const newRootFolder = workspaceFolders.find((x) => uri.startsWith(x.uri));
+      if (newRootFolder !== undefined) {
+        rootPath = URI.parse(newRootFolder.uri).fsPath;
+        solcCompiler.rootPath = rootPath;
+        if (linter !== null) {
+          linter.loadFileConfig(rootPath);
         }
       }
     }
@@ -156,7 +143,7 @@ function initWorkspaceRootFolder(uri: string) {
 export function initCurrentProjectInWorkspaceRootFsPath(
   currentDocument: string
 ) {
-  if (monoRepoSupport) {
+  if (settings.monoRepoSupport) {
     if (selectedDocument === currentDocument && selectedProjectFolder != null) {
       return selectedProjectFolder;
     }
@@ -203,19 +190,16 @@ function validate(document: TextDocument) {
       if (linter !== null) {
         linterDiagnostics = linter.validate(filePath, documentText);
       }
-    } catch {
-      // gracefull catch
+    } catch (e) {
+      console.debug("linter:", e);
     }
-
-    try {
-      if (enabledAsYouTypeErrorCheck) {
+    if (settings.enabledAsYouTypeCompilationErrorCheck) {
+      try {
         const errors: CompilerError[] =
           solcCompiler.compileSolidityDocumentAndGetDiagnosticErrors(
             filePath,
             documentText,
-            packageDefaultDependenciesDirectory,
-            packageDefaultDependenciesContractsDirectory,
-            remappings
+            settings
           );
         errors.forEach((errorItem) => {
           const uriCompileError = URI.file(errorItem.fileName);
@@ -223,9 +207,9 @@ function validate(document: TextDocument) {
             compileErrorDiagnostics.push(errorItem.diagnostic);
           }
         });
+      } catch (e) {
+        console.debug("validate:", e.message);
       }
-    } catch (e) {
-      // gracefull catch
     }
 
     const diagnostics = linterDiagnostics.concat(compileErrorDiagnostics);
@@ -235,52 +219,29 @@ function validate(document: TextDocument) {
   }
 }
 
-function updateSoliditySettings(soliditySettings: SoliditySettings) {
-  enabledAsYouTypeErrorCheck =
-    soliditySettings.enabledAsYouTypeCompilationErrorCheck;
-  compileUsingLocalVersion = soliditySettings.compileUsingLocalVersion;
-  compileUsingRemoteVersion = soliditySettings.compileUsingRemoteVersion;
-  solhintDefaultRules = soliditySettings.solhintRules;
-  validationDelay = soliditySettings.validationDelay;
-  nodeModulePackage = soliditySettings.nodemodulespackage;
-  defaultCompiler = compilerType[soliditySettings.defaultCompiler];
-  packageDefaultDependenciesContractsDirectory =
-    soliditySettings.packageDefaultDependenciesContractsDirectory;
-  if (
-    typeof soliditySettings.packageDefaultDependenciesDirectory === "string"
-  ) {
-    packageDefaultDependenciesDirectory = [
-      <string>soliditySettings.packageDefaultDependenciesDirectory,
-    ];
-  } else {
-    packageDefaultDependenciesDirectory = <string[]>(
-      soliditySettings.packageDefaultDependenciesDirectory
-    );
-  }
-  remappings = soliditySettings.remappings;
-  monoRepoSupport = soliditySettings.monoRepoSupport;
+function updateSoliditySettings(
+  soliditySettings: SoliditySettings<keyof compilerType>
+) {
+  settings = {
+    ...soliditySettings,
+    defaultCompiler: compilerType[soliditySettings.defaultCompiler],
+    remappings: replaceRemappings(
+      soliditySettings.remappings,
+      process.platform === "win32"
+        ? soliditySettings.remappingsWindows
+        : soliditySettings.remappingsUnix
+    ),
+  };
 
-  if (process.platform === "win32") {
-    remappings = replaceRemappings(
-      remappings,
-      soliditySettings.remappingsWindows
-    );
-  } else {
-    remappings = replaceRemappings(remappings, soliditySettings.remappingsUnix);
-  }
-
-  switch (linterName(soliditySettings)) {
+  switch (linterName(settings)) {
     case "solhint": {
-      linter = new SolhintService(rootPath, solhintDefaultRules);
+      linter = new SolhintService(rootPath, settings.solhintRules);
+      linter.setIdeRules(linterRules(settings));
       break;
     }
     default: {
       linter = null;
     }
-  }
-
-  if (linter !== null) {
-    linter.setIdeRules(linterRules(soliditySettings));
   }
 
   startValidation();
@@ -295,7 +256,7 @@ function validateAllDocuments() {
   if (!validatingAllDocuments) {
     try {
       validatingAllDocuments = true;
-      documents.all().forEach((document) => validate(document));
+      documents.all().forEach(validate);
     } finally {
       validatingAllDocuments = false;
     }
@@ -303,46 +264,43 @@ function validateAllDocuments() {
 }
 
 async function startValidation() {
-  if (enabledAsYouTypeErrorCheck) {
-    solcCompiler.initialiseAllCompilerSettings(
-      compileUsingRemoteVersion,
-      compileUsingLocalVersion,
-      nodeModulePackage,
-      defaultCompiler
-    );
-    solcCompiler
-      .initialiseSelectedCompiler()
-      .then(() => {
-        connection.console.info(
-          "Validating using the compiler selected: " +
-            compilerType[defaultCompiler]
-        );
-        validateAllDocuments();
-      })
-      .catch((reason) => {
-        connection.console.error(
-          "An error has occurred initialising the compiler selected " +
-            compilerType[defaultCompiler] +
-            ", please check your settings, reverting to the embedded compiler. Error: " +
-            reason
-        );
-        solcCompiler.initialiseAllCompilerSettings(
-          compileUsingRemoteVersion,
-          compileUsingLocalVersion,
-          nodeModulePackage,
-          compilerType.embedded
-        );
-        solcCompiler
-          .initialiseSelectedCompiler()
-          .then(() => {
-            validateAllDocuments();
-            // tslint:disable-next-line:no-empty
-          })
-          .catch(() => {});
-      });
-  } else {
-    validateAllDocuments();
+  if (!settings.enabledAsYouTypeCompilationErrorCheck) {
+    return validateAllDocuments();
   }
+
+  solcCompiler.initialiseAllCompilerSettings(
+    settings,
+    settings.defaultCompiler
+  );
+
+  solcCompiler
+    .initialiseSelectedCompiler()
+    .then(() => {
+      connection.console.info(
+        "Validating using the compiler selected: " +
+          compilerType[settings.defaultCompiler]
+      );
+      validateAllDocuments();
+    })
+    .catch((reason) => {
+      connection.console.error(
+        "An error has occurred initialising the compiler selected " +
+          compilerType[settings.defaultCompiler] +
+          ", please check your settings, reverting to the embedded compiler. Error: " +
+          reason
+      );
+      solcCompiler.initialiseAllCompilerSettings(
+        settings,
+        compilerType.embedded
+      );
+      solcCompiler
+        .initialiseSelectedCompiler()
+        .then(() => {
+          validateAllDocuments();
+          // tslint:disable-next-line:no-empty
+        })
+        .catch(() => {});
+    });
 }
 
 documents.onDidChangeContent((event) => {
@@ -350,7 +308,7 @@ documents.onDidChangeContent((event) => {
   if (!validatingDocument && !validatingAllDocuments) {
     validatingDocument = true; // control the flag at a higher level
     // slow down, give enough time to type (1.5 seconds?)
-    setTimeout(() => validate(document), validationDelay);
+    setTimeout(() => validate(document), settings.validationDelay);
   }
 });
 
@@ -383,14 +341,14 @@ connection.onInitialize((params): InitializeResult => {
     capabilities: {
       completionProvider: {
         resolveProvider: false,
-        triggerCharacters: [".", "/", '"', "'", "*"],
+        triggerCharacters: [".", "/", '"', "'"],
       },
       definitionProvider: true,
       referencesProvider: true,
       hoverProvider: true,
       signatureHelpProvider: {
         workDoneProgress: false,
-        triggerCharacters: ["(", ","],
+        triggerCharacters: ["(", ",", "*"],
       },
       textDocumentSync: TextDocumentSyncKind.Full,
       executeCommandProvider: {
@@ -407,31 +365,29 @@ connection.onInitialize((params): InitializeResult => {
     };
   }
 
-  updateSoliditySettings(defaultSoliditySettings);
-
   return result;
 });
 
-connection.onInitialized(() => {
-  if (hasWorkspaceFolderCapability) {
-    connection.workspace.onDidChangeWorkspaceFolders((_event) => {
-      if (connection.workspace !== undefined) {
-        connection.workspace.onDidChangeWorkspaceFolders((event) => {
-          event.removed.forEach((workspaceFolder) => {
-            const index = workspaceFolders.findIndex(
-              (folder) => folder.uri === workspaceFolder.uri
-            );
-            if (index !== -1) {
-              workspaceFolders.splice(index, 1);
-            }
-          });
-          event.added.forEach((workspaceFolder) => {
-            workspaceFolders.push(workspaceFolder);
-          });
-        });
-      }
+connection.onInitialized(async () => {
+  updateSoliditySettings(await requestConfig());
+
+  if (!hasWorkspaceFolderCapability) return;
+
+  connection.workspace.onDidChangeWorkspaceFolders((_event) => {
+    if (!connection.workspace) return;
+    connection.workspace.onDidChangeWorkspaceFolders((event) => {
+      event.removed.forEach((workspaceFolder) => {
+        const index = workspaceFolders.findIndex(
+          (folder) => folder.uri === workspaceFolder.uri
+        );
+        if (index !== -1) {
+          workspaceFolders.splice(index, 1);
+        }
+      });
+
+      workspaceFolders.push(...event.added);
     });
-  }
+  });
 });
 
 connection.onSignatureHelp((handler): SignatureHelp => {
@@ -489,8 +445,8 @@ connection.onDefinition(
 connection.onHover((handler: TextDocumentPositionParams): Hover | undefined => {
   initWorkspaceRootFolder(handler.textDocument.uri);
   initCurrentProjectInWorkspaceRootFsPath(handler.textDocument.uri);
-  const provider = new SolidityHoverProvider();
-  return provider.provideHover(
+
+  return new SolidityHoverProvider().provideHover(
     documents.get(handler.textDocument.uri),
     handler.position,
     getCodeWalkerService()
@@ -499,7 +455,7 @@ connection.onHover((handler: TextDocumentPositionParams): Hover | undefined => {
 
 type CommandParamsBase = [
   DocumentExecuteCommand & { uri: { external: string } },
-  any[]
+  any[],
 ];
 
 connection.onExecuteCommand((args) => {
@@ -526,29 +482,40 @@ connection.onDidChangeWatchedFiles((_change) => {
   validateAllDocuments();
 });
 
-documents.onDidOpen((handler) => {
-  try {
-    if (codeWalkerService === null) {
-      initWorkspaceRootFolder(handler.document.uri);
-      initCurrentProjectInWorkspaceRootFsPath(handler.document.uri);
-      remappings = loadRemappings(rootPath, []);
-      // packageDefaultDependenciesContractsDirectory = "src";
-      getCodeWalkerService();
-    }
-  } catch (e) {
-    console.debug(e);
-  }
+documents.onDidOpen(async (handler) => {
+  // try {
+  //   if (codeWalkerService === null) {
+  //     initWorkspaceRootFolder(handler.document.uri);
+  //     initCurrentProjectInWorkspaceRootFsPath(handler.document.uri);
+  //     remappings = loadRemappings(rootPath, remappings);
+  //     getCodeWalkerService();
+  //   }
+  // } catch (e) {
+  //   console.debug(e);
+  // }
 });
 
-connection.onDidChangeConfiguration((change) => {
+connection.onDidChangeConfiguration(async (change) => {
   updateSoliditySettings({
-    remappings,
-    packageDefaultDependenciesContractsDirectory: "src",
     ...defaultSoliditySettings,
-    ...(change.settings?.solidity || {}),
+    ...(await requestConfig()),
   });
 });
-
+async function requestConfig() {
+  try {
+    const params: ConfigurationParams = {
+      items: [{ section: "solidity" }],
+    };
+    const [solidityConfig] = (await connection.sendRequest(
+      "workspace/configuration",
+      params
+    )) as [SoliditySettings<keyof compilerType>];
+    return solidityConfig;
+  } catch (e) {
+    console.log("Error getting config, using defaults..", e.message);
+    return defaultSoliditySettings;
+  }
+}
 function linterName(settings: SoliditySettings) {
   return settings.linter;
 }

@@ -162,6 +162,12 @@ export class ParsedDeclarationType extends ParsedCode {
     return [];
   }
 
+  public getTypeDefinition() {
+    const type = this.findType();
+    if (type) return type;
+    return this;
+  }
+
   public getInfo(): string {
     let returnString = "";
     if (this.isArray) {

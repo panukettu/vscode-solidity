@@ -8,6 +8,7 @@ import { initialiseProject } from "../common/projectService";
 import { formatPath, isPathSubdirectory } from "../common/util";
 import * as workspaceUtil from "./workspaceUtil";
 import { SettingsService } from "./settingsService";
+import { SoliditySettings } from "../server";
 
 export function compileAllContracts(
   compiler: Compiler,
@@ -21,20 +22,18 @@ export function compileAllContracts(
     return;
   }
   const rootPath = workspaceUtil.getCurrentProjectInWorkspaceRootFsPath();
-  const packageDefaultDependenciesDirectory =
-    SettingsService.getPackageDefaultDependenciesDirectories();
-  const packageDefaultDependenciesContractsDirectory =
-    SettingsService.getPackageDefaultDependenciesContractsDirectory();
   const compilationOptimisation = SettingsService.getCompilerOptimisation();
   const remappings = workspaceUtil.getSolidityRemappings();
 
+  const sources = SettingsService.getSources();
+  const { libs, libSources } = SettingsService.getLibs();
   const contractsCollection = new SourceDocumentCollection();
-  const project = initialiseProject(
-    rootPath,
-    packageDefaultDependenciesDirectory,
-    packageDefaultDependenciesContractsDirectory,
-    remappings
-  );
+  const project = initialiseProject(rootPath, {
+    libs,
+    libSources,
+    sources,
+    remappings,
+  } as SoliditySettings).project;
 
   // Process open Text Documents first as it is faster (We might need to save them all first? Is this assumed?)
   vscode.workspace.textDocuments.forEach((document) => {
@@ -51,7 +50,7 @@ export function compileAllContracts(
     }
   });
 
-  const documents = project.getAllSolFilesIgnoringDependencyFolders();
+  const documents = project.getProjectSolFiles();
 
   documents.forEach((document) => {
     const contractPath = document;
@@ -68,8 +67,8 @@ export function compileAllContracts(
     project.projectPackage.getSolSourcesAbsolutePath()
   );
   const packagesPath: string[] = [];
-  if (project.packagesDir != null) {
-    project.packagesDir.forEach((x) => packagesPath.push(formatPath(x)));
+  if (project.libs.length > 0) {
+    project.libs.forEach((x) => packagesPath.push(formatPath(x)));
   }
 
   compiler.compile(

@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as prettier from "./prettierFormatter";
 import * as forge from "./forgeFormatter";
 
-export function formatDocument(
+export async function formatDocument(
   document: vscode.TextDocument,
   context: vscode.ExtensionContext
 ): Promise<vscode.TextEdit[]> {
@@ -11,9 +11,9 @@ export function formatDocument(
     .get<string>("formatter");
   switch (formatter) {
     case "prettier":
-      return Promise.resolve(prettier.formatDocument(document, context));
+      return await prettier.formatDocument(document, context);
     case "forge":
-      return forge.formatDocument(document, context);
+      return await forge.formatDocument(document, context);
     default:
       return null;
   }

@@ -9,57 +9,48 @@ import { ParsedContract } from "./parsedContract";
 import { ParsedDocument } from "./ParsedDocument";
 import { SourceDocument } from "../../common/model/sourceDocument";
 import * as fs from "fs";
+import { SoliditySettings } from "../../server";
+import { Element } from "./Types";
 
 export class CodeWalkerService {
   public initialized: boolean;
   public project: Project;
-  public remappings: string[];
   public rootPath: string;
-  public packageDefaultDependenciesDirectory: string[];
-  public packageDefaultDependenciesContractsDirectory: string;
+  public settings: SoliditySettings;
+  public resolvedSources: string;
   public parsedDocumentsCache: ParsedDocument[] = [];
 
-  constructor(
-    rootPath: string,
-    packageDefaultDependenciesDirectory: string[],
-    packageDefaultDependenciesContractsDirectory: string,
-    remappings: string[]
-  ) {
+  constructor(rootPath: string, settings: SoliditySettings) {
     this.rootPath = rootPath;
+    this.settings = settings;
 
-    this.packageDefaultDependenciesDirectory =
-      packageDefaultDependenciesDirectory;
-    this.packageDefaultDependenciesContractsDirectory =
-      packageDefaultDependenciesContractsDirectory;
-    this.remappings = remappings;
-
-    if (this.rootPath !== "undefined" && this.rootPath !== null) {
-      this.project = initialiseProject(
+    if (this.rootPath != null) {
+      const { project, sources } = initialiseProject(
         this.rootPath,
-        this.packageDefaultDependenciesDirectory,
-        this.packageDefaultDependenciesContractsDirectory,
-        this.remappings
+        this.settings
       );
+      this.project = project;
+      this.resolvedSources = sources;
     }
+    this.initDocuments(this.settings.initExclude);
   }
 
-  public initialiseAllDocuments() {
+  public initDocuments(initExclude: string[]) {
     const sourceDocuments = new SourceDocumentCollection();
-    const files = this.project.getAllSolFilesIgnoringDependencyFolders();
+    const files = this.project.getProjectSolFiles(initExclude);
     for (const path of files) {
-      if (!sourceDocuments.containsSourceDocument(path)) {
-        const contractCode = fs.readFileSync(path, "utf8");
+      const existing = sourceDocuments.documents.find(
+        (d) => d.absolutePath === path
+      );
+      if (!existing) {
         const item = sourceDocuments.addSourceDocumentAndResolveImports(
           path,
-          contractCode,
+          fs.readFileSync(path, "utf8"),
           this.project
         );
         this.parseDocument(item.unformattedCode, false, item);
       } else {
-        const item = sourceDocuments.documents.find(
-          (d) => d.absolutePath === path
-        );
-        this.parseDocument(item.unformattedCode, false, item);
+        this.parseDocument(existing.unformattedCode, false, existing);
       }
     }
 
@@ -74,13 +65,11 @@ export class CodeWalkerService {
 
   public initialiseChangedDocuments() {
     const sourceDocuments = new SourceDocumentCollection();
-    const files = this.project.getAllSolFilesIgnoringDependencyFolders();
-    files.forEach((contractPath) => {
+    this.project.getProjectSolFiles().forEach((contractPath) => {
       if (!sourceDocuments.containsSourceDocument(contractPath)) {
-        const contractCode = fs.readFileSync(contractPath, "utf8");
         sourceDocuments.addSourceDocumentAndResolveImports(
           contractPath,
-          contractCode,
+          fs.readFileSync(contractPath, "utf8"),
           this.project
         );
       }
@@ -100,12 +89,11 @@ export class CodeWalkerService {
   ): ParsedDocument {
     let selectedDocument: ParsedDocument = new ParsedDocument();
     const documentText = document.getText();
-    const documentPath = URI.parse(document.uri).fsPath;
     const sourceDocuments = new SourceDocumentCollection();
 
-    if (this.project !== undefined) {
+    if (this.project != null) {
       sourceDocuments.addSourceDocumentAndResolveImports(
-        documentPath,
+        URI.parse(document.uri).fsPath,
         documentText,
         this.project
       );
@@ -131,9 +119,11 @@ export class CodeWalkerService {
     //     selectedDocument.addImportedDocument(documentImport);
     //   }
     // });
-    this.parsedDocumentsCache.forEach((element) => {
-      element.initialiseDocumentReferences(this.parsedDocumentsCache);
-    });
+    // this.parsedDocumentsCache.forEach((element) => {
+    //   console.debug("cache init refs");
+    //   element.initialiseDocumentReferences(this.parsedDocumentsCache);
+    // });
+    selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
 
     return selectedDocument;
   }
@@ -149,7 +139,7 @@ export class CodeWalkerService {
       (x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath
     );
     const newDocument: ParsedDocument = new ParsedDocument();
-    if (foundDocument !== undefined && foundDocument !== null) {
+    if (foundDocument != null) {
       if (
         !fixedSource &&
         foundDocument.sourceDocument.code === sourceDocument.code
@@ -243,7 +233,7 @@ export class CodeWalkerService {
 
       this.parsedDocumentsCache.push(newDocument);
     } catch (error) {
-      console.log(error.message);
+      console.log("parsedDocumentChange", error.message);
       /*
         // if we error parsing (cannot cater for all combos) we fix by removing current line.
         const lines = documentText.split(/\r?\n/g);
@@ -264,8 +254,8 @@ export class CodeWalkerService {
     const foundDocument = this.parsedDocumentsCache.find(
       (x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath
     );
-    const newDocument: ParsedDocument = new ParsedDocument();
-    if (foundDocument !== undefined && foundDocument !== null) {
+    const newDocument = new ParsedDocument();
+    if (foundDocument != null) {
       if (
         foundDocument.sourceDocument.unformattedCode ===
         sourceDocument.unformattedCode
@@ -299,7 +289,7 @@ export class CodeWalkerService {
 
       this.parsedDocumentsCache.push(newDocument);
     } catch (error) {
-      console.log(error.message);
+      console.debug("parseDocument", error);
       // console.log(JSON.stringify(error));
       /*
             // if we error parsing (cannot cater for all combos) we fix by removing current line.
@@ -319,7 +309,7 @@ export class CodeWalkerService {
   ): ParsedContract[] {
     const contracts: ParsedContract[] = [];
     try {
-      const result = solparse.parse(documentText);
+      const result: Element = solparse.parse(documentText);
       result.body.forEach((element) => {
         if (
           element.type === "ContractStatement" ||
@@ -339,7 +329,10 @@ export class CodeWalkerService {
     return contracts;
   }
 
-  private findElementByOffset(elements: Array<any>, offset: number): any {
+  private findElementByOffset(
+    elements: Array<{ start: number; end: number }>,
+    offset: number
+  ): any {
     return elements.find(
       (element) => element.start <= offset && offset <= element.end
     );

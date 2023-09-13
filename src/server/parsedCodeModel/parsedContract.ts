@@ -14,8 +14,7 @@ import { ParsedStruct } from "./ParsedStruct";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
 import { ParsedUsing } from "./parsedUsing";
-import { relative } from "path";
-import { fileURLToPath } from "url";
+import { Element } from "./Types";
 
 export enum ContractType {
   contract,
@@ -46,6 +45,7 @@ export class ParsedContract
   public contractType: ContractType = ContractType.contract;
   public isAbstract: boolean;
   private completionItem: CompletionItem = null;
+  public element: Element;
 
   public override getAllReferencesToSelected(
     offset: number,
@@ -125,6 +125,29 @@ export class ParsedContract
             x.getAllReferencesToSelected(offset, documents)
           ))
       );
+
+      const structMembers = this.structs
+        .map((s) => s.getInnerMembers())
+        .flatMap((s) => s);
+
+      const functionMembers = this.functions
+        .map((f) => f.getAllItems())
+        .flatMap((s) => s);
+
+      structMembers.forEach(
+        (x) =>
+          (results = this.mergeArrays(
+            results,
+            x.getAllReferencesToSelected(offset, documents)
+          ))
+      );
+      functionMembers.forEach(
+        (x) =>
+          (results = this.mergeArrays(
+            results,
+            x.getAllReferencesToSelected(offset, documents)
+          ))
+      );
     }
     return results;
   }
@@ -181,10 +204,33 @@ export class ParsedContract
     this.contractIsStatements.forEach(
       (x) => (results = results.concat(x.getAllReferencesToObject(parsedCode)))
     );
+
+    const structMembers = this.structs
+      .map((s) => s.getInnerMembers())
+      .flatMap((s) => s);
+
+    const functionMembers = this.functions
+      .map((f) => f.getAllItems())
+      .flatMap((s) => s);
+
+    structMembers.forEach(
+      (x) =>
+        (results = this.mergeArrays(
+          results,
+          x.getAllReferencesToObject(parsedCode)
+        ))
+    );
+    functionMembers.forEach(
+      (x) =>
+        (results = this.mergeArrays(
+          results,
+          x.getAllReferencesToObject(parsedCode)
+        ))
+    );
     return results;
   }
 
-  public override initialise(element: any, document: ParsedDocument) {
+  public override initialise(element: Element, document: ParsedDocument) {
     super.initialise(element, document, this);
     this.name = element.name;
     this.id = element.id;
@@ -345,7 +391,28 @@ export class ParsedContract
             x.getSelectedTypeReferenceLocation(offset)
           ))
       );
+      const structMembers = this.structs
+        .map((s) => s.getInnerMembers())
+        .flatMap((s) => s);
 
+      const functionMembers = this.functions
+        .map((f) => f.getAllItems())
+        .flatMap((s) => s);
+
+      structMembers.forEach(
+        (x) =>
+          (results = this.mergeArrays(
+            results,
+            x.getSelectedTypeReferenceLocation(offset)
+          ))
+      );
+      functionMembers.forEach(
+        (x) =>
+          (results = this.mergeArrays(
+            results,
+            x.getSelectedTypeReferenceLocation(offset)
+          ))
+      );
       if (this.constructorFunction !== null) {
         results = this.mergeArrays(
           results,
@@ -401,22 +468,10 @@ export class ParsedContract
   public override getSelectedItem(offset: number): ParsedCode {
     let selectedItem: ParsedCode = null;
     if (this.isCurrentElementedSelected(offset)) {
-      let allItems: ParsedCode[] = [];
-      allItems = allItems
-        .concat(this.functions)
-        .concat(this.errors)
-        .concat(this.events)
-        .concat(this.structs)
-        .concat(this.stateVariables)
-        .concat(this.customTypes)
-        .concat(this.using)
-        .concat(this.contractIsStatements)
-        .concat(this.expressions)
-        .concat(this.constructorFunction)
-        .concat(this.fallbackFunction)
-        .concat(this.receiveFunction);
+      let allItems = this.getAllItems();
 
       for (const item of allItems) {
+        if (item == null) continue;
         selectedItem = item.getSelectedItem(offset);
         if (selectedItem !== null) {
           return selectedItem;
@@ -435,7 +490,10 @@ export class ParsedContract
       .concat(this.getAllStructs())
       .concat(this.getAllEnums())
       .concat(this.document.getAllContracts());
-    return typesParsed.find((x) => x.name === name);
+    return (
+      typesParsed.find((x) => x?.name === name) ||
+      this.getAllItems().find((x) => x?.name === name)
+    );
   }
 
   public override getInnerMembers(): ParsedCode[] {
@@ -769,18 +827,25 @@ export class ParsedContract
   }
 
   public override getInfo(): string {
-    const contracType = this.getParsedObjectType();
-    return (
-      "### " +
-      contracType +
-      ": " +
-      this.name +
-      "\n" +
-      "##### " +
-      this.document.sourceDocument?.absolutePath +
-      "\n" +
-      this.getComment()
+    return this.createSimpleDetail(
+      "",
+      this.name,
+      `: ${this.document.sourceDocument.absolutePath}`,
+      undefined,
+      true,
+      false
     );
+    // return (
+    //   "### " +
+    //   contracType +
+    //   ": " +
+    //   this.name +
+    //   "\n" +
+    //   "##### " +
+    //   this.document.sourceDocument?.absolutePath +
+    //   "\n" +
+    //   this.getComment()
+    // );
   }
 
   public override getParsedObjectType(): string {

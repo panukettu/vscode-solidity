@@ -1,12 +1,5 @@
-import {
-  CompletionItem,
-  CompletionItemKind,
-  Location,
-} from "vscode-languageserver";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
-import { ParsedCodeTypeHelper } from "./ParsedCodeTypeHelper";
-import { ParsedParameter } from "./ParsedParameter";
 
 export class ParsedVariable extends ParsedCode {
   public type: ParsedDeclarationType;

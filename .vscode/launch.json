@@ -6,42 +6,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Extension",
       "type": "extensionHost",
       "request": "launch",
-      "name": "Extension",
       "runtimeExecutable": "${execPath}",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "env": {
-        "VSCODE_NODE_ENV": "development"
+      "preLaunchTask": {
+        "type": "npm",
+        "script": "compile"
       },
-      "preLaunchTask": "npm: compile",
       "sourceMaps": true
     },
-    // {
-    //   "type": "extensionHost",
-    //   "request": "launch",
-    //   "name": "Launch Client",
-    //   "runtimeExecutable": "${execPath}",
-    //   "args": ["--extensionDevelopmentPath=${workspaceRoot}/client"],
-    //   "outFiles": ["${workspaceRoot}/client/out/**/*.js"],
-    //   "env": {
-    //     "VSCODE_NODE_ENV": "development"
-    //   },
-    //   "envFile": "${workspaceFolder}/.env",
-    //   "preLaunchTask": {
-    //     "type": "npm",
-    //     "script": "watch"
-    //   }
-    // },
-    // {
-    //   "type": "node",
-    //   "request": "attach",
-    //   "name": "Attach to Server",
-    //   "port": 6009,
-    //   "restart": true,
-    //   "outFiles": ["${workspaceRoot}/server/out/**/*.js"]
-    // },
     {
       "type": "node",
       "request": "attach",
@@ -54,7 +30,8 @@
   "compounds": [
     {
       "name": "Client + Server",
-      "configurations": ["Extension", "Attach to Server"]
+      "configurations": ["Extension", "Attach to Server"],
+      "stopAll": true
     }
   ]
 }
