@@ -413,32 +413,6 @@ export class ParsedFunction
       true,
       false
     );
-    const functionType = this.getParsedObjectType();
-    let parentInfo = this.getContractNameOrGlobal();
-    let parentType = "";
-    let parentName = "";
-    const separator = parentInfo.indexOf(":");
-    if (separator !== -1) {
-      parentName = parentInfo.slice(separator + 1);
-      parentType = parentInfo.slice(0, separator);
-    }
-    return (
-      "### " +
-      parentName +
-      (parentName ? "." : "") +
-      this.name +
-      "\n" +
-      "#### " +
-      parentType +
-      " " +
-      functionType +
-      "\n" +
-      "\n" +
-      "\t" +
-      this.getSignature() +
-      " \n\n" +
-      this.getComment()
-    );
   }
 
   public override getParsedObjectType(): string {

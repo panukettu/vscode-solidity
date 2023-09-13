@@ -835,17 +835,6 @@ export class ParsedContract
       true,
       false
     );
-    // return (
-    //   "### " +
-    //   contracType +
-    //   ": " +
-    //   this.name +
-    //   "\n" +
-    //   "##### " +
-    //   this.document.sourceDocument?.absolutePath +
-    //   "\n" +
-    //   this.getComment()
-    // );
   }
 
   public override getParsedObjectType(): string {

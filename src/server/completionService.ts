@@ -65,6 +65,7 @@ export class CompletionService {
     let triggeredByInnerImport = false;
     let triggeredByFrom = false;
     let triggeredByRevert = false;
+    let triggeredByInnerFrom = false;
     let triggeredByDotStart = 0;
     let line: string;
     try {
@@ -88,13 +89,13 @@ export class CompletionService {
       );
 
       triggeredByEmit = autoCompleteVariable === "emit";
-      triggeredByFrom = fromRegexp.test(line);
       triggeredByRevert = autoCompleteVariable === "revert";
-      if (!triggeredByFrom) {
-        triggeredByInnerImport = innerImportRegexp.test(line);
-        if (!triggeredByInnerImport) {
-          triggeredByImport = importRegexp.test(line);
-        }
+      triggeredByInnerImport = innerImportRegexp.test(line);
+      triggeredByFrom = fromRegexp.test(line);
+      triggeredByInnerFrom =
+        autoCompleteVariable === "importInner" && triggeredByInnerImport;
+      if (!triggeredByInnerImport && !triggeredByFrom) {
+        triggeredByImport = importRegexp.test(line);
       }
       //  TODO: this does not work due to the trigger.
       // || (lines[position.line].trimLeft().startsWith('import "') && lines[position.line].trimLeft().lastIndexOf('"') === 7);
@@ -128,8 +129,10 @@ export class CompletionService {
         }
         return completionItems;
       }
-
-      if (triggeredByImport || triggeredByFrom) {
+      if (
+        (!triggeredByInnerImport && (triggeredByImport || triggeredByFrom)) ||
+        triggeredByInnerFrom
+      ) {
         const hasSourceDir = walker.resolvedSources !== "";
         const sourcesDir = "/" + walker.resolvedSources;
         const files = glob.sync(
@@ -163,7 +166,7 @@ export class CompletionService {
             document,
             walker
           );
-          console.log(importPath);
+
           const completionItem = CompletionItem.create(importPath);
           completionItem.textEdit = textEdit(importPath, editRange, prefix);
           completionItem.kind = CompletionItemKind.File;
@@ -190,7 +193,62 @@ export class CompletionService {
         return completionItems;
       }
 
-      if (triggeredByEmit) {
+      if (triggeredByInnerImport) {
+        completionItems = completionItems.concat(
+          ...walker.parsedDocumentsCache.map((d) => [
+            ...d.getAllGlobalContractsCompletionItems(),
+            ...d.getAllGlobalFunctionCompletionItems(),
+          ])
+        );
+        // filter out duplicates
+        completionItems = completionItems.filter(
+          (item, index, self) =>
+            index === self.findIndex((t) => t.label === item.label)
+        );
+        try {
+          const hasPreviousItems = line.indexOf(",") !== -1;
+          const selectionStart = {
+            line: position.line,
+            character: hasPreviousItems
+              ? line.indexOf(",") + 1
+              : line.indexOf("{") + 1,
+          };
+          const selectionEnd = {
+            line: position.line,
+            character: triggeredByFrom ? line.length : line.indexOf("}") + 1,
+          };
+          // const range = vscode.Range.create(position, lineEnd);
+          const editRange = vscode.Range.create(selectionStart, selectionEnd);
+          const filePath = fileURLToPath(document.uri);
+          const result = completionItems.map((i) => {
+            if (!i.data?.absolutePath) return i;
+            let rel = relative(filePath, i.data.absolutePath);
+            rel = rel.split("\\").join("/");
+            if (rel.startsWith("../")) {
+              rel = rel.substr(1);
+            }
+            const prefix = hasPreviousItems ? " " : "";
+            const importPath = i.data.remappedPath ?? rel;
+            const replaced = i.insertText.includes("(")
+              ? i.insertText.split("(")[0]
+              : i.insertText;
+
+            return {
+              ...i,
+              preselect: true,
+              textEdit: vscode.InsertReplaceEdit.create(
+                prefix + replaced + '} from "' + importPath + '";',
+                editRange,
+                editRange
+              ),
+            };
+          });
+
+          return result;
+        } catch (e) {
+          console.log(e.message);
+        }
+      } else if (triggeredByEmit) {
         if (documentContractSelected.selectedContract != null) {
           completionItems = completionItems.concat(
             documentContractSelected.selectedContract.getAllEventsCompletionItems()
@@ -211,6 +269,11 @@ export class CompletionService {
           );
         }
       } else {
+        console.debug(
+          "'seclected",
+          documentContractSelected.selectedContract != null,
+          completionItems.length
+        );
         if (documentContractSelected.selectedContract != null) {
           completionItems = completionItems.concat(
             documentContractSelected.selectedContract.getSelectedContractCompletionItems(
@@ -233,47 +296,7 @@ export class CompletionService {
       completionItems = completionItems.concat(GetGlobalFunctions());
       completionItems = completionItems.concat(GetGlobalVariables());
     }
-    if (triggeredByInnerImport) {
-      try {
-        const hasPreviousItems = line.indexOf(",") !== -1;
-        const selectionStart = {
-          line: position.line,
-          character: hasPreviousItems
-            ? line.indexOf(",") + 1
-            : line.indexOf("{") + 1,
-        };
-        const selectionEnd = {
-          line: position.line,
-          character: line.indexOf("}") + 1,
-        };
-        // const range = vscode.Range.create(position, lineEnd);
-        const editRange = vscode.Range.create(selectionStart, selectionEnd);
-        const filePath = fileURLToPath(document.uri);
-        const result = completionItems.map((i) => {
-          if (!i.data?.absolutePath) return i;
-          let rel = relative(filePath, i.data.absolutePath);
-          rel = rel.split("\\").join("/");
-          if (rel.startsWith("../")) {
-            rel = rel.substr(1);
-          }
-          const prefix = hasPreviousItems ? " " : "";
-          const importPath = i.data.remappedPath ?? rel;
-          return {
-            ...i,
-            preselect: true,
-            textEdit: vscode.InsertReplaceEdit.create(
-              prefix + i.insertText + '} from "' + importPath + '";',
-              editRange,
-              editRange
-            ),
-          };
-        });
 
-        return result;
-      } catch (e) {
-        console.log(e.message);
-      }
-    }
     return completionItems;
   }
 }
@@ -407,7 +430,7 @@ export function GetCompletionKeywords(): CompletionItem[] {
 
 export function GeCompletionUnits(): CompletionItem[] {
   const completionItems = [];
-  const etherUnits = ["wei", "gwei", "finney", "szabo", "ether"];
+  const etherUnits = ["wei", "gwei", "ether"];
   etherUnits.forEach((unit) => {
     const completionItem = CompletionItem.create(unit);
     completionItem.kind = CompletionItemKind.Unit;
@@ -624,6 +647,7 @@ function getAutocompleteVariableNameTrimmingSpaces(
 ): string {
   let searching = true;
   let result = "";
+  let quotesFound = false;
   if (lineText[wordEndPosition] === " ") {
     let spaceFound = true;
     while (spaceFound && wordEndPosition >= 0) {
@@ -636,6 +660,16 @@ function getAutocompleteVariableNameTrimmingSpaces(
 
   while (searching && wordEndPosition >= 0) {
     const currentChar = lineText[wordEndPosition];
+    if (
+      lineText[wordEndPosition] === '"' ||
+      lineText[wordEndPosition] === "'"
+    ) {
+      quotesFound = true;
+      console.debug({
+        quotesFound,
+      });
+      return "importInner";
+    }
     if (
       isAlphaNumeric(currentChar) ||
       currentChar === "_" ||
