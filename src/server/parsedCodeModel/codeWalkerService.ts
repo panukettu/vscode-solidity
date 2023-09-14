@@ -101,7 +101,7 @@ export class CodeWalkerService {
 
     if (
       (cached && documentText === cached.sourceDocument?.unformattedCode) ||
-      cached.fixedSource
+      cached?.fixedSource
     ) {
       selectedDocument = cached;
       selectedDocument.initCache(offset);
@@ -252,7 +252,7 @@ export class CodeWalkerService {
           foundDocument.element,
           null,
           sourceDocument,
-          foundDocument.fixedSource
+          foundDocument?.fixedSource
         );
 
         this.parsedDocumentsCache.push(newDocument);

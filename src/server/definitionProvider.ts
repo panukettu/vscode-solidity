@@ -189,78 +189,82 @@ export class SolidityHoverProvider {
     position: vscode.Position,
     walker: CodeWalkerService
   ): vscode.Hover | undefined {
-    const { range, offset, documentContractSelected, reset } = useHelper(
-      "hover",
-      document,
-      position,
-      walker
-    );
+    try {
+      const { range, offset, documentContractSelected, reset } = useHelper(
+        "hover",
+        document,
+        position,
+        walker
+      );
 
-    const text = document.getText(range);
-    if (keccak256Regexp().test(text)) {
-      reset();
-      return {
-        contents: {
-          kind: vscode.MarkupKind.Markdown,
-          value: `### ${keccak256(toBytes(keccak256Regexp().exec(text)[0]))}`,
-        },
-      };
-    } else if (isComment(text)) {
-      reset();
-      return null;
-    } else if (documentContractSelected != null) {
-      const selectedFunction =
-        documentContractSelected.getSelectedFunction(offset);
-      const item = documentContractSelected.getSelectedItem(
-        offset
-      ) as ParsedExpressionIdentifier;
-      if (!item) {
+      const text = document.getText(range);
+      if (keccak256Regexp().test(text)) {
+        reset();
+        return {
+          contents: {
+            kind: vscode.MarkupKind.Markdown,
+            value: `### ${keccak256(toBytes(keccak256Regexp().exec(text)[0]))}`,
+          },
+        };
+      } else if (isComment(text)) {
         reset();
         return null;
-      }
-      const res = item.getHover();
-      // const inScope = selectedFunction.findTypeInScope(item.parent?.name);
-      // console.debug(!!inScope);
-      // @ts-expect-error
-      if (!!res.contents?.value) {
-        reset();
-
-        return res;
-      } else if (item.parent) {
-        const parentMapping =
-          // @ts-expect-error
-          item.parent?.reference?.element?.literal?.literal?.to?.literal;
-        const allFound = documentContractSelected.brute(item.name, true);
-
-        if (allFound.length === 0) {
+      } else if (documentContractSelected != null) {
+        const selectedFunction =
+          documentContractSelected.getSelectedFunction(offset);
+        const item = documentContractSelected.getSelectedItem(
+          offset
+        ) as ParsedExpressionIdentifier;
+        if (!item) {
           reset();
           return null;
         }
+        const res = item.getHover();
+        // const inScope = selectedFunction.findTypeInScope(item.parent?.name);
+        // console.debug(!!inScope);
+        // @ts-expect-error
+        if (!!res.contents?.value) {
+          reset();
 
-        for (const found of allFound) {
-          // @ts-expect-error
-          if (found.struct && found.struct?.name === parentMapping) {
-            const res = found.getHover();
+          return res;
+        } else if (item.parent) {
+          const parentMapping =
             // @ts-expect-error
-            if (!!res.contents?.value) {
-              reset();
-              return res;
-            }
-          } else {
-            const parentInScope = selectedFunction.findTypeInScope(
+            item.parent?.reference?.element?.literal?.literal?.to?.literal;
+          const allFound = documentContractSelected.brute(item.name, true);
+
+          if (allFound.length === 0) {
+            reset();
+            return null;
+          }
+
+          for (const found of allFound) {
+            // @ts-expect-error
+            if (found.struct && found.struct?.name === parentMapping) {
+              const res = found.getHover();
               // @ts-expect-error
-              found.parent?.name
-            );
-            if (!!parentInScope) {
-              reset();
-              return found.getHover();
+              if (!!res.contents?.value) {
+                reset();
+                return res;
+              }
+            } else {
+              const parentInScope = selectedFunction.findTypeInScope(
+                // @ts-expect-error
+                found.parent?.name
+              );
+              if (!!parentInScope) {
+                reset();
+                return found.getHover();
+              }
             }
           }
         }
       }
+      reset();
+      return null;
+    } catch (e) {
+      console.debug("hover", e);
     }
-    reset();
-    return null;
   }
 }
 

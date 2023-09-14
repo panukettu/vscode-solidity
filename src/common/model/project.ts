@@ -33,14 +33,14 @@ export class Project {
 
   public getProjectSolFiles(extraExcludes?: string[]) {
     const sourcesPath = this.projectPackage.getSolSourcesAbsolutePath();
-    const exclusions: string[] = extraExcludes
-      ? extraExcludes.map((item) =>
-          path.join(sourcesPath, "**", item, "/**/*.sol")
-        )
-      : [];
+    const exclusions: string[] =
+      extraExcludes?.length > 0
+        ? extraExcludes.map((item) =>
+            path.join(sourcesPath, "**", item, "/**/*.sol")
+          )
+        : [];
 
     const projectFiles = sourcesPath + "/**/*.sol";
-
     if (this.rootPath !== sourcesPath) {
       return glob.sync(projectFiles, { ignore: exclusions });
     }
