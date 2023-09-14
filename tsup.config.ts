@@ -34,7 +34,7 @@ export default defineConfig(async (opts) => {
     ],
     treeshake: true,
     splitting: true,
-    minify: false,
+    minify: true,
     clean: true,
     async onSuccess() {
       if (opts.watch) return;

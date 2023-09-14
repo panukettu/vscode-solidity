@@ -7,6 +7,7 @@ import { ParsedFunction } from "./parsedCodeModel/ParsedFunction";
 import { ParsedParameter } from "./parsedCodeModel/ParsedParameter";
 import { CodeWalkerService } from "./parsedCodeModel/codeWalkerService";
 import { ParsedCode } from "./parsedCodeModel/parsedCode";
+import { ParsedStructVariable } from "./parsedCodeModel/ParsedStructVariable";
 const keccak256Regexp = () => new RegExp(/(?<=keccak256\(")(.*?)(?="\))/g);
 
 const nameRegexp = new RegExp(/(?<=\W)(\w+)(?=\()/gs);
@@ -208,24 +209,51 @@ export class SolidityHoverProvider {
       reset();
       return null;
     } else if (documentContractSelected != null) {
+      const selectedFunction =
+        documentContractSelected.getSelectedFunction(offset);
       const item = documentContractSelected.getSelectedItem(
         offset
       ) as ParsedExpressionIdentifier;
-      if (item !== null) {
-        const res = item.getHover();
-        // @ts-expect-error
-        if (!!res.contents?.value) {
-          reset();
+      if (!item) {
+        reset();
+        return null;
+      }
+      const res = item.getHover();
+      // const inScope = selectedFunction.findTypeInScope(item.parent?.name);
+      // console.debug(!!inScope);
+      // @ts-expect-error
+      if (!!res.contents?.value) {
+        reset();
 
-          return res;
-        } else {
-          const allFound = documentContractSelected.brute(item.name, true);
-          if (allFound.length > 0) {
-            const res = allFound[0].getHover();
+        return res;
+      } else if (item.parent) {
+        const parentMapping =
+          // @ts-expect-error
+          item.parent?.reference?.element?.literal?.literal?.to?.literal;
+        const allFound = documentContractSelected.brute(item.name, true);
+
+        if (allFound.length === 0) {
+          reset();
+          return null;
+        }
+
+        for (const found of allFound) {
+          // @ts-expect-error
+          if (found.struct && found.struct?.name === parentMapping) {
+            const res = found.getHover();
             // @ts-expect-error
             if (!!res.contents?.value) {
               reset();
               return res;
+            }
+          } else {
+            const parentInScope = selectedFunction.findTypeInScope(
+              // @ts-expect-error
+              found.parent?.name
+            );
+            if (!!parentInScope) {
+              reset();
+              return found.getHover();
             }
           }
         }
