@@ -1,5 +1,5 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-import { valueTypeReg } from "./ParsedCodeTypeHelper";
+import { ParsedCodeTypeHelper, valueTypeReg } from "./ParsedCodeTypeHelper";
 import { ParsedDocument } from "./ParsedDocument";
 import { ParsedEnum } from "./ParsedEnum";
 import { ParsedParameter } from "./ParsedParameter";
@@ -179,7 +179,14 @@ export class ParsedStruct extends ParsedCode {
   public override getParsedObjectType(): string {
     return "Struct";
   }
+  public getElementInfo() {
+    let storageType = "";
+    if (this.hasMapping) {
+      storageType = "storage";
+    }
 
+    return this.name + (storageType ? ` ${storageType}` : "");
+  }
   public override getInfo(): string {
     const properties =
       this.properties.length > 0
@@ -195,18 +202,18 @@ export class ParsedStruct extends ParsedCode {
             )
             .join("")
         : "";
+
     return (
-      "### " +
-      this.getDetail() +
-      ": " +
-      this.name +
-      "\n" +
-      this.getComment() +
+      this.createSimpleDetail(
+        this.getRootName(),
+        "",
+        this.getElementInfo(),
+        undefined,
+        true,
+        true
+      ) +
       "\n" +
       properties
     );
-    return `### ${this.getDetail()}: ${
-      this.name
-    } \n${properties}\n${this.getComment()}`;
   }
 }

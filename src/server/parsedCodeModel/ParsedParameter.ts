@@ -289,7 +289,8 @@ export class ParsedParameter extends ParsedVariable {
   }
   public getElementInfo(): string {
     const id = this.element.id != null ? this.element.id : "";
-    return this.type.name + " " + this.getStorageType() + id;
+    const isArray = this.type.isArray ? "[]" : "";
+    return this.type.name + isArray + " " + this.getStorageType() + id;
   }
 
   public getSignature(): string {

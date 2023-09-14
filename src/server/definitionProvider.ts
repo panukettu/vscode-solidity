@@ -215,6 +215,21 @@ export class SolidityHoverProvider {
         const item = documentContractSelected.getSelectedItem(
           offset
         ) as ParsedExpressionIdentifier;
+
+        if (item.name === "length") {
+          return {
+            contents: {
+              kind: vscode.MarkupKind.Markdown,
+              value: [
+                "```solidity",
+                "(array property) " +
+                  (item.parent?.name ? item.parent.name + "." : "") +
+                  "length: uint256",
+                "```",
+              ].join("\n"),
+            },
+          };
+        }
         if (!item) {
           reset();
           return null;
@@ -225,7 +240,6 @@ export class SolidityHoverProvider {
         // @ts-expect-error
         if (!!res.contents?.value) {
           reset();
-
           return res;
         } else if (item.parent) {
           const parentMapping =
