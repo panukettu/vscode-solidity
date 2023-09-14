@@ -2,10 +2,10 @@ import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { ParsedCodeTypeHelper } from "./ParsedCodeTypeHelper";
 import { ParsedDocument } from "./ParsedDocument";
 import { ParsedVariable } from "./ParsedVariable";
+import { ElementParams } from "./Types";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedContract } from "./parsedContract";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
-import { Element, ElementParams, ReturnParams } from "./Types";
 
 export class ParsedParameter extends ParsedVariable {
   public parent: ParsedCode;
@@ -204,6 +204,26 @@ export class ParsedParameter extends ParsedVariable {
     return this.completionItem;
   }
 
+  public createFieldCompletionItem(): CompletionItem {
+    if (this.completionItem === null) {
+      let id = "[unnamed]";
+      if (this.element.id !== null) {
+        id = this.element.id;
+      }
+      const completionItem = CompletionItem.create(id);
+      completionItem.kind = CompletionItemKind.Field;
+      completionItem.preselect = !!this.element.id;
+      completionItem.detail =
+        this.getElementInfo() + " (in " + this.parent.name + ")";
+      completionItem.documentation = {
+        kind: "markdown",
+        value: this.getSimpleDetail(true),
+      };
+      this.completionItem = completionItem;
+    }
+    return this.completionItem;
+  }
+
   public override getParsedObjectType(): string {
     if (this.isInput) {
       return "input parameter";
@@ -241,7 +261,7 @@ export class ParsedParameter extends ParsedVariable {
     return this.getSimpleDetail();
   }
 
-  public getSimpleDetail(): string {
+  public getSimpleDetail(short?: boolean): string {
     let infoText = "";
     if (this.isInput) {
       infoText = `(...${this.getElementInfo()})`;
@@ -251,12 +271,12 @@ export class ParsedParameter extends ParsedVariable {
       infoText = `: ${this.getElementInfo()}`;
     }
     return this.createSimpleDetail(
-      this.getRootName(),
+      !short && this.getRootName(),
       this.parent.name,
       infoText,
-      undefined,
-      true,
-      true
+      !short ? this.getParsedObjectType() : this.isInput ? "arg" : "output",
+      !short,
+      !short
     );
   }
 

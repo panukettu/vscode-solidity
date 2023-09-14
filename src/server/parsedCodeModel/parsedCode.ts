@@ -13,8 +13,11 @@ import { URI } from "vscode-uri";
 import { ParsedContract } from "./parsedContract";
 import { BodyElement, Element, ElementParams, InnerElement } from "./Types";
 import { ParsedFunction } from "./ParsedFunction";
+import { providerRequest } from "../definitionProvider";
+import { codeMap } from "../caches";
 
 const commentFormatRegexp = new RegExp(/\s(\w.+)/, "s");
+
 export class FindTypeReferenceLocationResult {
   public isCurrentElementSelected: boolean;
   public location: Location;
@@ -350,11 +353,12 @@ export class ParsedCode {
           x.getDocumentsThatReference(this.document)
         ))
     );
+
     documentsToSearch = [...new Set(documentsToSearch)];
 
-    documents.forEach(
-      (x) => (results = results.concat(x.getAllReferencesToObject(this)))
-    );
+    documentsToSearch.forEach((x) => {
+      results = results.concat(x.getAllReferencesToObject(this));
+    });
     return results;
   }
 
@@ -373,22 +377,21 @@ export class ParsedCode {
     } else {
       result = result.concat(this.contract.findMethodCalls(name));
     }
-    if (result.length > 0) {
-      return result;
-    } else {
-      for (const inner of this.document.innerContracts) {
-        result = result.concat(inner.getInnerMethodCalls());
-      }
-    }
+    // if (result.length > 0) {
+    //   return result;
+    // } else {
+    // }
 
     return result;
   }
   public getSelectedFunction(offset: number): ParsedFunction {
     if (this.contract === null) {
-      const allFuncs = this.document.getFunctionReference(offset);
-      return allFuncs.find((f) =>
-        f.reference.isCurrentElementedSelected(offset)
-      )?.reference as ParsedFunction | undefined;
+      const allFuncs = this.document
+        .getAllGlobalFunctions()
+        .concat(
+          this.document.innerContracts.flatMap((x) => x.getAllFunctions())
+        );
+      return allFuncs.find((f) => f.isCurrentElementedSelected(offset));
     } else {
       return this.contract.getSelectedFunction(offset);
     }

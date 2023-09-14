@@ -7,6 +7,7 @@ import * as https from "https";
 import { SourceDocumentCollection } from "./model/sourceDocumentCollection";
 import { initialiseProject } from "./projectService";
 import { SoliditySettings } from "../server";
+import { Project } from "./model/project";
 
 export enum compilerType {
   localNodeModule,
@@ -18,7 +19,7 @@ export enum compilerType {
 export abstract class SolcCompilerLoader {
   public compilerType: compilerType;
 
-  public localSolc: any;
+  public localSolc: typeof solc;
 
   public getVersion(): string {
     return this.localSolc.version();
@@ -507,7 +508,11 @@ export class SolcCompiler {
     return this.getCompiler(selectedCompiler).initialiseCompiler();
   }
 
-  public compile(contracts: any, selectedCompiler: compilerType = null): any {
+  public compile(
+    contracts: any,
+    selectedCompiler: compilerType = null,
+    project?: Project
+  ): any {
     const compiler = this.getCompiler(selectedCompiler);
     return compiler.localSolc.compile(contracts);
   }
@@ -543,17 +548,21 @@ export class SolcCompiler {
     }
     if (this.isRootPathSet()) {
       const contracts = new SourceDocumentCollection();
+      const project = initialiseProject(this.rootPath, settings).project;
       contracts.addSourceDocumentAndResolveImports(
         filePath,
         documentText,
-        initialiseProject(this.rootPath, settings).project
+        project
       );
+
       const contractsForCompilation =
         contracts.getDefaultSourceDocumentsForCompilationDiagnostics();
+
       contractsForCompilation.settings = null;
       const outputString = this.compile(
         JSON.stringify(contractsForCompilation),
-        selectedCompiler
+        selectedCompiler,
+        project
       );
       const output = JSON.parse(outputString);
       if (output.errors) {

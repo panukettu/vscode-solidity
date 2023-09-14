@@ -3,11 +3,16 @@ import * as path from "path";
 import { formatPath } from "../util";
 import { Project } from "./project";
 
+type Import = {
+  importPath: string;
+  symbols?: string[];
+};
+
 export class SourceDocument {
   public code: string;
   public unformattedCode: string;
   // TODO: Import needs to be a class including if is local, absolutePath, module etc
-  public imports: Array<string>;
+  public imports: Array<Import>;
   public absolutePath: string;
   public packagePath: string;
   public abi: string;
@@ -38,7 +43,7 @@ export class SourceDocument {
     this.code = code;
     this.unformattedCode = code;
     this.project = project;
-    this.imports = new Array<string>();
+    this.imports = new Array<Import>();
   }
 
   /**
@@ -70,8 +75,8 @@ export class SourceDocument {
   public getAllImportFromPackages() {
     const importsFromPackages = new Array<string>();
     this.imports.forEach((importElement) => {
-      if (!this.isImportLocal(importElement)) {
-        importsFromPackages.push(importElement);
+      if (!this.isImportLocal(importElement.importPath)) {
+        importsFromPackages.push(importElement.importPath);
       }
     });
     return importsFromPackages;
@@ -100,18 +105,28 @@ export class SourceDocument {
   }
 
   public resolveImports() {
-    const importRegEx = /^\s?import\s+[^'"]*['"](.*)['"]\s*/gm;
+    // const importRegEx = /^\s?import\s+[^'"]*['"](.*)['"]\s*/gm;
+    const importRegEx = /import\s\{?(.*?(?=\}))?([^'"]*['"](.*)['"])\s*/gm;
     let foundImport = importRegEx.exec(this.code);
     while (foundImport != null) {
-      const importPath = foundImport[1];
+      const symbols = foundImport[1]
+        ? foundImport[1].split(",").map((s) => s.trim())
+        : undefined;
+      const importPath = foundImport[3];
 
       if (this.isImportLocal(importPath)) {
         const importFullPath = this.formatDocumentPath(
-          path.resolve(path.dirname(this.absolutePath), foundImport[1])
+          path.resolve(path.dirname(this.absolutePath), importPath)
         );
-        this.imports.push(importFullPath);
+        this.imports.push({
+          importPath: importFullPath,
+          symbols: symbols,
+        });
       } else {
-        this.imports.push(importPath);
+        this.imports.push({
+          importPath: importPath,
+          symbols: symbols,
+        });
       }
 
       foundImport = importRegEx.exec(this.code);

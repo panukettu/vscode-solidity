@@ -11,6 +11,7 @@ import { SourceDocument } from "../../common/model/sourceDocument";
 import * as fs from "fs";
 import { SoliditySettings } from "../../server";
 import { Element } from "./Types";
+import { documentMap } from "../caches";
 
 export class CodeWalkerService {
   public initialized: boolean;
@@ -87,44 +88,42 @@ export class CodeWalkerService {
     document: vscode.TextDocument,
     position: vscode.Position
   ): ParsedDocument {
-    let selectedDocument: ParsedDocument = new ParsedDocument();
-    const documentText = document.getText();
-    const sourceDocuments = new SourceDocumentCollection();
+    let selectedDocument: ParsedDocument;
+    let selectedSourceDocument: SourceDocument;
+    if (this.project == null) return selectedDocument;
 
-    if (this.project != null) {
+    const offset = document.offsetAt(position);
+    const documentText = document.getText();
+
+    const cached = this.parsedDocumentsCache.find((x) => {
+      return "file://" + x?.sourceDocument.absolutePath === document.uri;
+    });
+
+    if (
+      (cached && documentText === cached.sourceDocument?.unformattedCode) ||
+      cached.fixedSource
+    ) {
+      selectedDocument = cached;
+      selectedDocument.initCache(offset);
+      selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
+    } else {
+      const sourceDocuments = new SourceDocumentCollection();
       sourceDocuments.addSourceDocumentAndResolveImports(
         URI.parse(document.uri).fsPath,
         documentText,
         this.project
       );
+
+      selectedSourceDocument = sourceDocuments.documents[0];
+
+      selectedDocument = this.parseSelectedDocument(
+        documentText,
+        offset,
+        position.line,
+        false,
+        selectedSourceDocument
+      );
     }
-
-    const selectedSourceDocument = sourceDocuments.documents[0];
-    const offset = document.offsetAt(position);
-
-    selectedDocument = this.parseSelectedDocument(
-      documentText,
-      offset,
-      position.line,
-      false,
-      selectedSourceDocument
-    );
-    // sourceDocuments.documents.forEach((sourceDocumentItem) => {
-    //   if (sourceDocumentItem !== selectedSourceDocument) {
-    //     const documentImport = this.parseDocumentChanged(
-    //       sourceDocumentItem.code,
-    //       false,
-    //       sourceDocumentItem
-    //     );
-    //     selectedDocument.addImportedDocument(documentImport);
-    //   }
-    // });
-    // this.parsedDocumentsCache.forEach((element) => {
-    //   console.debug("cache init refs");
-    //   element.initialiseDocumentReferences(this.parsedDocumentsCache);
-    // });
-    selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
-
     return selectedDocument;
   }
 
@@ -135,55 +134,21 @@ export class CodeWalkerService {
     fixedSource: boolean,
     sourceDocument: SourceDocument
   ): ParsedDocument {
-    const foundDocument = this.parsedDocumentsCache.find(
-      (x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath
-    );
     const newDocument: ParsedDocument = new ParsedDocument();
-    if (foundDocument != null) {
-      if (
-        !fixedSource &&
-        foundDocument.sourceDocument.code === sourceDocument.code
-      ) {
-        const selectedElement = this.findElementByOffset(
-          foundDocument.element.body,
-          offset
-        );
-        newDocument.initialiseDocument(
-          foundDocument.element,
-          selectedElement,
-          foundDocument.sourceDocument,
-          foundDocument.fixedSource
-        );
-        this.parsedDocumentsCache.push(newDocument);
-        this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
-          (x) => x !== foundDocument
-        );
-        return foundDocument;
-      }
-      this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
-        (x) => x !== foundDocument
-      );
-    }
+
     try {
       const result = solparse.parse(documentText);
       const selectedElement = this.findElementByOffset(result.body, offset);
-      if (fixedSource) {
-        newDocument.initialiseDocument(
-          result,
-          selectedElement,
-          sourceDocument,
-          documentText
-        );
-      } else {
-        newDocument.initialiseDocument(
-          result,
-          selectedElement,
-          sourceDocument,
-          null
-        );
-      }
-      this.parsedDocumentsCache.push(newDocument);
+      newDocument.initialiseDocument(
+        result,
+        selectedElement,
+        sourceDocument,
+        fixedSource ? documentText : null
+      );
+      this.updateCache(newDocument, sourceDocument);
     } catch (error) {
+      // console.debug("parseSelectedDocument", error);
+
       const lines = documentText.split(/\r?\n/g);
       if (lines[line].trim() !== "") {
         // have we done it already?
@@ -193,12 +158,38 @@ export class CodeWalkerService {
           code,
           offset,
           line,
-          true,
+          false,
           sourceDocument
         );
       }
     }
+
     return newDocument;
+  }
+
+  public updateCache(
+    newDocument: ParsedDocument,
+    sourceDocument: SourceDocument
+  ) {
+    documentMap.clear();
+    const foundDocument = this.parsedDocumentsCache.find(
+      (x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath
+    );
+    if (!foundDocument) {
+      this.parsedDocumentsCache.push(newDocument);
+      newDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
+      return;
+    }
+
+    const newCache = this.parsedDocumentsCache
+      .filter((x) => x !== foundDocument)
+      .concat(newDocument);
+
+    newCache.forEach((ref) => {
+      ref.initialiseDocumentReferences(newCache);
+    });
+
+    this.parsedDocumentsCache = newCache;
   }
 
   public parseDocumentChanged(
@@ -216,14 +207,11 @@ export class CodeWalkerService {
       ) {
         return foundDocument;
       }
-      this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
-        (x) => x !== foundDocument
-      );
     }
+
     const newDocument: ParsedDocument = new ParsedDocument();
     try {
       const result = solparse.parse(documentText);
-
       newDocument.initialiseDocument(
         result,
         null,
@@ -231,7 +219,7 @@ export class CodeWalkerService {
         fixedSource ? documentText : null
       );
 
-      this.parsedDocumentsCache.push(newDocument);
+      this.updateCache(newDocument, sourceDocument);
     } catch (error) {
       console.log("parsedDocumentChange", error.message);
       /*
@@ -271,6 +259,7 @@ export class CodeWalkerService {
         this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
           (x) => x !== foundDocument
         );
+
         return newDocument;
       }
       this.parsedDocumentsCache = this.parsedDocumentsCache.filter(

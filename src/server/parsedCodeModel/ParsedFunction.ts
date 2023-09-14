@@ -1,20 +1,14 @@
-import { ParsedContract } from "./parsedContract";
-import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
-import { ParsedDeclarationType } from "./parsedDeclarationType";
-import { ParsedParameter } from "./ParsedParameter";
-import { ParsedFunctionVariable } from "./ParsedFunctionVariable";
-import { ParsedDocument } from "./ParsedDocument";
-import {
-  CompletionItem,
-  CompletionItemKind,
-  Location,
-} from "vscode-languageserver";
-import { ParsedModifierArgument } from "./ParsedModifierArgument";
-import { ParsedExpression } from "./ParsedExpression";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { IParsedExpressionContainer } from "./IParsedExpressionContainer";
-import whatIsCircular from "what-is-circular";
+import { ParsedDocument } from "./ParsedDocument";
+import { ParsedExpression } from "./ParsedExpression";
+import { ParsedFunctionVariable } from "./ParsedFunctionVariable";
+import { ParsedModifierArgument } from "./ParsedModifierArgument";
+import { ParsedParameter } from "./ParsedParameter";
+import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
+import { ParsedContract } from "./parsedContract";
+import { ParsedDeclarationType } from "./parsedDeclarationType";
 
-import unset from "lodash.unset";
 import { InnerElement } from "./Types";
 
 export class ParsedFunction
@@ -52,12 +46,11 @@ export class ParsedFunction
             x.getAllReferencesToSelected(offset, documents)
           ))
       );
-      this.expressions.forEach(
-        (x) =>
-          (results = results.concat(
-            x.getAllReferencesToSelected(offset, documents)
-          ))
-      );
+      this.expressions.forEach((x) => {
+        results = results.concat(
+          x.getAllReferencesToSelected(offset, documents)
+        );
+      });
       this.variables.forEach(
         (x) =>
           (results = results.concat(
@@ -268,7 +261,17 @@ export class ParsedFunction
     const result: ParsedCode[] = [];
     return result
       .concat(this.findVariableDeclarationsInScope(offset))
-      .concat(this.contract.getInnerMembers());
+      .concat(this.contract ? this.contract.getInnerMembers() : []);
+  }
+  public findAllLocalAndGlobalVariablesWithParams(
+    offset: number
+  ): ParsedCode[] {
+    const result: ParsedCode[] = [];
+    return result
+      .concat(this.findVariableDeclarationsInScope(offset))
+      .concat(this.contract ? this.contract.getInnerMembers() : [])
+      .concat(this.input)
+      .concat(this.output);
   }
 
   public override getInnerMembers(): ParsedCode[] {
@@ -286,6 +289,16 @@ export class ParsedFunction
         .concat(this.input)
         .concat(this.output);
     }
+  }
+
+  public getElementId(): string {
+    return (
+      this.element.id.name +
+      this.element.id.start +
+      this.element.id.end +
+      this.input.length +
+      this.output.length
+    );
   }
 
   public override findMembersInScope(name: string): ParsedCode[] {

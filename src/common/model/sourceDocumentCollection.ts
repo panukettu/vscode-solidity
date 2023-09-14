@@ -106,13 +106,13 @@ export class SourceDocumentCollection {
     const contract = this.addSourceDocument(contractPath, code, project);
     if (contract !== null) {
       contract.resolveImports();
-      contract.imports.forEach((foundImport) => {
-        if (fs.existsSync(foundImport)) {
-          if (!this.containsSourceDocument(foundImport)) {
-            const importContractCode = this.readContractCode(foundImport);
+      contract.imports.forEach(({ importPath }) => {
+        if (fs.existsSync(importPath)) {
+          if (!this.containsSourceDocument(importPath)) {
+            const importContractCode = this.readContractCode(importPath);
             if (importContractCode != null) {
               this.addSourceDocumentAndResolveImports(
-                foundImport,
+                importPath,
                 importContractCode,
                 project
               );
@@ -120,7 +120,7 @@ export class SourceDocumentCollection {
           }
         } else {
           this.addSourceDocumentAndResolveDependencyImport(
-            foundImport,
+            importPath,
             contract,
             project
           );

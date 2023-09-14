@@ -1,16 +1,12 @@
 import { CompletionItem, Position } from "vscode-languageserver";
-import { ParsedVariable } from "../ParsedVariable";
-import { ParsedStruct } from "../ParsedStruct";
-import { ParsedDeclarationType } from "../parsedDeclarationType";
-import { ParsedFunction } from "../ParsedFunction";
-import { ParsedContract } from "../parsedContract";
+import { IParsedExpressionContainer } from "../IParsedExpressionContainer";
 import { ParsedDocument } from "../ParsedDocument";
 import {
   ParsedExpression,
   ParsedExpressionCall,
   ParsedExpressionIdentifier,
 } from "../ParsedExpression";
-import { IParsedExpressionContainer } from "../IParsedExpressionContainer";
+import { ParsedContract } from "../parsedContract";
 
 export class AutoCompleteExpression {
   public isVariable = false;
@@ -115,6 +111,7 @@ export class DotCompletionService {
       lines[position.line],
       triggeredByDotStart - 1
     );
+
     const expression = this.convertAutoCompleteExpressionToParsedExpression(
       autocompleteByDot,
       null,
@@ -178,6 +175,7 @@ export class DotCompletionService {
         return result;
       }
     }
+
     return result;
   }
 

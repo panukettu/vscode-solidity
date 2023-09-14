@@ -1,14 +1,12 @@
 import { keccak256, toBytes } from "viem";
 import * as vscode from "vscode-languageserver";
+import { clearCaches } from "./caches";
+import { ParsedDocument } from "./parsedCodeModel/ParsedDocument";
+import { ParsedExpressionIdentifier } from "./parsedCodeModel/ParsedExpression";
 import { ParsedFunction } from "./parsedCodeModel/ParsedFunction";
 import { ParsedParameter } from "./parsedCodeModel/ParsedParameter";
 import { CodeWalkerService } from "./parsedCodeModel/codeWalkerService";
 import { ParsedCode } from "./parsedCodeModel/parsedCode";
-import { ParsedDocument } from "./parsedCodeModel/ParsedDocument";
-import {
-  ParsedExpression,
-  ParsedExpressionIdentifier,
-} from "./parsedCodeModel/ParsedExpression";
 const keccak256Regexp = () => new RegExp(/(?<=keccak256\(")(.*?)(?="\))/g);
 
 const nameRegexp = new RegExp(/(?<=\W)(\w+)(?=\()/gs);
@@ -68,6 +66,7 @@ const useHelper = (
     range,
     offset,
     reset: () => {
+      clearCaches();
       providerRequest.currentOffset = 0;
       providerRequest.currentLine = 0;
       providerRequest.lineText = "";
@@ -75,6 +74,67 @@ const useHelper = (
       providerRequest.currentRange = undefined;
       providerRequest.action = undefined;
     },
+  };
+};
+
+export const getFunction = (
+  functionNames: string[],
+  selectedDocment: ParsedDocument,
+  item?: { name: string }
+) => {
+  if (!functionNames?.length) {
+    throw new Error("No function names found");
+  }
+
+  const functionName = functionNames[functionNames.length - 1];
+
+  let selectedVariable: ParsedParameter;
+  let selectedFunction: ParsedFunction;
+  let selectedIndex: number;
+  let parameters: vscode.ParameterInformation[] = [];
+
+  for (const contract of selectedDocment.getAllContracts()) {
+    let selectedFunctions = contract.findMethodsInScope(
+      functionName
+    ) as ParsedFunction[];
+    if (!selectedFunctions?.length) {
+      selectedFunctions = contract.findMethodCalls(
+        functionName
+      ) as ParsedFunction[];
+    }
+    if (!selectedFunctions?.length) continue;
+
+    selectedFunction = selectedFunctions[0];
+
+    if (item) {
+      const input = selectedFunction.input.find((inputVar, index) => {
+        if (inputVar.name === item.name) {
+          selectedIndex = index;
+          return true;
+        }
+      });
+      if (input) {
+        parameters = selectedFunction.input.map((i) => {
+          return {
+            label: i.name,
+            documentation: {
+              kind: "markdown",
+              value: i.getInfo(),
+            },
+          };
+        });
+        selectedVariable = input;
+      }
+    } else {
+      break;
+    }
+  }
+
+  return {
+    selectedVariable,
+    selectedFunction,
+    selectedIndex,
+    parameters,
   };
 };
 export class SignatureHelpProvider {
@@ -95,49 +155,19 @@ export class SignatureHelpProvider {
       const functionNames = document.getText(line).match(nameRegexp);
       if (!functionNames?.length) return null;
 
-      const functionName = functionNames[functionNames.length - 1];
-
-      let selectedVariable: ParsedParameter;
-      let selectedFunction: ParsedFunction;
-      let selectedIndex: number;
-      let parameters: vscode.ParameterInformation[] = [];
-
-      for (const contract of documentContractSelected.getAllContracts()) {
-        const selectedFunctions = contract.findMethodsInScope(
-          functionName
-        ) as ParsedFunction[];
-        if (!selectedFunctions?.length) continue;
-
-        selectedFunction = selectedFunctions[0];
-        const input = selectedFunction.input.find((inputVar, index) => {
-          if (inputVar.name === item.name) {
-            selectedIndex = index;
-            return true;
-          }
-        });
-        if (input) {
-          parameters = selectedFunction.input.map((i) =>
-            vscode.ParameterInformation.create(
-              i.name,
-              i.type.getInfo().slice(4)
-            )
-          );
-          selectedVariable = input;
-          break;
-        }
-      }
+      const { selectedVariable, selectedFunction, selectedIndex, parameters } =
+        getFunction(functionNames, documentContractSelected, item);
 
       if (!selectedVariable) return null;
 
       const result = vscode.SignatureInformation.create(
-        "(" +
-          selectedFunction.getContractNameOrGlobal() +
-          ")" +
-          "\n" +
-          selectedFunction.name +
-          "." +
-          selectedVariable.name
+        selectedVariable.getElementInfo()
       );
+
+      // result.documentation = {
+      //   kind: "markdown",
+      //   value: selectedFunction.getComment(),
+      // };
 
       result.parameters = parameters;
       result.activeParameter = selectedIndex;
@@ -186,6 +216,7 @@ export class SolidityHoverProvider {
         // @ts-expect-error
         if (!!res.contents?.value) {
           reset();
+
           return res;
         } else {
           const allFound = documentContractSelected.brute(item.name, true);
@@ -212,32 +243,34 @@ export class SolidityReferencesProvider {
     position: vscode.Position,
     walker: CodeWalkerService
   ): vscode.Location[] {
-    const offset = document.offsetAt(position);
-    walker.initialiseChangedDocuments();
-    const documentContractSelected = walker.getSelectedDocument(
-      document,
-      position
-    );
+    try {
+      const offset = document.offsetAt(position);
+      // walker.initialiseChangedDocuments();
+      const documentContractSelected = walker.getSelectedDocument(
+        document,
+        position
+      );
 
-    this.currentItem = documentContractSelected.getSelectedItem(offset);
+      this.currentItem = documentContractSelected.getSelectedItem(offset);
+      providerRequest.selectedDocument = documentContractSelected;
 
-    const references = documentContractSelected.getAllReferencesToSelected(
-      offset,
-      [].concat(
-        documentContractSelected,
-        walker.parsedDocumentsCache.filter(
-          (d) =>
-            d.sourceDocument.absolutePath !==
-            documentContractSelected.sourceDocument.absolutePath
-        )
-      )
-    );
+      const references = documentContractSelected.getAllReferencesToSelected(
+        offset,
+        walker.parsedDocumentsCache
+      );
 
-    const foundLocations = references
-      .filter((x) => x != null && x.location !== null)
-      .map((x) => x.location);
-    this.currentItem = null;
-    return <vscode.Location[]>foundLocations;
+      const foundLocations = references
+        .filter((x) => x != null && x.location !== null)
+        .map((x) => x.location);
+
+      this.currentItem = null;
+      providerRequest.selectedDocument = null;
+      clearCaches();
+      return <vscode.Location[]>foundLocations;
+    } catch (e) {
+      clearCaches();
+      console.debug("ref", e);
+    }
   }
 }
 
@@ -259,20 +292,22 @@ export class SolidityDefinitionProvider {
       this.currentItem = documentContractSelected.getSelectedItem(
         this.currentOffset
       );
-
+      // console.debug(this.currentItem);
       const references =
         documentContractSelected.getSelectedTypeReferenceLocation(
           this.currentOffset
         );
+      // console.debug(references);
       const foundLocations = references
         .filter((x) => x.location !== null)
         .map((x) => x.location);
       const result = this.removeDuplicates(foundLocations, ["range", "uri"]);
       this.currentOffset = 0;
       this.currentItem = null;
-
+      clearCaches();
       return <vscode.Location[]>result;
     } catch (e) {
+      clearCaches();
       this.currentOffset = 0;
       this.currentItem = null;
       console.debug("Definition", e);

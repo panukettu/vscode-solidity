@@ -6,12 +6,13 @@
 
 - Bundles all js dependencies
 - Removes nethereum, solium and dAppproject related things.
-- Go To Definition, References and Auto Completions work on global using for injections.
+- Seems to work bit faster on big projects
+- Go To Definition, Find All References and Auto Completions work on global using for injections.
 - Loads all sol files to cache on project open.
-- Auto-completes individual symbol imports
-- Minimal support for signature help
-- Adds non-standard TextMate-grammar "kek" for more detailed theming
-- Natspec displays from `@inheritdoc`
+- Auto-complete improved for global using and libs
+- Improved hover
+- Support for signature help
+- Natspec displayed inherits from `@inheritdoc`
 - Adds some CodeLens:
   - Preview bytes4 selector of functions without compilation (should work on structs and custom types as well)
   - Preview hash of eg. keccak256("some.string")

@@ -1,7 +1,7 @@
 import { Location, Range } from "vscode-languageserver";
-import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
-import { ParsedDocument } from "./ParsedDocument";
 import { URI } from "vscode-uri";
+import { ParsedDocument } from "./ParsedDocument";
+import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 
 export class ParsedImport extends ParsedCode {
   public from: string;
@@ -52,7 +52,7 @@ export class ParsedImport extends ParsedCode {
         this.document.sourceDocument.resolveImportPath(this.from)
       ) {
         this.documentReference = element;
-        if (this.document.importedDocuments.indexOf(element) < 0) {
+        if (this.document.importedDocuments.indexOf(element) === -1) {
           this.document.addImportedDocument(element);
         }
       }

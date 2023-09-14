@@ -41,41 +41,43 @@ export function compileActiveContract(
     return;
   }
 
-  const contractsCollection = new SourceDocumentCollection();
-  const contractCode = editor.document.getText();
-  const contractPath = editor.document.fileName;
-  const configFull = SettingsService.getConfig();
-  // console.debug("configFull: ", configFull);
-  const sources = SettingsService.getSources();
-  const { libs, libSources } = SettingsService.getLibs();
-  const compilationOptimisation = SettingsService.getCompilerOptimisation();
-  const remappings = workspaceUtil.getSolidityRemappings();
-  const project = initialiseProject(
-    workspaceUtil.getCurrentProjectInWorkspaceRootFsPath(),
-    { sources, libs, libSources, remappings } as SoliditySettings
-  ).project;
+  try {
+    const contractsCollection = new SourceDocumentCollection();
+    const contractCode = editor.document.getText();
+    const contractPath = editor.document.fileName;
+    // const configFull = SettingsService.getConfig();
+    // console.debug("configFull: ", configFull);
+    const sources = SettingsService.getSources();
+    const { libs, libSources } = SettingsService.getLibs();
+    const compilationOptimisation = SettingsService.getCompilerOptimisation();
+    const remappings = workspaceUtil.getSolidityRemappings();
+    const project = initialiseProject(
+      workspaceUtil.getCurrentProjectInWorkspaceRootFsPath(),
+      { sources, libs, libSources, remappings } as SoliditySettings
+    ).project;
 
-  const contract = contractsCollection.addSourceDocumentAndResolveImports(
-    contractPath,
-    contractCode,
-    project
-  );
-
-  const packagesPath: string[] = [];
-  if (project.libs.length > 0) {
-    project.libs.forEach((x) => packagesPath.push(formatPath(x)));
+    const contract = contractsCollection.addSourceDocumentAndResolveImports(
+      contractPath,
+      contractCode,
+      project
+    );
+    const packagesPath: string[] = [];
+    if (project.libs.length > 0) {
+      project.libs.forEach((x) => packagesPath.push(formatPath(x)));
+    }
+    return compiler.compile(
+      contractsCollection.getDefaultSourceDocumentsForCompilation(
+        compilationOptimisation
+      ),
+      diagnosticCollection,
+      project.projectPackage.build_dir,
+      project.projectPackage.absoluletPath,
+      null,
+      packagesPath,
+      contract.absolutePath,
+      overrideDefaultCompiler
+    );
+  } catch (e) {
+    console.debug(e);
   }
-
-  return compiler.compile(
-    contractsCollection.getDefaultSourceDocumentsForCompilation(
-      compilationOptimisation
-    ),
-    diagnosticCollection,
-    project.projectPackage.build_dir,
-    project.projectPackage.absoluletPath,
-    null,
-    packagesPath,
-    contract.absolutePath,
-    overrideDefaultCompiler
-  );
 }

@@ -9,7 +9,7 @@
     "diamond",
     "solhint"
   ],
-  "version": "0.5.2",
+  "version": "0.6.0",
   "publisher": "0xp",
   "license": "MIT",
   "engines": {
@@ -79,6 +79,7 @@
   "devDependencies": {
     "@enio.ai/data-ferret": "^2.0.1",
     "@types/glob": "^8.1.0",
+    "@types/lodash.debounce": "^4.0.7",
     "@types/node": "^11.15.3",
     "@types/vscode": "^1.77.0",
     "class-utils": "^0.3.6",
@@ -160,14 +161,14 @@
             "solhint"
           ],
           "default": "solhint",
-          "description": "Enables linting using either solium (ethlint) or solhint. Possible options 'solhint' and 'solium', the default is solhint"
+          "description": "Enables linting using solhint."
         },
         "solidity.solhintRules": {
           "type": [
             "object"
           ],
           "default": null,
-          "description": "Solhint linting validation rules"
+          "description": "Solhint validation rules"
         },
         "solidity.formatter": {
           "type": "string",
@@ -187,7 +188,7 @@
         "solidity.validationDelay": {
           "type": "number",
           "default": 1500,
-          "description": "Delay to trigger the validation of the changes of the current document (compilation)"
+          "description": "Delay of validation trigger from changes in the current document (compilation)"
         },
         "solidity.libs": {
           "type": [
@@ -197,7 +198,7 @@
             "node_modules",
             "lib"
           ],
-          "description": "Default directories to look for dependencies, i.e: 'node_modules', 'lib'. Multiple dependency paths can be set as an array: ['node_modules', 'lib'] "
+          "description": "Directories to look for dependencies, eg. ['node_modules', 'lib']."
         },
         "solidity.monoRepoSupport": {
           "type": "boolean",

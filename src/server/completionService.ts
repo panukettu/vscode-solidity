@@ -8,7 +8,12 @@ import { relative } from "path";
 import { fileURLToPath } from "url";
 // tslint:disable-next-line:no-duplicate-imports
 import * as path from "path";
-import { DotCompletionService } from "./parsedCodeModel/codeCompletion/dotCompletionService";
+import {
+  AutoCompleteExpression,
+  DotCompletionService,
+} from "./parsedCodeModel/codeCompletion/dotCompletionService";
+import { getFunction } from "./definitionProvider";
+import { ParsedFunctionVariable } from "./parsedCodeModel/ParsedFunctionVariable";
 
 const existingFuncRegexp = new RegExp(/(.*?\(.*?\))/s);
 const innerImportRegexp = new RegExp(/(import\s\{)/s);
@@ -78,6 +83,7 @@ export class CompletionService {
 
       const lines = document.getText().split(/\r?\n/g);
       line = lines[position.line];
+
       triggeredByDotStart = DotCompletionService.getTriggeredByDotStart(
         lines,
         position
@@ -94,6 +100,7 @@ export class CompletionService {
       triggeredByFrom = fromRegexp.test(line);
       triggeredByInnerFrom =
         autoCompleteVariable === "importInner" && triggeredByInnerImport;
+
       if (!triggeredByInnerImport && !triggeredByFrom) {
         triggeredByImport = importRegexp.test(line);
       }
@@ -103,12 +110,46 @@ export class CompletionService {
       if (triggeredByDotStart > 0) {
         const text = line.slice(position.character);
         const isReplacingExistingCall = existingFuncRegexp.test(text);
+        const regexxx = /(\w+)(?<![function|modifier])\(?\)?\W(\w+)(?=\()/gm;
+        const dotStartWords = regexxx.exec(line);
+
         const globalVariableContext = GetContextualAutoCompleteByGlobalVariable(
           line,
-          triggeredByDotStart
+          position.character - 1
         );
         if (globalVariableContext != null) {
           completionItems = completionItems.concat(globalVariableContext);
+        } else if (dotStartWords?.length > 2) {
+          try {
+            const items = getFunction(dotStartWords, documentContractSelected);
+
+            const selectedFunction =
+              documentContractSelected.getSelectedFunction(offset);
+            const varsFound = selectedFunction.findAllLocalAndGlobalVariables(
+              offset
+            ) as ParsedFunctionVariable[];
+
+            const types = [
+              ...items.selectedFunction.input,
+              ...items.selectedFunction.output,
+            ].map((i) => i.type.name);
+            const relevantVars = varsFound.filter((v) =>
+              types.includes(v.type?.name)
+            );
+            const relevantInputsVars = selectedFunction.output
+              .concat(selectedFunction.input)
+              .filter((v) => types.includes(v.type?.name))
+              .map((v) => v.createFieldCompletionItem());
+            const completions = relevantVars.map((v) =>
+              v.createCompletionItem(true)
+            );
+
+            return completionItems
+              .concat(completions)
+              .concat(relevantInputsVars);
+          } catch (e) {
+            // console.debug("func dot", e);
+          }
         } else {
           completionItems = completionItems.concat(
             DotCompletionService.getSelectedDocumentDotCompletionItems(
@@ -269,11 +310,6 @@ export class CompletionService {
           );
         }
       } else {
-        console.debug(
-          "'seclected",
-          documentContractSelected.selectedContract != null,
-          completionItems.length
-        );
         if (documentContractSelected.selectedContract != null) {
           completionItems = completionItems.concat(
             documentContractSelected.selectedContract.getSelectedContractCompletionItems(
@@ -665,9 +701,6 @@ function getAutocompleteVariableNameTrimmingSpaces(
       lineText[wordEndPosition] === "'"
     ) {
       quotesFound = true;
-      console.debug({
-        quotesFound,
-      });
       return "importInner";
     }
     if (

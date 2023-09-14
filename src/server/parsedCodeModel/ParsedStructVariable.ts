@@ -4,16 +4,13 @@ import { ParsedCodeTypeHelper } from "./ParsedCodeTypeHelper";
 import { ParsedCustomType } from "./ParsedCustomType";
 import { ParsedDocument } from "./ParsedDocument";
 import { ParsedEnum } from "./ParsedEnum";
-import { ParsedFunctionVariable } from "./ParsedFunctionVariable";
+import { ParsedFunction } from "./ParsedFunction";
+import { ParsedParameter } from "./ParsedParameter";
 import { ParsedStruct } from "./ParsedStruct";
 import { ParsedVariable } from "./ParsedVariable";
 import { Element } from "./Types";
 import { ParsedContract } from "./parsedContract";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
-import { ParsedParameter } from "./ParsedParameter";
-import { ParsedCode } from "./parsedCode";
-import { ParsedFunction } from "./ParsedFunction";
-import { ParsedExpressionIdentifier } from "./ParsedExpression";
 
 export class ParsedStructVariable extends ParsedVariable {
   public struct: ParsedStruct;

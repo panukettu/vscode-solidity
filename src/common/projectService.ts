@@ -1,15 +1,13 @@
 "use strict";
+import * as toml from "@iarna/toml";
 import * as fs from "fs";
 import * as os from "os";
-import * as toml from "@iarna/toml";
 import * as path from "path";
 import * as yaml from "yaml-js";
+import { SoliditySettings } from "../server";
 import { Package } from "./model/package";
 import { Project } from "./model/project";
 import * as util from "./util";
-import { Remapping } from "./model/remapping";
-import { SoliditySettings } from "../server";
-import glob from "glob";
 
 // TODO: These are temporary constants until standard agreed
 // A project standard is needed so each project can define where it store its project dependencies

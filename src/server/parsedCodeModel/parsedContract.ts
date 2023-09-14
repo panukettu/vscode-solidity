@@ -11,10 +11,10 @@ import { ParsedExpression } from "./ParsedExpression";
 import { ParsedFunction } from "./ParsedFunction";
 import { ParsedStateVariable } from "./ParsedStateVariable";
 import { ParsedStruct } from "./ParsedStruct";
+import { Element } from "./Types";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
 import { ParsedUsing } from "./parsedUsing";
-import { Element } from "./Types";
 
 export enum ContractType {
   contract,
@@ -159,7 +159,6 @@ export class ParsedContract
     if (this.isTheSame(parsedCode)) {
       results.push(this.createFoundReferenceLocationResult());
     }
-
     this.expressions.forEach(
       (x) => (results = results.concat(x.getAllReferencesToObject(parsedCode)))
     );

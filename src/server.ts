@@ -1,9 +1,8 @@
 "use strict";
+import { TextDocument as DocumentExecuteCommand } from "vscode";
 import {
-  CodeLens,
   CompletionItem,
   ConfigurationParams,
-  ConfigurationRequest,
   createConnection,
   Diagnostic,
   Hover,
@@ -17,7 +16,6 @@ import {
   TextDocumentSyncKind,
   WorkspaceFolder,
 } from "vscode-languageserver/node";
-import { TextDocument as DocumentExecuteCommand } from "vscode";
 import { compilerType, SolcCompiler } from "./common/solcCompiler";
 import { CompletionService } from "./server/completionService";
 import {
@@ -33,21 +31,16 @@ import { CompilerError } from "./server/solErrorsToDiagnostics";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { URI } from "vscode-uri";
 
-import {
-  findFirstRootProjectFile,
-  loadRemappings,
-} from "./common/projectService";
+import { findFirstRootProjectFile } from "./common/projectService";
 import { replaceRemappings } from "./common/util";
 import { CodeWalkerService } from "./server/parsedCodeModel/codeWalkerService";
 
+import { deepEqual } from "fast-equals";
 import packageJson from "../package.json";
 import {
   ExecuteCommandProvider,
   SERVER_COMMANDS_LIST,
 } from "./server/commandProvider";
-import { deepEqual } from "fast-equals";
-import { SettingsService } from "./client/settingsService";
-
 export interface SoliditySettings<T = compilerType> {
   // option for backward compatibilities, please use "linter" option instead
   linter: boolean | string;
@@ -208,7 +201,7 @@ function validate(document: TextDocument) {
           }
         });
       } catch (e) {
-        console.debug("validate:", e.message);
+        console.debug("validate:", e);
       }
     }
 
@@ -415,6 +408,7 @@ connection.onCompletion(
       textDocumentPosition.position,
       getCodeWalkerService()
     );
+
     return [...new Set(completionItems)];
   }
 );

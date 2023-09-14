@@ -1,37 +1,28 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-import { ParsedCodeTypeHelper } from "./ParsedCodeTypeHelper";
-import { ParsedFunction } from "./ParsedFunction";
-import { ParsedVariable } from "./ParsedVariable";
-import { FindTypeReferenceLocationResult } from "./parsedCode";
 import { ParsedDocument } from "./ParsedDocument";
+import { ParsedFunction } from "./ParsedFunction";
 import { ParsedParameter } from "./ParsedParameter";
+import { ParsedVariable } from "./ParsedVariable";
 import { BodyElement } from "./Types";
+import { FindTypeReferenceLocationResult } from "./parsedCode";
 
 export class ParsedFunctionVariable extends ParsedVariable {
   public function: ParsedFunction;
   private completionItem: CompletionItem = null;
   public element: BodyElement;
 
-  public override createCompletionItem(): CompletionItem {
+  public override createCompletionItem(select?: boolean): CompletionItem {
     if (this.completionItem === null) {
       const completionItem = CompletionItem.create(this.name);
       completionItem.kind = CompletionItemKind.Field;
-      let name = "";
-      if (this.function.isGlobal) {
-        name = this.document.getGlobalPathInfo();
-      } else {
-        name = this.function.contract.name;
-      }
-      const typeString = ParsedCodeTypeHelper.getTypeString(
-        this.element.literal
-      );
+
       completionItem.detail =
-        "(Function variable in " +
-        this.function.name +
-        ") " +
-        typeString +
-        " " +
-        name;
+        this.getElementInfo() + " (in " + this.function.name + ")";
+      completionItem.documentation = {
+        kind: "markdown",
+        value: this.getInfo(true),
+      };
+      completionItem.preselect = select;
       this.completionItem = completionItem;
     }
     return this.completionItem;
@@ -60,45 +51,15 @@ export class ParsedFunctionVariable extends ParsedVariable {
   public override getParsedObjectType(): string {
     return "Func Variable";
   }
-  public override getInfo(): string {
+  public override getInfo(short?: boolean): string {
+    const elemInfo = this.getElementInfo();
     return this.createSimpleDetail(
-      this.function.getRootName(),
-      this.function.name,
-      `(): ${this.getElementInfo()}`,
-      undefined,
-      true,
-      true
-    );
-    let parentInfo = this.getContractNameOrGlobal();
-    let parentType = "";
-    let parentName = "";
-    const separator = parentInfo.indexOf(":");
-    if (separator !== -1) {
-      parentName = parentInfo.slice(separator + 1);
-      parentType = parentInfo.slice(0, separator);
-    }
-    const typeInfo = this.type.getInfo();
-    const typeName = this.type.name;
-    const prefix = typeInfo.length > 15 ? "### " + typeName : typeInfo;
-    const suffix =
-      typeInfo.length > 15 ? "--- " + "\n" + "&nbsp;" + typeInfo : "";
-    return (
-      prefix +
-      " " +
-      this.name +
-      "\n" +
-      this.getParsedObjectType() +
-      " in " +
-      this.function.getParsedObjectType().toLowerCase() +
-      " " +
-      "**" +
-      this.function.name +
-      "**" +
-      "\n" +
-      "#### " +
-      this.getContractNameOrGlobal() +
-      "\n" +
-      suffix
+      !short && this.function.getRootName(),
+      short ? "" : this.function.name,
+      short ? elemInfo : `(): ${elemInfo}`,
+      short ? "local" : undefined,
+      !short,
+      !short
     );
   }
 

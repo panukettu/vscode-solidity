@@ -14,7 +14,7 @@
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
       "preLaunchTask": {
         "type": "npm",
-        "script": "compile"
+        "script": "compile:tsc"
       },
       "sourceMaps": true
     },

@@ -22,8 +22,7 @@ import { ParsedContract } from "./parsedContract";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
 import { ParsedUsing } from "./parsedUsing";
 import { Element } from "./Types";
-
-const refMap = new Map<string, boolean>();
+import { documentMap } from "../caches";
 
 type ParsedType = ParsedContract | ParsedFunction | ParsedStruct | ParsedCode;
 
@@ -40,6 +39,7 @@ export class ParsedDocument
   public structs: ParsedStruct[] = [];
   public importedDocuments: ParsedDocument[] = [];
   public imports: ParsedImport[] = [];
+
   public errors: ParsedError[] = [];
   public constants: ParsedConstant[] = [];
   public customTypes: ParsedCustomType[] = [];
@@ -60,29 +60,33 @@ export class ParsedDocument
   public fixedSource: string = null;
   public element: Element;
 
-  public getDocumentsThatReference(document: ParsedDocument): ParsedDocument[] {
+  public getDocumentsThatReference(
+    document?: ParsedDocument
+  ): ParsedDocument[] {
     let returnItems: ParsedDocument[] = [];
+
     const id = this.sourceDocument.absolutePath.concat(
       document.sourceDocument.absolutePath
     );
     const id2 = document.sourceDocument.absolutePath.concat(
       this.sourceDocument.absolutePath
     );
-    if (refMap.has(id) || refMap.has(id2)) {
-      return returnItems;
-    }
 
     if (
-      this.isTheSame(document) || // it is the doc so needs be added as a flag for the reference return it later on can be filtered dup
-      this.sourceDocument.absolutePath === document.sourceDocument.absolutePath
+      this.isTheSame(document) ||
+      this.sourceDocument.absolutePath === document.sourceDocument.absolutePath // it is the doc so needs be added as a flag for the reference return it later on can be filtered dup
     ) {
       returnItems.push(this);
 
       return returnItems;
     }
 
-    refMap.set(id, true);
-    refMap.set(id2, true);
+    if (documentMap.has(id) || documentMap.has(id2)) {
+      return returnItems;
+    }
+    documentMap.set(id, true);
+    documentMap.set(id2, true);
+
     this.imports.forEach(
       (x) =>
         (returnItems = returnItems.concat(
@@ -269,7 +273,10 @@ export class ParsedDocument
     this.imports.forEach((x) => x.initialiseDocumentReference(documents));
     this.innerContracts.forEach((x) => x.initialiseExtendContracts());
   }
-
+  public initCache(offset: number) {
+    this.selectedElement = this.findElementByOffset(this.element.body, offset);
+    this.initializeMembers(true);
+  }
   public initialiseDocument(
     documentElement: Element,
     selectedElement: Element = null,
@@ -281,11 +288,30 @@ export class ParsedDocument
     this.document = this;
     this.fixedSource = fixedSource;
     this.selectedElement = selectedElement;
+
+    this.initializeMembers(false);
+  }
+
+  private initializeMembers(reset?: boolean) {
+    if (reset) {
+      this.innerContracts = [];
+      this.functions = [];
+      this.imports = [];
+      this.events = [];
+      this.enums = [];
+      this.customTypes = [];
+      this.expressions = [];
+      this.expressions = [];
+      this.structs = [];
+      this.usings = [];
+      this.functions = [];
+      this.errors = [];
+      this.constants = [];
+    }
     if (this.element !== undefined && this.element !== null) {
       this.initialiseVariablesMembersEtc(this.element, null, null);
     }
-
-    documentElement.body.forEach((element) => {
+    this.element.body.forEach((element) => {
       if (
         element.type === "ContractStatement" ||
         element.type === "LibraryStatement" ||
@@ -293,7 +319,7 @@ export class ParsedDocument
       ) {
         const contract = new ParsedContract();
         contract.initialise(element, this);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedContract = contract;
         }
         this.innerContracts.push(contract);
@@ -302,7 +328,7 @@ export class ParsedDocument
       if (element.type === "FileLevelConstant") {
         const constant = new ParsedConstant();
         constant.initialise(element, this);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedConstant = constant;
         }
         this.constants.push(constant);
@@ -311,7 +337,7 @@ export class ParsedDocument
       if (element.type === "ImportStatement") {
         const importDocument = new ParsedImport();
         importDocument.initialise(element, this);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedImport = importDocument;
         }
         this.imports.push(importDocument);
@@ -320,7 +346,7 @@ export class ParsedDocument
       if (element.type === "FunctionDeclaration") {
         const functionDocument = new ParsedFunction();
         functionDocument.initialise(element, this, null, true);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedFunction = functionDocument;
         }
         this.functions.push(functionDocument);
@@ -330,7 +356,7 @@ export class ParsedDocument
         const functionDocument = new ParsedFunction();
         functionDocument.initialise(element, this, null, true);
         functionDocument.isModifier = true;
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedFunction = functionDocument;
         }
         this.functions.push(functionDocument);
@@ -339,7 +365,7 @@ export class ParsedDocument
       if (element.type === "EventDeclaration") {
         const eventDocument = new ParsedEvent();
         eventDocument.initialise(element, this, null, true);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedEvent = eventDocument;
         }
         this.events.push(eventDocument);
@@ -348,7 +374,7 @@ export class ParsedDocument
       if (element.type === "EnumDeclaration") {
         const enumDocument = new ParsedEnum();
         enumDocument.initialise(element, this, null, true);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedEnum = enumDocument;
         }
         this.enums.push(enumDocument);
@@ -357,7 +383,7 @@ export class ParsedDocument
       if (element.type === "StructDeclaration") {
         const struct = new ParsedStruct();
         struct.initialise(element, this, null, true);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedStruct = struct;
         }
         this.structs.push(struct);
@@ -372,7 +398,7 @@ export class ParsedDocument
       if (element.type === "ErrorDeclaration") {
         const documentError = new ParsedError();
         documentError.initialise(element, this, null, true);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedError = documentError;
         }
         this.errors.push(documentError);
@@ -381,12 +407,16 @@ export class ParsedDocument
       if (element.type === "UsingStatement") {
         const using = new ParsedUsing();
         using.initialise(element, this, null, true);
-        if (this.matchesElement(selectedElement, element)) {
+        if (this.matchesElement(this.selectedElement, element)) {
           this.selectedUsing = using;
         }
         this.usings.push(using);
       }
     });
+  }
+
+  public getImportedSymbols() {
+    return this.sourceDocument.imports.map((x) => x.symbols).flat();
   }
 
   public findContractByName(name: string): ParsedContract {
@@ -717,28 +747,28 @@ export class ParsedDocument
         ))
     );
 
-    const structMembers = this.structs
-      .map((s) => s.getInnerMembers())
-      .flatMap((s) => s);
+    // const structMembers = this.structs
+    //   .map((s) => s.getInnerMembers())
+    //   .flatMap((s) => s);
 
-    const functionMembers = this.functions
-      .map((f) => f.getAllItems())
-      .flatMap((s) => s);
+    // const functionMembers = this.functions
+    //   .map((f) => f.getAllItems())
+    //   .flatMap((s) => s);
 
-    structMembers.forEach(
-      (x) =>
-        (results = this.mergeArrays(
-          results,
-          x.getAllReferencesToObject(parsedCode)
-        ))
-    );
-    functionMembers.forEach(
-      (x) =>
-        (results = this.mergeArrays(
-          results,
-          x.getAllReferencesToObject(parsedCode)
-        ))
-    );
+    // structMembers.forEach(
+    //   (x) =>
+    //     (results = this.mergeArrays(
+    //       results,
+    //       x.getAllReferencesToObject(parsedCode)
+    //     ))
+    // );
+    // functionMembers.forEach(
+    //   (x) =>
+    //     (results = this.mergeArrays(
+    //       results,
+    //       x.getAllReferencesToObject(parsedCode)
+    //     ))
+    // );
 
     return results;
   }
@@ -829,28 +859,28 @@ export class ParsedDocument
         ))
     );
 
-    const structMembers = this.structs
-      .map((s) => s.getInnerMembers())
-      .flatMap((s) => s);
+    // const structMembers = this.structs
+    //   .map((s) => s.getInnerMembers())
+    //   .flatMap((s) => s);
 
-    const functionMembers = this.functions
-      .map((f) => f.getAllItems())
-      .flatMap((s) => s);
+    // const functionMembers = this.functions
+    //   .map((f) => f.getAllItems())
+    //   .flatMap((s) => s);
 
-    structMembers.forEach(
-      (x) =>
-        (results = this.mergeArrays(
-          results,
-          x.getSelectedTypeReferenceLocation(offset)
-        ))
-    );
-    functionMembers.forEach(
-      (x) =>
-        (results = this.mergeArrays(
-          results,
-          x.getSelectedTypeReferenceLocation(offset)
-        ))
-    );
+    // structMembers.forEach(
+    //   (x) =>
+    //     (results = this.mergeArrays(
+    //       results,
+    //       x.getSelectedTypeReferenceLocation(offset)
+    //     ))
+    // );
+    // functionMembers.forEach(
+    //   (x) =>
+    //     (results = this.mergeArrays(
+    //       results,
+    //       x.getSelectedTypeReferenceLocation(offset)
+    //     ))
+    // );
     const foundResult =
       FindTypeReferenceLocationResult.filterFoundResults(results);
     if (foundResult.length > 0) {

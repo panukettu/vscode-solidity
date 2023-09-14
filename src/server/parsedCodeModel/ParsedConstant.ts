@@ -1,26 +1,31 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-import { ParsedDeclarationType } from "./parsedDeclarationType";
 import { ParsedDocument } from "./ParsedDocument";
-import { ParsedVariable } from "./ParsedVariable";
 import { ParsedParameter } from "./ParsedParameter";
-import { BodyElement, Element, InnerElement } from "./Types";
+import { ParsedVariable } from "./ParsedVariable";
+import { BodyElement } from "./Types";
+import { ParsedDeclarationType } from "./parsedDeclarationType";
 
 export class ParsedConstant extends ParsedVariable {
   public from: string;
   private completionItem: CompletionItem = null;
+  public element: BodyElement;
   public override initialise(element: BodyElement, document: ParsedDocument) {
     super.initialise(element, document);
     this.name = element.name;
     this.type = ParsedDeclarationType.create(element.literal, null, document);
   }
 
-  public override createCompletionItem(): CompletionItem {
+  public override createCompletionItem(preselect?: boolean): CompletionItem {
     if (this.completionItem === null) {
       const completionItem = CompletionItem.create(this.name);
       completionItem.kind = CompletionItemKind.Field;
-      const info = this.document.getGlobalPathInfo();
       completionItem.insertText = this.name;
-      completionItem.documentation = this.getMarkupInfo();
+      completionItem.detail = this.getElementInfo();
+      completionItem.documentation = {
+        kind: "markdown",
+        value: this.getInfo(true),
+      };
+      completionItem.preselect = preselect;
       this.completionItem = completionItem;
     }
     return this.completionItem;
@@ -30,25 +35,25 @@ export class ParsedConstant extends ParsedVariable {
     return "Constant";
   }
 
-  public override getInfo(): string {
-    return (
-      "### " +
-      this.getParsedObjectType() +
-      ": " +
-      this.name +
-      "\n" +
-      "#### " +
-      this.getContractNameOrGlobal() +
-      "\n" +
-      "\t" +
-      this.getSignature() +
-      " \n\n" +
-      this.type.getInfo() +
-      "\n"
+  public override getInfo(short?: boolean): string {
+    const elemInfo = this.getElementInfo();
+    return this.createSimpleDetail(
+      !short && this.getRootName(),
+      short ? "" : this.name,
+      short ? elemInfo : `: ${elemInfo}`,
+      short
+        ? (this.getRootName() + " " + this.getParsedObjectType()).toLowerCase()
+        : undefined,
+      !short,
+      !short
     );
+  }
+  public getElementInfo(): string {
+    const array = this.type.isArray ? "[]" : "";
+    return this.type.name + array + " " + this.name;
   }
 
   public getSignature(): string {
-    return ParsedParameter.getParamInfo(this.element);
+    return ParsedParameter.getParamInfo(this.element as any);
   }
 }
