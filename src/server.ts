@@ -201,7 +201,7 @@ function validate(document: TextDocument) {
           }
         });
       } catch (e) {
-        console.debug("validate:", e);
+        // console.debug("validate:", e);
       }
     }
 

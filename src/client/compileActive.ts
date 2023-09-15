@@ -77,6 +77,6 @@ export function compileActiveContract(
       overrideDefaultCompiler
     );
   } catch (e) {
-    console.debug(e);
+    console.debug(e.message);
   }
 }

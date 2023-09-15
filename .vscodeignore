@@ -14,3 +14,4 @@ tsup.config.ts
 dist
 pnpm-lock.yaml
 scripts/**
+syntaxes/solidity.bak

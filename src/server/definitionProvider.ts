@@ -164,7 +164,6 @@ export class SignatureHelpProvider {
       const line = documentContractSelected.getLineRange(position.line);
       const text = document.getText(line);
       const functionNames = text.match(nameRegexp);
-      console.debug(functionNames.length);
       if (
         !functionNames?.length ||
         text[position.character - 1] === "." ||
@@ -202,7 +201,7 @@ export class SignatureHelpProvider {
         activeSignature: 0,
       };
     } catch (e) {
-      console.log("SignatureHelp", e.message);
+      // console.debug("SignatureHelp", e.message);
       return null;
     }
   }
@@ -299,7 +298,7 @@ export class SolidityHoverProvider {
       reset();
       return null;
     } catch (e) {
-      console.debug("hover", e);
+      // console.debug("hover", e);
     }
   }
 }
@@ -337,7 +336,7 @@ export class SolidityReferencesProvider {
       return <vscode.Location[]>foundLocations;
     } catch (e) {
       clearCaches();
-      console.debug("ref", e);
+      // console.debug("ref", e);
     }
   }
 }
@@ -378,7 +377,7 @@ export class SolidityDefinitionProvider {
       clearCaches();
       this.currentOffset = 0;
       this.currentItem = null;
-      console.debug("Definition", e);
+      // console.debug("Definition", e);
       return null;
     }
   }
