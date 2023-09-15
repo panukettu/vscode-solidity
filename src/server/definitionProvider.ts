@@ -186,8 +186,9 @@ export class SignatureHelpProvider {
 
       result.parameters = parameters;
       result.activeParameter = Math.min(index, parameters.length - 1);
+
       return {
-        activeParameter: index,
+        activeParameter: result.activeParameter,
         signatures: [result],
         activeSignature: 0,
       };
