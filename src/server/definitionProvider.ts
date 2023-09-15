@@ -82,7 +82,8 @@ export const getFunction = (
   functionNames: string[],
   selectedDocment: ParsedDocument,
   item?: { name: string },
-  offset?: number
+  offset?: number,
+  removeself?: boolean
 ) => {
   if (!functionNames?.length) {
     throw new Error("No function names found");
@@ -90,12 +91,14 @@ export const getFunction = (
 
   const functionName = functionNames[functionNames.length - 1];
 
-  let selectedVariable: ParsedParameter;
+  // let selectedVariable: ParsedParameter;
   let selectedFunction: ParsedFunction;
-  let selectedIndex: number;
+  // let selectedIndex: number;
   let parameters: vscode.ParameterInformation[] = [];
 
   let methodsFound: ParsedCode[] = [];
+
+  let inputs: ParsedParameter[] = [];
 
   if (offset) {
     methodsFound = selectedDocment
@@ -117,9 +120,16 @@ export const getFunction = (
     if (current instanceof ParsedFunction) {
       if (current.input.length > 0) {
         selectedFunction = current;
-        selectedVariable = current.input[current.selectedInput];
-        selectedIndex = current.selectedInput;
-        parameters = current.input.map((i) => {
+        inputs = removeself
+          ? current.input.filter(
+              (i) =>
+                i.name !== "self" &&
+                i.name !== "_self" &&
+                i.name !== "this" &&
+                i.name !== "_this"
+            )
+          : current.input;
+        parameters = inputs.map((i) => {
           return {
             label: i.name,
             documentation: {
@@ -132,14 +142,11 @@ export const getFunction = (
     }
   }
 
-  if (selectedVariable)
-    return {
-      selectedVariable,
-      selectedFunction,
-      selectedIndex,
-      parameters,
-    };
-  return;
+  return {
+    inputs,
+    selectedFunction,
+    parameters,
+  };
 };
 export class SignatureHelpProvider {
   public provideSignatureHelp(
@@ -157,6 +164,7 @@ export class SignatureHelpProvider {
       const line = documentContractSelected.getLineRange(position.line);
       const text = document.getText(line);
       const functionNames = text.match(nameRegexp);
+      console.debug(functionNames.length);
       if (
         !functionNames?.length ||
         text[position.character - 1] === "." ||
@@ -172,20 +180,21 @@ export class SignatureHelpProvider {
             position.character
           )
           .split(",").length - 1;
-      const { selectedVariable, parameters } = getFunction(
+      const { parameters, inputs } = getFunction(
         functionNames,
         documentContractSelected,
         item,
-        offset
+        offset,
+        functionNames.length === 2 || functionNames.length === 4
       );
-      if (!selectedVariable) return null;
+      if (!parameters?.length) return null;
+      const activeParameter = Math.min(index, parameters.length - 1);
 
       const result = vscode.SignatureInformation.create(
-        selectedVariable.getElementInfo()
+        inputs[activeParameter].getElementInfo()
       );
-
       result.parameters = parameters;
-      result.activeParameter = Math.min(index, parameters.length - 1);
+      result.activeParameter = activeParameter;
 
       return {
         activeParameter: result.activeParameter,
