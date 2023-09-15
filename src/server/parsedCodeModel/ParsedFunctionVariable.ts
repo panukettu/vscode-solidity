@@ -72,8 +72,7 @@ export class ParsedFunctionVariable extends ParsedVariable {
   }
   public getElementInfo(): string {
     const storageType = this.getStorageType();
-    const array = this.type.isArray ? "[]" : "";
-    return this.type.name + array + " " + (storageType || "") + this.name;
+    return this.type.getTypeSignature() + " " + (storageType || "") + this.name;
   }
 
   public getSignature(): string {

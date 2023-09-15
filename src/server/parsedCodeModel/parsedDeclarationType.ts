@@ -1,5 +1,5 @@
 import { CompletionItem } from "vscode-languageserver";
-import { valueTypeReg } from "./ParsedCodeTypeHelper";
+import { ParsedCodeTypeHelper, valueTypeReg } from "./ParsedCodeTypeHelper";
 import { ParsedDocument } from "./ParsedDocument";
 import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedContract } from "./parsedContract";
@@ -7,11 +7,32 @@ import { ParsedUsing } from "./parsedUsing";
 
 export class ParsedDeclarationType extends ParsedCode {
   public isArray: boolean;
+
   public isMapping: boolean;
-  public valueType: boolean;
+  public isValueType: boolean;
   public parentTypeName: any = null;
   public type: ParsedCode = null;
 
+  public getArraySignature(): string {
+    if (!this.isArray) return "";
+    return `[${this.getArrayParts()}]`;
+  }
+
+  public getArrayParts(): string {
+    if (!this.isArray) return "";
+    // @ts-expect-error
+    return !!this.element?.array_parts[0]
+      ? // @ts-expect-error
+        String(this.element?.array_parts[0])
+      : "";
+  }
+
+  public getTypeSignature(): string {
+    if (this.isMapping) {
+      return ParsedCodeTypeHelper.getTypeString(this.element);
+    }
+    return this.name + this.getArraySignature();
+  }
   public static create(
     literal: any,
     contract: ParsedContract,
@@ -48,8 +69,7 @@ export class ParsedDeclarationType extends ParsedCode {
       this.name = "mapping"; // do something here
       // suffixType = '(' + this.getTypeString(literalType.from) + ' => ' + this.getTypeString(literalType.to) + ')';
     }
-
-    this.valueType = !this.isMapping && valueTypeReg.test(this.name);
+    this.isValueType = !this.isMapping && valueTypeReg.test(this.name);
   }
 
   public override getInnerCompletionItems(): CompletionItem[] {

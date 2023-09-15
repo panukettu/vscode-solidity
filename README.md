@@ -4,18 +4,19 @@
 
 # Fork Features
 
-- Bundles all js dependencies
+- Bundles all js dependencies.
 - Removes nethereum, solium and dAppproject related things.
-- Seems to work bit faster on big projects
+- Seems to work bit faster on big projects.
 - Go To Definition, Find All References and Auto Completions work on global using for injections.
 - Loads all sol files to cache on project open.
-- Auto-complete improved for global using and libs
-- Improved hover
-- Support for signature help
+- Auto-complete improved for using for globals, libs (+lib events).
+- Improved hover.
+- Signature help on function calls.
 - Natspec displayed inherits from `@inheritdoc`
 - Adds some CodeLens:
   - Preview bytes4 selector of functions without compilation (should work on structs and custom types as well)
   - Preview hash of eg. keccak256("some.string")
+  - Generate natspec for functions with a click.
     <br>
 
 # Fork Config Changes

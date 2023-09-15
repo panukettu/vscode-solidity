@@ -1,10 +1,10 @@
 export class ParsedCodeTypeHelper {
   public static getTypeString(literal: any) {
-    const isArray = literal.array_parts.length > 0;
+    const isArray = literal.array_parts?.length > 0;
     let isMapping = false;
     let literalType: any;
     let parentType: string = null;
-    if (literal.members !== undefined && literal.members.length > 0) {
+    if (literal.members !== undefined && literal.members?.length > 0) {
       literalType = literal.members[0];
       parentType = literal.literal;
     } else {
@@ -26,7 +26,10 @@ export class ParsedCodeTypeHelper {
     }
 
     if (isArray) {
-      suffixType = suffixType + "[]";
+      const arraySuffix = !!literal.array_parts[0]
+        ? literal.array_parts[0]
+        : "";
+      suffixType = suffixType + (arraySuffix ? `[${arraySuffix}]` : "[]");
     }
 
     if (isMapping) {
@@ -41,7 +44,8 @@ export class ParsedCodeTypeHelper {
   }
 }
 
-export const valueTypeReg = /(address|bool|string|bytes\d{0,2}|u?int\d{0,3})/;
+export const valueTypeReg =
+  /(address|bool|string|bytes\d{0,2}|(uint|int)(\d|\W))/;
 export const valueTypes = [
   "address",
   "bool",

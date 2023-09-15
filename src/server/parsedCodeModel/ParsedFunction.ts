@@ -10,7 +10,24 @@ import { ParsedContract } from "./parsedContract";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
 
 import { InnerElement } from "./Types";
+import { getFunctionSelector } from "viem";
 
+const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+
+const getNatspecPrefix = (visibility: ParsedFunction["visibility"]) => {
+  switch (visibility) {
+    case "public":
+      return "a public";
+    case "private":
+      return "a private";
+    case "external":
+      return "an external";
+    case "internal":
+      return "an internal";
+    default:
+      return "a";
+  }
+};
 export class ParsedFunction
   extends ParsedCode
   implements IParsedExpressionContainer
@@ -23,7 +40,19 @@ export class ParsedFunction
   public expressions: ParsedExpression[] = [];
   public isConstructor = false;
   public isFallback = false;
+  public isLibrary = false;
+  public selectedInput: number = 0;
+  public isFreeFunction = false;
   public isReceive = false;
+  public isInterface = false;
+  public storageAccess: "view" | "pure" | "write" | "modifier";
+  public visibility:
+    | "external"
+    | "public"
+    | "private"
+    | "internal"
+    | "modifier";
+  public payable: boolean;
   public id: any;
   public element: InnerElement = null;
   private completionItem: CompletionItem = null;
@@ -128,31 +157,63 @@ export class ParsedFunction
   }
 
   public override generateNatSpec(): string {
-    return (
-      "/**\n" +
-      "* @notice " +
-      this.name
-        .split(/(?=[A-Z])/)
-        .map((x) => x.toLowerCase())
-        .join(" ") +
-      " \n" +
-      "* @dev extra info for developers \n"
-    );
-    /**
-     * @dev Clears a ConsiderationItem from storage.
-     *
-     * @param item the ConsiderationItem to clear.
-     */
+    const customModifiers = this.modifiers.filter((x) => x.IsCustomModifier());
+    const storageAccess =
+      this.storageAccess === "write" ? "state-modifying" : this.storageAccess;
+    const funcPrefix = this.getParsedParentType();
+    const result = this.name.replace(/^_/, "").split(/(?=[A-Z])/);
+
+    const letters = result
+      .filter((x) => x.length === 1)
+      .join("")
+      .toUpperCase();
+
+    const name = result
+      .filter((x) => x.length > 1)
+      .map((x) => x.toLowerCase().trim())
+      .concat(letters)
+      .filter(Boolean)
+      .join(" ");
+    const funcText = ["Contract", "Interface"].includes(funcPrefix)
+      ? ""
+      : funcPrefix.toLowerCase() + " ";
+    const prefix = getNatspecPrefix(this.visibility);
+    const modifierText =
+      customModifiers.length > 0
+        ? ` * @dev Has modifiers: ${customModifiers
+            .map((m) => m.name)
+            .join(", ")}` + "."
+        : "";
+
+    const selector = this.getSelector();
+    const isStorage = selector.indexOf("invalid") !== -1;
+    const text = [
+      "\n\t/**",
+      ` * @notice ${capitalize(
+        name
+      )}, ${prefix} ${storageAccess} ${funcText}function.`,
+      this.payable ? " * @notice Accepts ether." : "",
+      modifierText,
+      ...this.input.map((x) => x.generateParamNatSpec()),
+      ...this.output.map((x) => x.generateParamNatSpec()),
+      isStorage ? "" : ` * @custom:signature ${selector}`,
+      isStorage ? "" : ` * @custom:selector ${getFunctionSelector(selector)}`,
+      " */\n",
+    ]
+      .filter((v) => v !== "")
+      .join("\n\t");
+    return text;
   }
 
   public generateSelectedNatspec(offset: number): string {
     return this.generateNatSpec();
   }
+
   public getSelector(): string {
     let selectors = [];
     for (const input of this.input) {
       let selector: string;
-      if (input.type.valueType) {
+      if (input.type.isValueType) {
         selector = input.type.name;
       } else {
         const item = this.contract
@@ -177,7 +238,7 @@ export class ParsedFunction
           }
         }
       }
-      selectors.push(selector + (input.type.isArray ? "[]" : ""));
+      selectors.push(selector + input.type.getArraySignature());
     }
     return `${this.name}(${selectors.join(",")})`;
   }
@@ -200,6 +261,20 @@ export class ParsedFunction
     this.initialiseModifiers();
     if (this.element.body !== undefined && this.element.body !== null) {
       this.initialiseVariablesMembersEtc(this.element.body, null, null);
+    }
+    this.isInterface = this.element.is_abstract;
+    this.isLibrary = this.contract
+      ? this.contract.getContractTypeName(this.contract.contractType) ===
+        "Library"
+      : false;
+    this.isFreeFunction = this.contract === null;
+  }
+
+  public getParsedParentType() {
+    if (this.contract) {
+      return this.contract.getParsedObjectType();
+    } else if (this.isFreeFunction) {
+      return "Free";
     }
   }
 
@@ -227,6 +302,22 @@ export class ParsedFunction
     this.element.modifiers.forEach((element) => {
       const parsedModifier = new ParsedModifierArgument();
       parsedModifier.initialiseModifier(element, this, this.document);
+
+      if (this.isModifier) {
+        this.storageAccess = "modifier";
+        this.visibility = "modifier";
+      } else {
+        if (parsedModifier.isView()) this.storageAccess = "view";
+        else if (parsedModifier.isPure()) this.storageAccess = "pure";
+        else this.storageAccess = "write";
+
+        if (parsedModifier.isPublic()) this.visibility = "public";
+        else if (parsedModifier.isPrivate()) this.visibility = "private";
+        else if (parsedModifier.isExternal()) this.visibility = "external";
+        else if (parsedModifier.isInternal()) this.visibility = "internal";
+
+        if (parsedModifier.isPayeable()) this.payable = true;
+      }
       this.modifiers.push(parsedModifier);
     });
   }
@@ -452,6 +543,9 @@ export class ParsedFunction
   }
 
   public getDeclaration(): string {
+    if (!this.contract) {
+      return "free function";
+    }
     if (this.isModifier) {
       return "modifier";
     }

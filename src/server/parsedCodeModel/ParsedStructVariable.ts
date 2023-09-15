@@ -16,6 +16,7 @@ export class ParsedStructVariable extends ParsedVariable {
   public struct: ParsedStruct;
   private completionItem: CompletionItem = null;
   public abiType: string | null;
+  public isContract: boolean = false;
 
   public properties: ParsedStructVariable[];
   public items: any[];
@@ -45,13 +46,21 @@ export class ParsedStructVariable extends ParsedVariable {
       this.abiType = `(${this.properties.map((p) => p.abiType).join(",")})`;
     } else if (typeRef instanceof ParsedEnum) {
       this.items = typeRef.items;
-      this.abiType = this.type.isArray ? "uint8[]" : "uint8";
+      this.abiType = "uint8" + this.type.getArraySignature();
     } else if (typeRef instanceof ParsedCustomType) {
-      this.abiType = typeRef.isType + (this.type.isArray ? "[]" : "");
+      this.abiType = typeRef.isType + this.type.getArraySignature();
     } else {
-      this.abiType = this.type.valueType
-        ? this.type.name + (this.type.isArray ? "[]" : "")
+      this.abiType = this.type.isValueType
+        ? this.type.getTypeSignature()
         : null;
+
+      if (!this.abiType) {
+        const imports = this.document.sourceDocument.getAllImportFromPackages();
+        if (imports.find((i) => i.indexOf(this.type.name) !== -1)) {
+          this.abiType = "address" + this.type.getArraySignature();
+          this.isContract = true;
+        }
+      }
     }
   }
   public createCompletionItem(): CompletionItem {
@@ -69,7 +78,7 @@ export class ParsedStructVariable extends ParsedVariable {
 
   public getElementInfo(): string {
     let storageType = undefined;
-    if (this.struct.hasMapping) {
+    if (!this.type.isMapping && this.struct.hasMapping) {
       storageType = "storage";
     }
 
@@ -110,9 +119,7 @@ export class ParsedStructVariable extends ParsedVariable {
     // }
     return (
       ParsedCodeTypeHelper.getTypeString(this.element.literal) +
-      (storageType ? ` ${storageType}` : "") +
-      " " +
-      this.name
+      (storageType ? ` ${storageType}` : "")
     );
   }
 
@@ -152,7 +159,7 @@ export class ParsedStructVariable extends ParsedVariable {
     return this.createSimpleDetail(
       this.struct.getRootName(),
       this.struct.name,
-      `: ${this.getElementInfo()}`,
+      `.${this.name}: ${this.getElementInfo()}`,
       undefined,
       true,
       true

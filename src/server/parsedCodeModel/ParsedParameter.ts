@@ -7,6 +7,27 @@ import { FindTypeReferenceLocationResult, ParsedCode } from "./parsedCode";
 import { ParsedContract } from "./parsedContract";
 import { ParsedDeclarationType } from "./parsedDeclarationType";
 
+const getNatspecPrefix = (text: string) => {
+  const isVowel = text.match(/^[aeiou]/i);
+  const article = isVowel ? "An" : "A";
+
+  return `${article} ${text}`;
+};
+
+function pluralize(word: string) {
+  const wordLower = word.toLowerCase();
+  if (/[^aeiou]y$/i.test(wordLower)) {
+    return word.replace(/y$/i, "ies");
+  } else if (/[sxz]$/i.test(wordLower) || /[^aeioudgkprt]h$/i.test(wordLower)) {
+    return word + "es";
+  } else if (/[^aeiou]o$/i.test(wordLower)) {
+    return word + "es";
+  } else if (wordLower.toLowerCase() === "child") {
+    return "children";
+  } else {
+    return word + "s";
+  }
+}
 export class ParsedParameter extends ParsedVariable {
   public parent: ParsedCode;
   private completionItem: CompletionItem = null;
@@ -224,13 +245,21 @@ export class ParsedParameter extends ParsedVariable {
     return this.completionItem;
   }
 
+  public generateParamNatSpec(): string {
+    const prefix = this.isInput ? "param" : "return";
+    const typeInfo = this.getTypeInfo(true);
+
+    const name = this.element.id ? this.element.id : this.type.name;
+    return ` * @${prefix} ${name} ${name !== typeInfo ? typeInfo : ""}`;
+  }
+
   public override getParsedObjectType(): string {
     if (this.isInput) {
-      return "input parameter";
+      return "input param";
     } else if (this.isOutput) {
-      return "output parameter";
+      return "output param";
     }
-    return "parameter";
+    return "param";
   }
 
   public getComment(): string {
@@ -261,7 +290,7 @@ export class ParsedParameter extends ParsedVariable {
     return this.getSimpleDetail();
   }
 
-  public getSimpleDetail(short?: boolean): string {
+  public getSimpleDetail(short?: boolean, isSignatureHelp?: boolean): string {
     let infoText = "";
     if (this.isInput) {
       infoText = `(...${this.getElementInfo()})`;
@@ -269,6 +298,17 @@ export class ParsedParameter extends ParsedVariable {
       infoText = `(...): ${this.getElementInfo()}`;
     } else {
       infoText = `: ${this.getElementInfo()}`;
+    }
+
+    if (isSignatureHelp) {
+      return this.createSimpleDetail(
+        !short && this.getRootName(),
+        this.parent.name,
+        infoText,
+        this.isInput ? "arg" : "output",
+        true,
+        true
+      );
     }
     return this.createSimpleDetail(
       !short && this.getRootName(),
@@ -287,10 +327,49 @@ export class ParsedParameter extends ParsedVariable {
     }
     return result;
   }
+
+  public getTypeInfo(readable = false): string {
+    const isArray = this.type.getArraySignature();
+    if (readable) {
+      const prefix = getNatspecPrefix(this.type.name);
+      let name = "";
+      if (this.name) {
+        const result = this.name.replace(/^_/, "").split(/(?=[A-Z])/);
+
+        const letters = result
+          .filter((x) => x.length === 1)
+          .join("")
+          .toUpperCase();
+        name = result
+          .filter((x) => x.length > 1)
+          .map((x) => x.toLowerCase().trim())
+          .concat(letters)
+          .filter(Boolean)
+          .join(" ");
+      }
+
+      const inputText =
+        this.type.name !== "address"
+          ? `The ${name} (${this.type.name}).`
+          : name.indexOf("address") !== -1
+          ? `The ${name}.`
+          : `The ${name} address.`;
+      const arrayParts = this.type.getArrayParts();
+      return isArray
+        ? `List of ${!!arrayParts ? arrayParts + " " : ""}${pluralize(
+            this.type.name
+          )}.`
+        : this.isInput
+        ? inputText
+        : this.name
+        ? `${prefix} value.`
+        : `Result of ${this.parent.name}.`;
+    }
+    return this.type.name + isArray;
+  }
   public getElementInfo(): string {
     const id = this.element.id != null ? this.element.id : "";
-    const isArray = this.type.isArray ? "[]" : "";
-    return this.type.name + isArray + " " + this.getStorageType() + id;
+    return this.getTypeInfo() + " " + this.getStorageType() + id;
   }
 
   public getSignature(): string {

@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import {
   CodelensProvider,
-  getKeccakCommand,
-  getSignatureCommand,
+  registerLensCommands,
 } from "../codeActionProviders/lensProvider";
 
 export function extraSubscriptions(context: vscode.ExtensionContext): void {
@@ -24,8 +23,8 @@ export function extraSubscriptions(context: vscode.ExtensionContext): void {
         .getConfiguration("solidity")
         .update("enableCodeLens", false, true);
     }),
-    getSignatureCommand(),
-    getKeccakCommand()
+
+    ...registerLensCommands(context)
   );
 
   // vscode.commands.registerCommand("solidity.lens.funcSig", (args: any) => {

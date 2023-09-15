@@ -50,9 +50,13 @@ export class ParsedStateVariable extends ParsedVariable {
   }
   public getElementInfo(): string {
     const storageType = this.getStorageType();
-    const array = this.type.isArray ? "[]" : "";
+
     return (
-      this.name + ": " + this.type.name + array + " " + (storageType || "")
+      this.name +
+      ": " +
+      this.type.getTypeSignature() +
+      " " +
+      (storageType || "")
     );
   }
   public getStorageType(space = true): string {

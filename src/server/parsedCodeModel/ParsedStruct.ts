@@ -210,7 +210,7 @@ export class ParsedStruct extends ParsedCode {
         this.getElementInfo(),
         undefined,
         true,
-        true
+        false
       ) +
       "\n" +
       properties

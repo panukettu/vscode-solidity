@@ -627,8 +627,8 @@ export class ParsedDocument
               return result1;
             }
             for (const superInnerImport of innerImport.importedDocuments) {
-              if (innerImport !== this) {
-                const result2 = imported.brute<T>(name, false);
+              if (superInnerImport !== this) {
+                const result2 = superInnerImport.brute<T>(name, false);
                 if (result2.length > 0) {
                   return result2;
                 }
@@ -771,6 +771,38 @@ export class ParsedDocument
     // );
 
     return results;
+  }
+
+  public findGlobalMethodByName(
+    name: string,
+    item?: { name: string }
+  ): ParsedFunction {
+    let methodToReturn: ParsedFunction;
+
+    for (const contract of this.getAllContracts()) {
+      let methodsFound = contract.findMethodsInScope(name) as ParsedFunction[];
+      if (!methodsFound?.length) {
+        methodsFound = contract.findMethodCalls(name) as ParsedFunction[];
+      }
+      if (!methodsFound?.length) continue;
+      if (!item) return methodsFound[0];
+
+      for (const method of methodsFound) {
+        methodToReturn = method;
+        const input = methodToReturn.input.find((inputVar, index) => {
+          const result = inputVar.name === item.name;
+          if (result) {
+            methodToReturn.selectedInput = index;
+            return true;
+          }
+        });
+        if (input) {
+          return methodToReturn;
+        }
+      }
+    }
+
+    return methodToReturn;
   }
   public getFunctionReference(offset: number) {
     const results = this.getSelectedTypeReferenceLocation(offset);

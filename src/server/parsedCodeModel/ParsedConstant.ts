@@ -49,8 +49,7 @@ export class ParsedConstant extends ParsedVariable {
     );
   }
   public getElementInfo(): string {
-    const array = this.type.isArray ? "[]" : "";
-    return this.type.name + array + " " + this.name;
+    return this.type.getTypeSignature() + " " + this.name;
   }
 
   public getSignature(): string {

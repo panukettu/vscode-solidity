@@ -2,27 +2,45 @@ import * as vscode from "vscode";
 
 const functionRegexp = () => new RegExp(/(function.*?\()/g);
 const keccak256Regexp = () => new RegExp(/(?<=keccak256\(")(.*?)(?="\))/g);
-export const getSignatureCommand = () =>
-  vscode.commands.registerCommand("solidity.lens.funcSig", async (...args) => {
-    const result: string = await vscode.commands.executeCommand(
-      "solidity.server.lens.funcSig",
-      ...args
-    );
-
-    return vscode.window.showInformationMessage(result);
-  });
-export const getKeccakCommand = () =>
+export const registerLensCommands = (context: vscode.ExtensionContext) => [
   vscode.commands.registerCommand(
-    "solidity.lens.keccak256",
-    async (...args) => {
+    "solidity.lens.function.selector",
+    async (...args: [vscode.TextDocument, vscode.Range]) => {
       const result: string = await vscode.commands.executeCommand(
-        "solidity.server.lens.keccak256",
+        "solidity.server.lens.function.selector",
         ...args
       );
 
       return vscode.window.showInformationMessage(result);
     }
-  );
+  ),
+  vscode.commands.registerCommand(
+    "solidity.lens.function.natspec",
+    async (...args: [vscode.TextDocument, vscode.Range]) => {
+      const result: string = await vscode.commands.executeCommand(
+        "solidity.server.lens.function.natspec",
+        ...args
+      );
+      return vscode.window.activeTextEditor.edit((editBuilder) => {
+        const position = new vscode.Position(args[1].start.line, 0);
+        editBuilder.insert(position, result);
+      });
+      // return vscode.TextEdit.insert(args[1].start, result);
+    }
+  ),
+  vscode.commands.registerCommand(
+    "solidity.lens.string.keccak256",
+    async (...args) => {
+      const result: string = await vscode.commands.executeCommand(
+        "solidity.server.lens.string.keccak256",
+        ...args
+      );
+
+      return vscode.window.showInformationMessage(result);
+    }
+  ),
+];
+
 /**
  * CodelensProvider
  */
@@ -63,7 +81,13 @@ export class CodelensProvider implements vscode.CodeLensProvider {
             new vscode.CodeLens(range, {
               title: "selector",
               tooltip: "Preview the bytes4 selector",
-              command: "solidity.lens.funcSig",
+              command: "solidity.lens.function.selector",
+              arguments: [document, range],
+            }),
+            new vscode.CodeLens(range, {
+              title: "natspec",
+              tooltip: "Generate natspec comment",
+              command: "solidity.lens.function.natspec",
               arguments: [document, range],
             })
           );

@@ -509,10 +509,6 @@ export class ParsedContract
     return this.getInnerMembers().filter((x) => x.name === name);
   }
 
-  public findInnerMember(name: string): ParsedCode[] {
-    return this.getInnerMembers().filter((x) => x.name === name);
-  }
-
   public override getInnerMethodCalls(): ParsedCode[] {
     let methodCalls: ParsedCode[] = [];
     methodCalls = methodCalls

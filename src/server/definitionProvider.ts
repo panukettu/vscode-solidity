@@ -81,7 +81,8 @@ const useHelper = (
 export const getFunction = (
   functionNames: string[],
   selectedDocment: ParsedDocument,
-  item?: { name: string }
+  item?: { name: string },
+  offset?: number
 ) => {
   if (!functionNames?.length) {
     throw new Error("No function names found");
@@ -94,49 +95,51 @@ export const getFunction = (
   let selectedIndex: number;
   let parameters: vscode.ParameterInformation[] = [];
 
-  for (const contract of selectedDocment.getAllContracts()) {
-    let selectedFunctions = contract.findMethodsInScope(
-      functionName
-    ) as ParsedFunction[];
-    if (!selectedFunctions?.length) {
-      selectedFunctions = contract.findMethodCalls(
-        functionName
-      ) as ParsedFunction[];
+  let methodsFound: ParsedCode[] = [];
+
+  if (offset) {
+    methodsFound = selectedDocment
+      .getSelectedFunction(offset)
+      .findMethodsInScope(functionName);
+  }
+
+  if (!methodsFound?.length) {
+    const methodFound = selectedDocment.findGlobalMethodByName(
+      functionName,
+      item
+    );
+    if (methodFound instanceof ParsedFunction) {
+      methodsFound.push(methodFound);
     }
-    if (!selectedFunctions?.length) continue;
+  }
 
-    selectedFunction = selectedFunctions[0];
-
-    if (item) {
-      const input = selectedFunction.input.find((inputVar, index) => {
-        if (inputVar.name === item.name) {
-          selectedIndex = index;
-          return true;
-        }
-      });
-      if (input) {
-        parameters = selectedFunction.input.map((i) => {
+  for (const current of methodsFound) {
+    if (current instanceof ParsedFunction) {
+      if (current.input.length > 0) {
+        selectedFunction = current;
+        selectedVariable = current.input[current.selectedInput];
+        selectedIndex = current.selectedInput;
+        parameters = current.input.map((i) => {
           return {
             label: i.name,
             documentation: {
               kind: "markdown",
-              value: i.getInfo(),
+              value: i.getSimpleDetail(false, true),
             },
           };
         });
-        selectedVariable = input;
       }
-    } else {
-      break;
     }
   }
 
-  return {
-    selectedVariable,
-    selectedFunction,
-    selectedIndex,
-    parameters,
-  };
+  if (selectedVariable)
+    return {
+      selectedVariable,
+      selectedFunction,
+      selectedIndex,
+      parameters,
+    };
+  return;
 };
 export class SignatureHelpProvider {
   public provideSignatureHelp(
@@ -152,28 +155,39 @@ export class SignatureHelpProvider {
       const offset = document.offsetAt(position);
       const item = documentContractSelected.getSelectedItem(offset);
       const line = documentContractSelected.getLineRange(position.line);
+      const text = document.getText(line);
+      const functionNames = text.match(nameRegexp);
+      if (
+        !functionNames?.length ||
+        text[position.character - 1] === "." ||
+        text[position.character + 1] === "(" ||
+        text[position.character - 1] === ";"
+      )
+        return null;
 
-      const functionNames = document.getText(line).match(nameRegexp);
-      if (!functionNames?.length) return null;
-
-      const { selectedVariable, selectedFunction, selectedIndex, parameters } =
-        getFunction(functionNames, documentContractSelected, item);
-
+      const index =
+        text
+          .slice(
+            text.indexOf(functionNames[functionNames.length - 1]),
+            position.character
+          )
+          .split(",").length - 1;
+      const { selectedVariable, parameters } = getFunction(
+        functionNames,
+        documentContractSelected,
+        item,
+        offset
+      );
       if (!selectedVariable) return null;
 
       const result = vscode.SignatureInformation.create(
         selectedVariable.getElementInfo()
       );
 
-      // result.documentation = {
-      //   kind: "markdown",
-      //   value: selectedFunction.getComment(),
-      // };
-
       result.parameters = parameters;
-      result.activeParameter = selectedIndex;
+      result.activeParameter = Math.min(index, parameters.length - 1);
       return {
-        activeParameter: selectedIndex,
+        activeParameter: index,
         signatures: [result],
         activeSignature: 0,
       };
@@ -235,8 +249,6 @@ export class SolidityHoverProvider {
           return null;
         }
         const res = item.getHover();
-        // const inScope = selectedFunction.findTypeInScope(item.parent?.name);
-        // console.debug(!!inScope);
         // @ts-expect-error
         if (!!res.contents?.value) {
           reset();
@@ -338,12 +350,12 @@ export class SolidityDefinitionProvider {
       this.currentItem = documentContractSelected.getSelectedItem(
         this.currentOffset
       );
-      // console.debug(this.currentItem);
+
       const references =
         documentContractSelected.getSelectedTypeReferenceLocation(
           this.currentOffset
         );
-      // console.debug(references);
+
       const foundLocations = references
         .filter((x) => x.location !== null)
         .map((x) => x.location);

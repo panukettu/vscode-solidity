@@ -184,7 +184,7 @@ function validate(document: TextDocument) {
         linterDiagnostics = linter.validate(filePath, documentText);
       }
     } catch (e) {
-      console.debug("linter:", e);
+      // console.debug("linter:", e);
     }
     if (settings.enabledAsYouTypeCompilationErrorCheck) {
       try {
@@ -341,7 +341,7 @@ connection.onInitialize((params): InitializeResult => {
       hoverProvider: true,
       signatureHelpProvider: {
         workDoneProgress: false,
-        triggerCharacters: ["(", ",", "*"],
+        triggerCharacters: ["(", ","],
       },
       textDocumentSync: TextDocumentSyncKind.Full,
       executeCommandProvider: {

@@ -230,10 +230,6 @@ export class ParsedExpressionCall extends ParsedExpression {
     child: ParsedExpression,
     expressionContainer: IParsedExpressionContainer
   ) {
-    if (element.callee.name === "CollateralAsset") {
-      // console.debug(contract.name);
-      // console.debug(expressionContainer);
-    }
     this.element = element;
     this.child = child;
     this.document = document;

@@ -45,8 +45,7 @@ export function compileActiveContract(
     const contractsCollection = new SourceDocumentCollection();
     const contractCode = editor.document.getText();
     const contractPath = editor.document.fileName;
-    // const configFull = SettingsService.getConfig();
-    // console.debug("configFull: ", configFull);
+
     const sources = SettingsService.getSources();
     const { libs, libSources } = SettingsService.getLibs();
     const compilationOptimisation = SettingsService.getCompilerOptimisation();

@@ -8,7 +8,7 @@ export class ParsedUsing extends ParsedCode {
   public forStar = false;
 
   public override getInfo(): string {
-    const forIsArray = this.for.isArray ? "[]" : "";
+    const forIsArray = this.for.getArraySignature();
     return this.createSimpleDetail(
       "",
       "",

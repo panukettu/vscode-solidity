@@ -1,25 +1,26 @@
 "use strict";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 // tslint:disable-next-line:no-duplicate-imports
-import * as vscode from "vscode-languageserver";
-import { CodeWalkerService } from "./parsedCodeModel/codeWalkerService";
 import * as glob from "glob";
 import { relative } from "path";
 import { fileURLToPath } from "url";
+import * as vscode from "vscode-languageserver";
+import { CodeWalkerService } from "./parsedCodeModel/codeWalkerService";
 // tslint:disable-next-line:no-duplicate-imports
 import * as path from "path";
-import {
-  AutoCompleteExpression,
-  DotCompletionService,
-} from "./parsedCodeModel/codeCompletion/dotCompletionService";
 import { getFunction } from "./definitionProvider";
 import { ParsedFunctionVariable } from "./parsedCodeModel/ParsedFunctionVariable";
+import { DotCompletionService } from "./parsedCodeModel/codeCompletion/dotCompletionService";
 
 const existingFuncRegexp = new RegExp(/(.*?\(.*?\))/s);
 const innerImportRegexp = new RegExp(/(import\s\{)/s);
+const emitRegexp = new RegExp(/(emit\s)/s);
 const importRegexp = new RegExp(/(import\s)(?!\{)/s);
 const fromRegexp = new RegExp(/(import\s\{.*?\}\sfrom)/s);
 const findFromItem = new RegExp(/import\s\{(.*?)\W/s);
+const emitDotRegexp = /emit\s(\w+)\./g;
+const dotStartWordsRegexp = /(\w+)(?<![funcionmodier])\(?\)?\W(\w+)(?=\()/gm;
+// (\w+)(?<!function|modifier)\(?\)?\W(\w+)(?=\()
 
 const textEdit = (path: string, range: vscode.Range, prefix: string) => {
   return vscode.InsertReplaceEdit.create(prefix + path + '";', range, range);
@@ -94,7 +95,8 @@ export class CompletionService {
         position.character - 1
       );
 
-      triggeredByEmit = autoCompleteVariable === "emit";
+      triggeredByEmit =
+        autoCompleteVariable === "emit" || emitRegexp.test(line);
       triggeredByRevert = autoCompleteVariable === "revert";
       triggeredByInnerImport = innerImportRegexp.test(line);
       triggeredByFrom = fromRegexp.test(line);
@@ -110,8 +112,7 @@ export class CompletionService {
       if (triggeredByDotStart > 0) {
         const text = line.slice(position.character);
         const isReplacingExistingCall = existingFuncRegexp.test(text);
-        const regexxx = /(\w+)(?<![function|modifier])\(?\)?\W(\w+)(?=\()/gm;
-        const dotStartWords = regexxx.exec(line);
+        const dotStartWords = dotStartWordsRegexp.exec(line);
 
         const globalVariableContext = GetContextualAutoCompleteByGlobalVariable(
           line,
@@ -151,6 +152,17 @@ export class CompletionService {
             // console.debug("func dot", e);
           }
         } else {
+          if (triggeredByEmit) {
+            const emitDotResult = emitDotRegexp.exec(line);
+            if (emitDotResult?.length > 0) {
+              const emitFrom = emitDotResult[1];
+              const contract =
+                documentContractSelected.findContractByName(emitFrom);
+              completionItems = completionItems.concat(
+                contract.getAllEventsCompletionItems()
+              );
+            }
+          }
           completionItems = completionItems.concat(
             DotCompletionService.getSelectedDocumentDotCompletionItems(
               lines,
@@ -291,9 +303,13 @@ export class CompletionService {
         }
       } else if (triggeredByEmit) {
         if (documentContractSelected.selectedContract != null) {
-          completionItems = completionItems.concat(
-            documentContractSelected.selectedContract.getAllEventsCompletionItems()
-          );
+          completionItems = completionItems
+            .concat(
+              documentContractSelected.selectedContract.getAllEventsCompletionItems()
+            )
+            .concat(
+              documentContractSelected.document.getAllGlobalContractsCompletionItems()
+            );
         } else {
           completionItems = completionItems.concat(
             documentContractSelected.getAllGlobalEventsCompletionItems()

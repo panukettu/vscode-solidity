@@ -9,7 +9,7 @@
     "diamond",
     "solhint"
   ],
-  "version": "0.6.3",
+  "version": "0.6.4",
   "publisher": "0xp",
   "license": "MIT",
   "engines": {
@@ -252,13 +252,18 @@
     ],
     "commands": [
       {
-        "title": "Solidity: Preview Sig",
-        "command": "solidity.lens.funcSig",
+        "title": "Solidity: Preview Selector",
+        "command": "solidity.lens.function.selector",
         "category": "solidity.codelens"
       },
       {
-        "title": "Solidity: Literal String keccak256",
-        "command": "solidity.lens.keccak256",
+        "title": "Solidity: Preview Sig",
+        "command": "solidity.lens.function.natspec",
+        "category": "solidity.codelens"
+      },
+      {
+        "title": "Solidity: Preview String Hash",
+        "command": "solidity.lens.string.keccak256",
         "category": "solidity.codelens"
       },
       {

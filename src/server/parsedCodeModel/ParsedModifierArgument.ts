@@ -33,17 +33,23 @@ export class ParsedModifierArgument extends ParsedCode {
   public isInternal(): boolean {
     return this.name === "internal";
   }
-
-  public isView(): boolean {
-    return this.name === "pure";
+  public isOverride(): boolean {
+    return this.name === "override";
   }
 
   public isPure(): boolean {
+    return this.name === "pure";
+  }
+
+  public isView(): boolean {
     return this.name === "view";
+  }
+  public isVirtual(): boolean {
+    return this.name === "virtual";
   }
 
   public isPayeable(): boolean {
-    return this.name === "payeable";
+    return this.name === "payable";
   }
 
   public IsCustomModifier(): boolean {
@@ -54,6 +60,8 @@ export class ParsedModifierArgument extends ParsedCode {
       this.isView() ||
       this.isPure() ||
       this.isPayeable() ||
+      this.isVirtual() ||
+      this.isOverride() ||
       this.isInternal()
     );
   }
