@@ -1,0 +1,62 @@
+import * as vscode from "vscode-languageserver/node";
+import { clearCaches } from "./utils/caches";
+import { ParsedDocument } from "../code/ParsedDocument";
+import { ParsedFunction } from "../code/ParsedFunction";
+import { ParsedParameter } from "../code/ParsedParameter";
+import { CodeWalkerService } from "../code/walker/codeWalkerService";
+import { ParsedCode } from "../code/ParsedCode";
+
+export class SolidityDefinitionProvider {
+  public static currentOffset: number = 0;
+  public static currentItem: ParsedCode | null = null;
+
+  public static provideDefinition(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    walker: CodeWalkerService
+  ): vscode.Location | vscode.Location[] {
+    try {
+      this.currentOffset = document.offsetAt(position);
+      const documentContractSelected = walker.getSelectedDocument(
+        document,
+        position
+      );
+      this.currentItem = documentContractSelected.getSelectedItem(
+        this.currentOffset
+      );
+
+      const references =
+        documentContractSelected.getSelectedTypeReferenceLocation(
+          this.currentOffset
+        );
+
+      const foundLocations = references
+        .filter((x) => x.location !== null)
+        .map((x) => x.location);
+      const result = this.removeDuplicates(foundLocations, ["range", "uri"]);
+      this.currentOffset = 0;
+      this.currentItem = null;
+      clearCaches();
+      return <vscode.Location[]>result;
+    } catch (e) {
+      clearCaches();
+      this.currentOffset = 0;
+      this.currentItem = null;
+      // console.debug("Definition", e);
+      return null;
+    }
+  }
+
+  public static removeDuplicates(foundLocations: any[], keys: string[]) {
+    return Object.values(
+      foundLocations.reduce((r, o: any) => {
+        const key = keys.map((k) => o[k]).join("|");
+        // tslint:disable-next-line:curly
+        if (r[key]) r[key].condition = [].concat(r[key].condition, o.condition);
+        // tslint:disable-next-line:curly
+        else r[key] = { ...o };
+        return r;
+      }, {})
+    );
+  }
+}

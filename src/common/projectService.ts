@@ -4,10 +4,10 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import * as yaml from "yaml-js";
-import { SoliditySettings } from "../server";
 import { Package } from "./model/package";
 import { Project } from "./model/project";
 import * as util from "./util";
+import { SolidityConfig } from "../server/types";
 
 // TODO: These are temporary constants until standard agreed
 // A project standard is needed so each project can define where it store its project dependencies
@@ -53,7 +53,7 @@ function readYamlSync(filePath: string) {
 
 export function initialiseProject(
   rootPath: string,
-  settings: SoliditySettings
+  config: SolidityConfig
 ): {
   project: Project;
   sources: string;
@@ -61,7 +61,7 @@ export function initialiseProject(
 } {
   // adding defaults to packages
 
-  const sourceLocationDefined = settings.sources !== "";
+  const sourceLocationDefined = config.sources !== "";
   const configSources = Array.from(
     new Set(
       [
@@ -72,23 +72,23 @@ export function initialiseProject(
   );
 
   const sources = sourceLocationDefined
-    ? settings.sources
-    : configSources.find((s) => typeof s === "string") ?? settings.sources;
+    ? config.sources
+    : configSources.find((s) => typeof s === "string") ?? config.sources;
 
   const projectPackage = createDefaultPackage(rootPath, sources);
 
   const dependencies: Package[] = loadAllPackageDependencies(
-    settings.libs,
+    config.libs,
     rootPath,
     projectPackage,
-    settings.libSources
+    config.libSources
   );
-  const remappings = loadRemappings(rootPath, settings.remappings);
+  const remappings = loadRemappings(rootPath, config.remappings);
   return {
     project: new Project(
       projectPackage,
       dependencies,
-      settings.libs,
+      config.libs,
       remappings,
       rootPath
     ),
@@ -197,7 +197,7 @@ function getRemappingsFromBrownieConfig(rootPath: string): string[] {
   return null;
 }
 
-function getRemappingsFromRemappingsFile(rootPath) {
+function getRemappingsFromRemappingsFile(rootPath: string) {
   const remappingsFile = path.join(rootPath, remappingConfigFileName);
   if (fs.existsSync(remappingsFile)) {
     const remappings = [];

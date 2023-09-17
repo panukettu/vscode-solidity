@@ -1,13 +1,13 @@
 "use strict";
-import { errorToDiagnostic } from "../server/solErrorsToDiagnostics";
+import { errorToDiagnostic } from "../server/providers/utils/diagnostics";
 import * as solc from "solc";
 import * as fs from "fs";
 import * as path from "path";
 import * as https from "https";
 import { SourceDocumentCollection } from "./model/sourceDocumentCollection";
 import { initialiseProject } from "./projectService";
-import { SoliditySettings } from "../server";
 import { Project } from "./model/project";
+import { SolidityConfig } from "../server/types";
 
 export enum compilerType {
   localNodeModule,
@@ -490,12 +490,12 @@ export class SolcCompiler {
   }
 
   public initialiseAllCompilerSettings(
-    settings: SoliditySettings,
+    config: SolidityConfig,
     selectedCompiler: compilerType
   ) {
-    this.nodeCompiler.init(this.rootPath, settings.compilerPackage);
-    this.remoteCompiler.init(settings.compileUsingRemoteVersion);
-    this.localCompiler.init(settings.compileUsingLocalVersion);
+    this.nodeCompiler.init(this.rootPath, config.compilerPackage);
+    this.remoteCompiler.init(config.compileUsingRemoteVersion);
+    this.localCompiler.init(config.compileUsingLocalVersion);
     this.embeddedCompiler.init();
     this.selectedCompiler = selectedCompiler;
   }
@@ -540,7 +540,7 @@ export class SolcCompiler {
   public compileSolidityDocumentAndGetDiagnosticErrors(
     filePath: string,
     documentText: string,
-    settings: SoliditySettings,
+    config: SolidityConfig,
     selectedCompiler: compilerType = null
   ) {
     if (selectedCompiler == null) {
@@ -548,7 +548,7 @@ export class SolcCompiler {
     }
     if (this.isRootPathSet()) {
       const contracts = new SourceDocumentCollection();
-      const project = initialiseProject(this.rootPath, settings).project;
+      const project = initialiseProject(this.rootPath, config).project;
       contracts.addSourceDocumentAndResolveImports(
         filePath,
         documentText,

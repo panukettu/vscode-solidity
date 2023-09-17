@@ -8,7 +8,7 @@ import { formatPath } from "../common/util";
 import { compilerType } from "../common/solcCompiler";
 import * as workspaceUtil from "./workspaceUtil";
 import { SettingsService } from "./settingsService";
-import { SoliditySettings } from "../server";
+import { SolidityConfig } from "../server/types";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -52,7 +52,7 @@ export function compileActiveContract(
     const remappings = workspaceUtil.getSolidityRemappings();
     const project = initialiseProject(
       workspaceUtil.getCurrentProjectInWorkspaceRootFsPath(),
-      { sources, libs, libSources, remappings } as SoliditySettings
+      { sources, libs, libSources, remappings } as SolidityConfig
     ).project;
 
     const contract = contractsCollection.addSourceDocumentAndResolveImports(

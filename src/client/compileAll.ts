@@ -8,7 +8,7 @@ import { initialiseProject } from "../common/projectService";
 import { formatPath, isPathSubdirectory } from "../common/util";
 import * as workspaceUtil from "./workspaceUtil";
 import { SettingsService } from "./settingsService";
-import { SoliditySettings } from "../server";
+import { SolidityConfig } from "../server/types";
 
 export function compileAllContracts(
   compiler: Compiler,
@@ -33,7 +33,7 @@ export function compileAllContracts(
     libSources,
     sources,
     remappings,
-  } as SoliditySettings).project;
+  } as SolidityConfig).project;
 
   // Process open Text Documents first as it is faster (We might need to save them all first? Is this assumed?)
   vscode.workspace.textDocuments.forEach((document) => {

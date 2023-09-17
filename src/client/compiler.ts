@@ -12,7 +12,7 @@ import {
   RemoteReleases,
 } from "../common/solcCompiler";
 import { errorsToDiagnostics } from "./solErrorsToDiaganosticsClient";
-import { SoliditySettings } from "../server";
+import { SolidityConfig } from "../server/types";
 
 export class Compiler {
   private solcCachePath: string;
@@ -278,7 +278,7 @@ export class Compiler {
             compileUsingRemoteVersion,
             compileUsingLocalVersion,
             compilerPackage,
-          } as SoliditySettings,
+          } as SolidityConfig,
           defaultCompiler
         );
 
