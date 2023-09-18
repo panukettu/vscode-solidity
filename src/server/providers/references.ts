@@ -24,17 +24,19 @@ export class SolidityReferencesProvider {
 
       let references = [];
 
-      walker.parsedDocumentsCache.forEach((doc) => {
-        let found = [];
-        // @ts-expect-error
-        if (!this.currentItem.reference) {
-          found = doc.getAllReferencesToObject(this.currentItem);
-        } else {
+      walker.parsedDocumentsCache
+        .concat(documentContractSelected)
+        .forEach((doc) => {
+          let found = [];
           // @ts-expect-error
-          found = doc.getAllReferencesToObject(this.currentItem.reference);
-        }
-        references = references.concat(found);
-      });
+          if (!this.currentItem.reference) {
+            found = doc.getAllReferencesToObject(this.currentItem);
+          } else {
+            // @ts-expect-error
+            found = doc.getAllReferencesToObject(this.currentItem.reference);
+          }
+          references = references.concat(found);
+        });
 
       const foundLocations = references
         .filter((x) => x != null && x.location !== null)
