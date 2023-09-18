@@ -54,6 +54,52 @@ export class SolidityDefinitionProvider {
       return null;
     }
   }
+  // public static getDefinition(
+  //   document: vscode.TextDocument,
+  //   position: vscode.Position,
+  //   walker: CodeWalkerService
+  // ): ParsedCode[] {
+  //   try {
+  //     this.currentOffset = document.offsetAt(position);
+  //     const documentContractSelected = walker.getSelectedDocument(
+  //       document,
+  //       position
+  //     );
+  //     this.currentItem = documentContractSelected.getSelectedItem(
+  //       this.currentOffset
+  //     );
+
+  //     const references =
+  //       documentContractSelected.getSelectedTypeReferenceLocation(
+  //         this.currentOffset
+  //       );
+
+  //     console.debug(references);
+  //     const foundLocations = references
+  //       .filter((x) => x.location !== null)
+  //       .map((x) => x.reference);
+
+  //     if (foundLocations.length) {
+  //       const item = documentContractSelected.findTypeInScope(
+  //         this.currentItem.name
+  //       );
+
+  //       if (item) {
+  //         foundLocations.push(item);
+  //       }
+  //     }
+  //     this.currentOffset = 0;
+  //     this.currentItem = null;
+  //     clearCaches();
+  //     return foundLocations;
+  //   } catch (e) {
+  //     clearCaches();
+  //     this.currentOffset = 0;
+  //     this.currentItem = null;
+  //     // console.debug("Definition", e);
+  //     return null;
+  //   }
+  // }
 
   public static removeDuplicates(foundLocations: any[], keys: string[]) {
     return Object.values(
