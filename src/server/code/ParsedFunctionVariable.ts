@@ -15,9 +15,7 @@ export class ParsedFunctionVariable extends ParsedVariable {
     if (this.completionItem === null) {
       const completionItem = CompletionItem.create(this.name);
       completionItem.kind = CompletionItemKind.Field;
-
-      completionItem.detail =
-        this.getElementInfo() + " (in " + this.function.name + ")";
+      completionItem.detail = `${this.function.name}.${this.name}`;
       completionItem.documentation = {
         kind: "markdown",
         value: this.getShortInfo(true),

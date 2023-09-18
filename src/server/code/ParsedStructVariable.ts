@@ -65,9 +65,17 @@ export class ParsedStructVariable extends ParsedVariable {
   }
   public createCompletionItem(): CompletionItem {
     if (this.completionItem === null) {
-      const completitionItem = CompletionItem.create(this.name);
-      completitionItem.documentation = this.getMarkupInfo();
-      this.completionItem = completitionItem;
+      const item = CompletionItem.create(this.name);
+      if (this.type.isMapping) {
+        item.insertText = this.name + this.type.createMappingSnippet() + ";";
+        item.insertTextFormat = 2;
+      }
+      item.detail = `${this.getRootName()}.${this.struct.name}.${this.name}`;
+      item.documentation = {
+        kind: "markdown",
+        value: this.createShortInfo("", this.getElementInfo(), true, true, ""),
+      };
+      this.completionItem = item;
     }
     return this.completionItem;
   }
@@ -163,6 +171,15 @@ export class ParsedStructVariable extends ParsedVariable {
       undefined,
       true,
       true
+    );
+  }
+  public override getShortInfo(): string {
+    return this.createShortInfo(
+      this.struct.name,
+      `.${this.name}: ${this.getElementInfo()}`,
+      true,
+      true,
+      ""
     );
   }
 }

@@ -306,7 +306,7 @@ export class Compiler {
             });
         }
       } catch (e) {
-        console.debug(e);
+        console.debug("compiler", e.message);
       }
     });
   }

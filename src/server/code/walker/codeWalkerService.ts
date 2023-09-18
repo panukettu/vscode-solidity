@@ -148,7 +148,7 @@ export class CodeWalkerService {
       );
       this.updateCache(newDocument, sourceDocument);
     } catch (error) {
-      console.debug("parseSelectedDocument", error);
+      // console.debug("parseSelectedDocument", error.message);
 
       const lines = documentText.split(/\r?\n/g);
       if (lines[line].trim() !== "") {

@@ -471,12 +471,14 @@ export class ParsedFunction
       );
       if (returnParamsInfo !== "") {
         returnParamsInfo = " returns (" + returnParamsInfo + ")";
+      }
+
+      if (this.element.params?.length > 0) {
         completionItem.command = {
           command: "editor.action.triggerParameterHints",
           title: "trigger parameter hint",
         };
       }
-
       completionItem.insertTextFormat = 2;
       let closingSemi = ";";
       if (this.isModifier) {
@@ -495,6 +497,7 @@ export class ParsedFunction
   }
 
   public getDetail() {
+    return this.getRootName() + "." + this.name;
     let functionType = this.getParsedObjectType();
     return (
       functionType +

@@ -100,7 +100,7 @@ export class DotCompletionService {
       contractSelected = documentSelected.selectedContract;
       const functionSelected =
         documentSelected.selectedContract.getSelectedFunction(offset);
-      if (functionSelected === undefined || functionSelected === null) {
+      if (!functionSelected) {
         expressionContainer = contractSelected;
       } else {
         expressionContainer = functionSelected;
@@ -111,7 +111,6 @@ export class DotCompletionService {
       lines[position.line],
       triggeredByDotStart - 1
     );
-
     const expression = this.convertAutoCompleteExpressionToParsedExpression(
       autocompleteByDot,
       null,

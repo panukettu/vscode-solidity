@@ -521,6 +521,26 @@ export class ParsedDocument
             x.getAllReferencesToSelected(offset, documents)
           ))
       );
+
+      // const structMembers = this.structs
+      //   .map((s) => s.getInnerMembers())
+      //   .flatMap((s) => s);
+
+      // const functionMembers = this.getAllGlobalFunctions(true);
+
+      // structMembers.forEach(
+      //   (x) =>
+      //     (results = this.mergeArrays(
+      //       results,
+      //       x.getAllReferencesToSelected(offset, documents)
+      //     ))
+      // );
+      // functionMembers.forEach(
+      //   (x) =>
+      //     (results = results.concat(
+      //       x.getAllReferencesToSelected(offset, documents)
+      //     ))
+      // );
     }
     return results;
   }
@@ -882,13 +902,11 @@ export class ParsedDocument
         ))
     );
 
-    // const structMembers = this.structs
+    // const structMembers = this.getAllGlobalStructs()
     //   .map((s) => s.getInnerMembers())
-    //   .flatMap((s) => s);
+    //   .flat();
 
-    // const functionMembers = this.functions
-    //   .map((f) => f.getAllItems())
-    //   .flatMap((s) => s);
+    // const functionMembers = this.functions.map((f) => f.getAllItems()).flat();
 
     // structMembers.forEach(
     //   (x) =>
@@ -914,13 +932,22 @@ export class ParsedDocument
 
   public findType(name: string): ParsedCode {
     let typesParsed: ParsedCode[] = [];
+    const allStructs = this.getAllGlobalStructs();
     typesParsed = typesParsed
       .concat(this.getAllGlobalConstants())
       .concat(this.getAllGlobalCustomTypes())
-      .concat(this.getAllGlobalStructs())
+      .concat(allStructs)
       .concat(this.getAllGlobalEnums())
       .concat(this.getAllContracts());
-    return typesParsed.find((x) => x.name === name);
+
+    let result = typesParsed.find((x) => x.name === name);
+    if (result) return result;
+
+    result = allStructs
+      .map((s) => s.getInnerMembers())
+      .flat()
+      .find((x) => x.name === name);
+    if (result) return result;
   }
 
   public override getInnerMembers(): ParsedCode[] {

@@ -13,8 +13,9 @@ export const getFunctionsByNameOffset = (
 
   const functionName = functionNames[functionNames.length - 1];
 
-  console.debug(document.selectedItem?.name);
-  console.debug(document.selectedFunction?.name);
+  if (!functionName) {
+    throw new Error("No function name found");
+  }
   let methodsFound = document
     .getSelectedItem(offset)
     .findMethodsInScope(functionName, true) as ParsedFunction[];
@@ -23,15 +24,10 @@ export const getFunctionsByNameOffset = (
     methodsFound = document.selectedFunction.findMethodsInScope(
       functionName
     ) as ParsedFunction[];
-    if (methodsFound.length) {
-      console.debug("found 2", methodsFound.length);
-    }
 
     if (!methodsFound?.length) {
       console.debug("not found", functionName);
     }
-  } else {
-    console.debug("found 1");
   }
 
   return methodsFound;
@@ -55,6 +51,25 @@ export const getFunctionByName = (
       if (methodsFound.length) {
         break;
       }
+    }
+  }
+
+  return methodsFound;
+};
+export const getFunctionsByName = (
+  functionNames: string[],
+  documents: ParsedDocument[]
+) => {
+  const functionName = functionNames[functionNames.length - 1];
+  let methodsFound: ParsedFunction[] = [];
+  for (const document of documents) {
+    methodsFound = methodsFound.concat(
+      document.findMethodCalls(functionName, true) as ParsedFunction[]
+    );
+    for (const contract of document.getAllContracts()) {
+      methodsFound = methodsFound.concat(
+        contract.findMethodCalls(functionName, true) as ParsedFunction[]
+      ) as ParsedFunction[];
     }
   }
 

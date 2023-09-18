@@ -137,15 +137,13 @@ export class ParsedContract
 
       structMembers.forEach(
         (x) =>
-          (results = this.mergeArrays(
-            results,
+          (results = results.concat(
             x.getAllReferencesToSelected(offset, documents)
           ))
       );
       functionMembers.forEach(
         (x) =>
-          (results = this.mergeArrays(
-            results,
+          (results = results.concat(
             x.getAllReferencesToSelected(offset, documents)
           ))
       );
@@ -205,27 +203,15 @@ export class ParsedContract
       (x) => (results = results.concat(x.getAllReferencesToObject(parsedCode)))
     );
 
-    const structMembers = this.structs
-      .map((s) => s.getInnerMembers())
-      .flatMap((s) => s);
+    const structMembers = this.structs.map((s) => s.getInnerMembers()).flat();
 
-    const functionMembers = this.functions
-      .map((f) => f.getAllItems())
-      .flatMap((s) => s);
+    const functionMembers = this.functions.map((f) => f.getAllItems()).flat();
 
     structMembers.forEach(
-      (x) =>
-        (results = this.mergeArrays(
-          results,
-          x.getAllReferencesToObject(parsedCode)
-        ))
+      (x) => (results = results.concat(x.getAllReferencesToObject(parsedCode)))
     );
     functionMembers.forEach(
-      (x) =>
-        (results = this.mergeArrays(
-          results,
-          x.getAllReferencesToObject(parsedCode)
-        ))
+      (x) => (results = results.concat(x.getAllReferencesToObject(parsedCode)))
     );
     return results;
   }

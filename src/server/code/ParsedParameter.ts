@@ -263,22 +263,25 @@ export class ParsedParameter extends ParsedVariable {
   }
 
   public getComment(): string {
-    const parentComment = this.parent.getComment();
-    if (!parentComment?.length) return;
+    let comment = "";
+    comment = this.parent.getComment();
+    if (!comment) {
+      return "";
+    }
     if (this.isInput) {
       const regex2 = new RegExp(`@param\\s${this.name}\\s(\.*\\w)`, "g");
-      const matches = regex2.exec(parentComment);
+      const matches = regex2.exec(comment);
       if (matches?.length > 1) {
         return matches[1];
       }
     } else if (this.isOutput) {
       const regexNamed = new RegExp(`@return\\s${this.name}\\s(\.*\\w)`, "g");
-      const matchesNamed = regexNamed.exec(parentComment);
+      const matchesNamed = regexNamed.exec(comment);
       if (matchesNamed?.length > 1) {
         return matchesNamed[1];
       }
       const regexUnnamed = new RegExp(`@return\\s+(\.+\\w)`, "g");
-      const matches = regexUnnamed.exec(parentComment);
+      const matches = regexUnnamed.exec(comment);
       if (matches?.length > 1) {
         return matches[1];
       }
@@ -340,8 +343,9 @@ export class ParsedParameter extends ParsedVariable {
         : funcPrefix.toLowerCase() + " function";
     } else {
     }
+    const comment = this.getComment();
     const text = [
-      this.getComment().trim(),
+      comment ? comment.trim() : "",
       "\n--- \n",
       "```solidity",
       (prefix ? `${prefix} in ` : "function in ") + this.getRootName(),

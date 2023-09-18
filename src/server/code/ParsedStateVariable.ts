@@ -23,12 +23,21 @@ export class ParsedStateVariable extends ParsedVariable {
     );
   }
 
-  public createCompletionItem(): CompletionItem {
+  public createCompletionItem(select?: boolean): CompletionItem {
     if (this.completionItem === null) {
-      const completionItem = CompletionItem.create(this.name);
-      completionItem.kind = CompletionItemKind.Field;
-      completionItem.documentation = this.getMarkupInfo();
-      this.completionItem = completionItem;
+      const item = CompletionItem.create(this.name);
+      item.kind = CompletionItemKind.Field;
+      if (this.type.isMapping) {
+        item.insertText = this.name + this.type.createMappingSnippet() + ";";
+        item.insertTextFormat = 2;
+      }
+      item.detail = `${this.getRootName()}.${this.name}`;
+      item.preselect = select;
+      item.documentation = {
+        kind: "markdown",
+        value: this.getShortInfo(true),
+      };
+      this.completionItem = item;
     }
     return this.completionItem;
   }
@@ -47,6 +56,12 @@ export class ParsedStateVariable extends ParsedVariable {
       true
     );
   }
+
+  public override getShortInfo(comments?: boolean): string {
+    const elemInfo = this.getElementInfo();
+    return this.createShortInfo("", elemInfo, comments, comments, "(state)");
+  }
+
   public getElementInfo(): string {
     const storageType = this.getStorageType();
 

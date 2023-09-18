@@ -13,6 +13,7 @@ export class ParsedDeclarationType extends ParsedCode {
   public isArray: boolean;
 
   public isMapping: boolean;
+
   public isValueType: boolean;
   public parentTypeName: any = null;
   public type: ParsedCode = null;
@@ -29,6 +30,34 @@ export class ParsedDeclarationType extends ParsedCode {
       ? // @ts-expect-error
         String(this.element?.array_parts[0])
       : "";
+  }
+
+  public getMappingParts(): string[] {
+    try {
+      const typeString = ParsedCodeTypeHelper.getMappingParts(this.element);
+
+      return typeString.trim().split("=>");
+    } catch {
+      return [];
+    }
+  }
+
+  public createMappingSnippet(): string {
+    const parts = this.getMappingParts().slice(0, -1);
+    let snippet = "";
+    let counter = 0;
+    if (parts.length > 0) {
+      parts.forEach((type) => {
+        counter = counter + 1;
+        const currentParamSnippet = "[${" + counter + ":" + type + "}]";
+        if (snippet === "") {
+          snippet = currentParamSnippet;
+        } else {
+          snippet = snippet + currentParamSnippet;
+        }
+      });
+    }
+    return snippet;
   }
 
   public getTypeSignature(): string {
@@ -74,10 +103,6 @@ export class ParsedDeclarationType extends ParsedCode {
       // suffixType = '(' + this.getTypeString(literalType.from) + ' => ' + this.getTypeString(literalType.to) + ')';
     }
     this.isValueType = !this.isMapping && valueTypeReg.test(this.name);
-
-    if (this.name === "MinterState") {
-      // console.debug("p", this);
-    }
   }
 
   public override getInnerCompletionItems(): CompletionItem[] {
@@ -92,6 +117,7 @@ export class ParsedDeclarationType extends ParsedCode {
     if (type === null || type === undefined) {
       return result;
     }
+
     return result.concat(type.getInnerCompletionItems());
   }
 
@@ -175,7 +201,9 @@ export class ParsedDeclarationType extends ParsedCode {
   ): TypeReference[] {
     if (this.isCurrentElementedSelected(offset)) {
       const type = this.findType();
-      return type.getAllReferencesToThis(documents);
+      if (type) {
+        return type.getAllReferencesToThis(documents);
+      }
     }
     return [];
   }
@@ -186,7 +214,7 @@ export class ParsedDeclarationType extends ParsedCode {
     if (this.isTheSame(parsedCode)) {
       return [this.createFoundReferenceLocationResult()];
     }
-    const type = this.findType();
+    // const type = this.findType();
     if (this.type != null && this.type.isTheSame(parsedCode)) {
       return [this.createFoundReferenceLocationResult()];
     }

@@ -1,10 +1,7 @@
 import * as vscode from "vscode-languageserver/node";
-import { clearCaches } from "./utils/caches";
-import { ParsedDocument } from "../code/ParsedDocument";
-import { ParsedFunction } from "../code/ParsedFunction";
-import { ParsedParameter } from "../code/ParsedParameter";
-import { CodeWalkerService } from "../code/walker/codeWalkerService";
 import { ParsedCode } from "../code/ParsedCode";
+import { CodeWalkerService } from "../code/walker/codeWalkerService";
+import { clearCaches } from "./utils/caches";
 
 export class SolidityDefinitionProvider {
   public static currentOffset: number = 0;
@@ -34,6 +31,17 @@ export class SolidityDefinitionProvider {
         .filter((x) => x.location !== null)
         .map((x) => x.location);
       const result = this.removeDuplicates(foundLocations, ["range", "uri"]);
+
+      if (!result.length) {
+        const item = documentContractSelected.findTypeInScope(
+          this.currentItem.name
+        );
+
+        if (item) {
+          const location = item.getLocation();
+          result.push(location);
+        }
+      }
       this.currentOffset = 0;
       this.currentItem = null;
       clearCaches();

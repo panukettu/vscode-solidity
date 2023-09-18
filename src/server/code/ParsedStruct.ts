@@ -46,16 +46,17 @@ export class ParsedStruct extends ParsedCode {
           const isValueType =
             !isMapping && valueTypeReg.test(literalType as unknown as string);
           let typeRef: ParsedStruct | ParsedEnum;
-
+          const hasContract = !!contract?.findType;
           if (!isValueType && !isMapping) {
-            if (contract?.findType) {
+            if (hasContract) {
               typeRef = contract.findType(literalType as any) as typeof typeRef;
             }
-            if (!typeRef && !typeRef?.name && document?.findType) {
+            if (!typeRef?.name && document?.findType) {
               typeRef = document.findType(literalType as any) as typeof typeRef;
             }
           } else if (isMapping) {
             const toType = (literalType as LiteralMapping).to.literal;
+
             let resultingType = "";
             if (toType.type === "MappingExpression") {
               resultingType = toType.to.literal;
@@ -64,20 +65,18 @@ export class ParsedStruct extends ParsedCode {
             }
 
             const isValueType = valueTypeReg.test(resultingType);
+
             if (!isValueType) {
               if (providerRequest.selectedDocument) {
                 typeRef = providerRequest.selectedDocument.findType(
                   resultingType
                 ) as typeof typeRef;
-                if (typeRef?.name) console.debug("strike 1");
               }
-              if (!typeRef?.name && contract?.findType) {
+              if (!typeRef?.name && hasContract) {
                 typeRef = contract.findType(resultingType) as typeof typeRef;
-                if (typeRef?.name) console.debug("strike 2");
               }
-              if (!typeRef?.name && document?.findItem) {
+              if (!typeRef?.name) {
                 typeRef = document.findItem(resultingType) as typeof typeRef;
-                if (typeRef?.name) console.debug("strike 3");
               }
             }
           }
@@ -90,6 +89,7 @@ export class ParsedStruct extends ParsedCode {
             this,
             typeRef
           );
+
           if (isMapping) {
             this.hasMapping = true;
           }
@@ -101,10 +101,6 @@ export class ParsedStruct extends ParsedCode {
         : `(${this.properties.map((p) => p.abiType)})`;
     } else {
       console.debug("No body for struct", element);
-    }
-
-    if (this.name === "MinterState") {
-      // console.debug(this.document.(this.name));
     }
   }
 

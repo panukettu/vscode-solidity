@@ -69,7 +69,7 @@ export class ParsedCode {
     return "### " + this.name + "\n" + this.getComment();
   }
   public getShortInfo(): string {
-    return "#### kek" + this.name + "\n" + this.getComment();
+    return "####" + this.name + "\n" + this.getComment();
   }
 
   public getSelectedItem(offset: number): ParsedCode {
@@ -112,7 +112,8 @@ export class ParsedCode {
       const prefix = incldueTypeName ? this.contract.name + "." : "";
       return prefix + this.contract.name;
     } else {
-      return "Global";
+      const source = this.document.sourceDocument.absolutePath.split("/");
+      return source[source.length - 1];
     }
   }
   public getContractNameOrGlobal(): string {
@@ -147,13 +148,16 @@ export class ParsedCode {
     const objectTypeString =
       objectTypeOverride != null
         ? objectTypeOverride
-        : this.getParsedObjectType().toLowerCase();
-
+        : "(" + this.getParsedObjectType().toLowerCase() + ")";
+    let comment = "";
+    if (withComment) {
+      comment = this.getComment(formatComment);
+    }
     const text = [
       "```solidity",
-      `(${objectTypeString}) ${parent}${itemInfo}`,
+      `${objectTypeString ? objectTypeString + " " : ""}${parent}${itemInfo}`,
       "```",
-      withComment ? "--- \n \n" + (this.getComment(formatComment) || "") : "",
+      comment?.length > 0 ? "--- \n \n" + (comment || "") : "",
     ].join("\n");
 
     return text;
@@ -174,11 +178,16 @@ export class ParsedCode {
       : this.getParsedObjectType().toLowerCase();
 
     const grandParentString = grandparent ? grandparent + "." : "";
+
+    let comment = "";
+    if (withComment) {
+      comment = this.getComment(formatComment);
+    }
     const text = [
       "```solidity",
       `(${objectTypeString}) ${grandParentString}${parent}${itemInfo}`,
       "```",
-      withComment ? "--- \n \n" + (this.getComment(formatComment) || "") : "",
+      comment?.length > 0 ? "--- \n \n" + (comment || "") : "",
     ].join("\n");
 
     return text;

@@ -8,6 +8,10 @@ import { CodeWalkerService } from "../code/walker/codeWalkerService";
 import * as path from "path";
 import { ParsedFunctionVariable } from "../code/ParsedFunctionVariable";
 import { DotCompletionService } from "../code/utils/dotCompletionService";
+import { getFunctionByName, getFunctionsByNameOffset } from "./utils/functions";
+import { ParsedStructVariable } from "../code/ParsedStructVariable";
+import { ParsedCodeTypeHelper } from "../code/utils/ParsedCodeTypeHelper";
+import { isControl } from "./utils/matchers";
 
 const existingFuncRegexp = new RegExp(/(.*?\(.*?\))/s);
 const innerImportRegexp = new RegExp(/(import\s\{)/s);
@@ -16,7 +20,11 @@ const importRegexp = new RegExp(/(import\s)(?!\{)/s);
 const fromRegexp = new RegExp(/(import\s\{.*?\}\sfrom)/s);
 const findFromItem = new RegExp(/import\s\{(.*?)\W/s);
 const emitDotRegexp = /emit\s(\w+)\./g;
-const dotStartWordsRegexp = /(\w+)(?<![funcionmodier])\(?\)?\W(\w+)(?=\()/gm;
+// const dotStartWordsRegexp = /(\w+)(?<![funcionmodier])\(?\)?\W(\w+)(?=\()/gm;
+const dotStartWordsRegexp = /(\w+)(?=\()/g;
+const mappingStartWordsREgexp = /(\w+)(?=\[)/g;
+const mappingWordsRegexp =
+  /([a-zA-Z0-9_()]+)\[([^\]]*)\](?:\[([^\]]*)\])*(?!\.)(?=\;?$)/s;
 // (\w+)(?<!function|modifier)\(?\)?\W(\w+)(?=\()
 
 const textEdit = (path: string, range: vscode.Range, prefix: string) => {
@@ -82,6 +90,7 @@ export class CompletionService {
       const lines = document.getText().split(/\r?\n/g);
       line = lines[position.line];
 
+      // const dotStartEz = textFromStart.lastIndexOf(".");
       triggeredByDotStart = DotCompletionService.getTriggeredByDotStart(
         lines,
         position
@@ -107,44 +116,124 @@ export class CompletionService {
       // || (lines[position.line].trimLeft().startsWith('import "') && lines[position.line].trimLeft().lastIndexOf('"') === 7);
 
       if (triggeredByDotStart > 0) {
-        const text = line.slice(position.character);
-        const isReplacingExistingCall = existingFuncRegexp.test(text);
-        // const dotStartWords = dotStartWordsRegexp.exec(line);
+        const textFromEnd = line.slice(position.character);
+        const assignmentIndex = line.lastIndexOf("=");
 
+        const textFromStart =
+          assignmentIndex !== -1
+            ? line.slice(assignmentIndex + 1, position.character + 1).trim()
+            : line.slice(0, position.character + 1);
+        const isReplacingExistingCall = existingFuncRegexp.test(textFromEnd);
+
+        const dotStartWords = textFromStart.match(dotStartWordsRegexp);
+        const dotStartWordsFiltered = dotStartWords
+          ? dotStartWords.filter((w) => !isControl(w))
+          : [];
+        const mappingStartWords = textFromStart.match(mappingStartWordsREgexp);
+
+        const isControlStatement =
+          dotStartWordsFiltered?.length !== dotStartWords?.length;
         const globalVariableContext = GetContextualAutoCompleteByGlobalVariable(
           line,
           position.character - 1
         );
+
         if (globalVariableContext != null) {
           completionItems = completionItems.concat(globalVariableContext);
-        } else if (false) {
-          // try {
-          //   const items = getFunction(dotStartWords, documentContractSelected);
-          //   const selectedFunction =
-          //     documentContractSelected.getSelectedFunction(offset);
-          //   const varsFound = selectedFunction.findAllLocalAndGlobalVariables(
-          //     offset
-          //   ) as ParsedFunctionVariable[];
-          //   const types = [
-          //     ...items.selectedFunction.input,
-          //     ...items.selectedFunction.output,
-          //   ].map((i) => i.type.name);
-          //   const relevantVars = varsFound.filter((v) =>
-          //     types.includes(v.type?.name)
-          //   );
-          //   const relevantInputsVars = selectedFunction.output
-          //     .concat(selectedFunction.input)
-          //     .filter((v) => types.includes(v.type?.name))
-          //     .map((v) => v.createFieldCompletionItem());
-          //   const completions = relevantVars.map((v) =>
-          //     v.createCompletionItem(true)
-          //   );
-          //   return completionItems
-          //     .concat(completions)
-          //     .concat(relevantInputsVars);
-          // } catch (e) {
-          //   // console.debug("func dot", e);
-          // }
+        } else if (dotStartWordsFiltered?.length > 1) {
+          try {
+            const items = getFunctionsByNameOffset(
+              dotStartWordsFiltered,
+              documentContractSelected,
+              offset
+            );
+            if (!items?.length) throw new Error("no function found");
+
+            const { relevantVars, relevantParams } =
+              ParsedCodeTypeHelper.typesForFuncInput(
+                offset,
+                documentContractSelected.getSelectedFunction(offset),
+                items[0]
+              );
+
+            const mappingStartIndex = line.lastIndexOf("(");
+
+            const allowDot = mappingStartIndex < triggeredByDotStart;
+
+            if (allowDot) {
+              return completionItems.concat(
+                DotCompletionService.getSelectedDocumentDotCompletionItems(
+                  lines,
+                  position,
+                  triggeredByDotStart,
+                  documentContractSelected,
+                  offset
+                )
+              );
+            }
+            completionItems = completionItems
+              .concat(relevantVars.map((v) => v.createCompletionItem(true)))
+              .concat(relevantParams.map((v) => v.createFieldCompletionItem()));
+          } catch (e) {
+            // console.debug("completion", e.message);
+          }
+        } else if (
+          mappingStartWords?.length > 0 &&
+          dotStartWordsFiltered?.length > 0
+        ) {
+          const items = getFunctionsByNameOffset(
+            dotStartWordsFiltered,
+            documentContractSelected,
+            offset
+          );
+          if (!items?.length) throw new Error("no function found");
+          const innerFunc = items[0];
+          const mappingName = mappingStartWords[0];
+          const mappingType = innerFunc.document.findTypeInScope(
+            mappingName
+          ) as ParsedStructVariable;
+
+          if (mappingType) {
+            const mappingStartIndex = line.lastIndexOf("[");
+            const allowDot = mappingStartIndex < triggeredByDotStart;
+
+            if (allowDot) {
+              return completionItems.concat(
+                DotCompletionService.getSelectedDocumentDotCompletionItems(
+                  lines,
+                  position,
+                  triggeredByDotStart,
+                  documentContractSelected,
+                  offset
+                )
+              );
+            }
+            const isAccessor = textFromStart.indexOf("].") !== -1;
+            if (isAccessor) {
+              const { result, isValueType } =
+                ParsedCodeTypeHelper.mappingOutType(mappingType);
+
+              if (!isValueType) {
+                const type = innerFunc.document.findTypeInScope(result);
+                return completionItems.concat(type.getInnerCompletionItems());
+              }
+            } else {
+              const mappingIndex = textFromStart.split("[").length - 1;
+              const { relevantVars, relevantParams } =
+                ParsedCodeTypeHelper.typesForMappingInput(
+                  offset,
+                  documentContractSelected.getSelectedFunction(offset),
+                  mappingType,
+                  mappingIndex
+                );
+
+              completionItems = completionItems
+                .concat(relevantVars.map((v) => v.createCompletionItem(true)))
+                .concat(
+                  relevantParams.map((v) => v.createFieldCompletionItem())
+                );
+            }
+          }
         } else {
           if (triggeredByEmit) {
             const emitDotResult = emitDotRegexp.exec(line);
@@ -172,6 +261,13 @@ export class CompletionService {
           completionItems = completionItems.map((c) => ({
             ...c,
             insertText: "",
+          }));
+        } else if (isControlStatement) {
+          completionItems = completionItems.map((c) => ({
+            ...c,
+            insertText: c.insertText
+              ? c.insertText.replace(";", "")
+              : c.insertText,
           }));
         }
         return completionItems;
@@ -332,9 +428,8 @@ export class CompletionService {
           );
         }
       }
-    } catch (error) {
-      console.log(error.message);
-      // graceful catch
+    } catch (e) {
+      // console.debug("completion", e.message);
     } finally {
       completionItems = completionItems.concat(GetCompletionTypes());
       completionItems = completionItems.concat(GetCompletionKeywords());
