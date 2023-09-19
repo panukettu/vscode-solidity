@@ -194,48 +194,52 @@ export class ParsedCode {
   }
 
   public getComment(format = false): string {
-    if (this.comment === null && this.supportsNatSpec) {
-      const uri = URI.file(
-        this.document.sourceDocument.absolutePath
-      ).toString();
-      const document = TextDocument.create(
-        uri,
-        null,
-        null,
-        this.document.sourceDocument.unformattedCode
-      );
-      const position = document.positionAt(this.element.start);
-      let comment = "";
-      let currentLine = position.line - 1;
-      while (this.isCommentLine(document, currentLine)) {
-        let content = document
-          .getText(this.getLineRange(currentLine))
-          .trimStart();
-        const inherits = content.match(/(?<=@inheritdoc\s)(\w+)/g);
-        if (inherits?.length > 0) {
-          const inheritFrom = inherits[0];
-          const inheritDoc = this.document
-            .getAllContracts()
-            .find((d) => d.name === inheritFrom);
-          if (inheritDoc) {
-            const item = this.document.getSelectedItem(this.element.start);
-            const itemInherit = inheritDoc.findMethodsInScope(item.name);
-            if (itemInherit?.length > 0) {
-              content = itemInherit[0].getComment().trimStart();
+    if (this.comment === null && this.supportsNatSpec && this.element) {
+      try {
+        const uri = URI.file(
+          this.document.sourceDocument.absolutePath
+        ).toString();
+        const document = TextDocument.create(
+          uri,
+          null,
+          null,
+          this.document.sourceDocument.unformattedCode
+        );
+        const position = document.positionAt(this.element.start);
+        let comment = "";
+        let currentLine = position.line - 1;
+        while (this.isCommentLine(document, currentLine)) {
+          let content = document
+            .getText(this.getLineRange(currentLine))
+            .trimStart();
+          const inherits = content.match(/(?<=@inheritdoc\s)(\w+)/g);
+          if (inherits?.length > 0) {
+            const inheritFrom = inherits[0];
+            const inheritDoc = this.document
+              .getAllContracts()
+              .find((d) => d.name === inheritFrom);
+            if (inheritDoc) {
+              const item = this.document.getSelectedItem(this.element.start);
+              const itemInherit = inheritDoc.findMethodsInScope(item.name);
+              if (itemInherit?.length > 0) {
+                content = itemInherit[0].getComment().trimStart();
+              }
             }
           }
-        }
-        if (format) {
-          const matches = commentFormatRegexp.exec(content);
-          content = matches?.length > 1 ? matches[1] || "" : "";
-          comment = content + comment;
-        } else {
-          comment = "\t" + content + comment;
-        }
+          if (format) {
+            const matches = commentFormatRegexp.exec(content);
+            content = matches?.length > 1 ? matches[1] || "" : "";
+            comment = content + comment;
+          } else {
+            comment = "\t" + content + comment;
+          }
 
-        currentLine = currentLine - 1;
+          currentLine = currentLine - 1;
+        }
+        this.comment = comment;
+      } catch (e) {
+        return this.comment == null ? "" : this.comment;
       }
-      this.comment = comment;
     }
     return this.comment == null ? "" : this.comment;
   }
@@ -293,12 +297,23 @@ export class ParsedCode {
   }
   public initCompletionItem(): CompletionItem {
     const completionItem = CompletionItem.create(this.name);
-    completionItem.data = {
-      absolutePath: this.document.sourceDocument.absolutePath,
-      remappedPath: this.document.sourceDocument.project
-        .findRemappingForFile(this.document.sourceDocument.absolutePath)
-        .createImportFromFile(this.document.sourceDocument.absolutePath),
-    };
+    const remapping = this.document.sourceDocument.project.findRemappingForFile(
+      this.document.sourceDocument.absolutePath
+    );
+
+    if (remapping) {
+      completionItem.data = {
+        absolutePath: this.document.sourceDocument.absolutePath,
+        remappedPath: remapping.createImportFromFile(
+          this.document.sourceDocument.absolutePath
+        ),
+      };
+    } else {
+      completionItem.data = {
+        absolutePath: this.document.sourceDocument.absolutePath,
+        remappedPath: this.document.sourceDocument.absolutePath,
+      };
+    }
     return completionItem;
   }
 

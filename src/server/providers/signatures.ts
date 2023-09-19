@@ -17,6 +17,8 @@ export class SignatureHelpProvider {
       const offset = document.offsetAt(position);
       const line = documentContractSelected.getLineRange(position.line);
       const text = document.getText(line);
+      const dotStart = text.lastIndexOf(".") !== -1;
+
       const functionNames = text.match(nameRegexp);
 
       if (
@@ -37,18 +39,18 @@ export class SignatureHelpProvider {
         offset
       );
 
-      const skipSelf = functionNames.length === 2 || functionNames.length === 4;
+      // const skipSelf = functionNames.length === 2 || functionNames.length === 4;
       const { parameters, inputs, selectedFunction } = findByParam(
         functionsFound,
         index,
         undefined,
-        skipSelf
+        dotStart
       );
       if (!parameters?.length) return null;
       const activeParameter = Math.min(index, parameters.length - 1);
 
       const result = vscode.SignatureInformation.create(
-        inputs[activeParameter].getSignatureInfo(activeParameter, skipSelf)
+        inputs[activeParameter].getSignatureInfo(activeParameter, dotStart)
       );
       result.parameters = parameters;
       result.activeParameter = activeParameter;

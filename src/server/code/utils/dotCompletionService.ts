@@ -25,6 +25,7 @@ export class AutoCompleteExpression {
 }
 
 export class DotCompletionService {
+  public static active = false;
   public static getTriggeredByDotStart(
     lines: string[],
     position: Position
@@ -118,7 +119,12 @@ export class DotCompletionService {
       contractSelected,
       expressionContainer
     );
-    return expression.getInnerCompletionItems();
+
+    const contract = documentSelected.findContractByName(expression.name);
+    this.active = contract == null;
+    const result = expression.getInnerCompletionItems();
+    this.active = false;
+    return result;
   }
 
   public static buildAutoCompleteExpression(

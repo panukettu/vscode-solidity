@@ -14,6 +14,8 @@ import { ParsedDeclarationType } from "./ParsedDeclarationType";
 import { ParsedExpression } from "./ParsedExpression";
 import { providerRequest } from "../providers/utils/common";
 import { TypeReference } from "../search/TypeReference";
+import { ParsedUsing } from "./ParsedUsing";
+import { ParsedFunction } from "./ParsedFunction";
 
 export class ParsedStruct extends ParsedCode {
   public properties: ParsedStructVariable[] = [];
@@ -22,6 +24,8 @@ export class ParsedStruct extends ParsedCode {
   public abiType: string;
   public hasMapping: boolean;
   public element: Element;
+
+  public usings: ParsedUsing[];
 
   public type: ParsedDeclarationType;
 
@@ -37,6 +41,12 @@ export class ParsedStruct extends ParsedCode {
     this.name = element.name;
     this.document = document;
     this.isGlobal = isGlobal;
+    this.usings = document.usings.filter((u) => u.for.name === this.name);
+    if (contract) {
+      this.usings = this.usings.concat(
+        contract.using.filter((u) => u.for.name === this.name)
+      );
+    }
     if (this.element.body?.length) {
       this.element.body.forEach((structBodyElement) => {
         if (structBodyElement.type === "DeclarativeExpression") {
@@ -157,9 +167,37 @@ export class ParsedStruct extends ParsedCode {
     this.properties.forEach((x) =>
       completionItems.push(x.createCompletionItem())
     );
+    const extendedItems = this.getExtendedMethodCallsFromUsing();
+    if (extendedItems?.length > 0) {
+      extendedItems.forEach((x: ParsedFunction) =>
+        completionItems.push(x.createCompletionItem(true))
+      );
+    }
     return completionItems;
   }
 
+  public getExtendedMethodCallsFromUsing(): ParsedCode[] {
+    let result: ParsedCode[] = [];
+    if (!this.usings.length) return result;
+
+    this.usings.forEach((usingItem) => {
+      const foundLibrary = this.document
+        .getAllContracts()
+        .find((x) => x.name === usingItem.name);
+
+      if (foundLibrary !== undefined) {
+        result = result.concat(
+          foundLibrary
+            .getAllFunctions()
+            .filter(
+              (x) => x.input.length > 0 && x.input[0].type.name === this.name
+            )
+        );
+      }
+    });
+
+    return result;
+  }
   public getAllReferencesToSelected(
     offset: number,
     documents: ParsedDocument[]

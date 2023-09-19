@@ -54,6 +54,7 @@ export class SolidityReferencesProvider {
       providerRequest.selectedDocument = null;
       clearCaches();
       console.debug("ref", e);
+      return null;
     }
   }
 }

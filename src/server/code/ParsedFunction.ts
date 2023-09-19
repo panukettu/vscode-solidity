@@ -12,6 +12,7 @@ import { ParsedDeclarationType } from "./ParsedDeclarationType";
 import { InnerElement } from "./types";
 import { getFunctionSelector } from "viem";
 import { TypeReference } from "../search/TypeReference";
+import { DotCompletionService } from "./utils/dotCompletionService";
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
@@ -466,6 +467,7 @@ export class ParsedFunction
         this.element.params,
         skipFirstParamSnipppet
       );
+
       let returnParamsInfo = ParsedParameter.createParamsInfo(
         this.element.returnParams
       );

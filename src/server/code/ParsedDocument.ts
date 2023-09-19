@@ -24,6 +24,7 @@ import { ParsedUsing } from "./ParsedUsing";
 import { Element } from "./types";
 import { documentMap } from "../providers/utils/caches";
 import { TypeReference } from "../search/TypeReference";
+import { DotCompletionService } from "./utils/dotCompletionService";
 
 type ParsedType = ParsedContract | ParsedFunction | ParsedStruct | ParsedCode;
 
@@ -1087,13 +1088,16 @@ export class ParsedDocument
     if (this.selectedFunction !== undefined) {
       const variablesInScope =
         this.selectedFunction.findVariableDeclarationsInScope(offset);
+
       this.selectedFunction.input.forEach((parameter) => {
-        completionItems.push(
-          parameter.createParamCompletionItem(
-            "function parameter",
-            this.getGlobalPathInfo()
-          )
-        );
+        if (parameter.name !== "self") {
+          completionItems.push(
+            parameter.createParamCompletionItem(
+              "function parameter",
+              this.getGlobalPathInfo()
+            )
+          );
+        }
       });
       this.selectedFunction.output.forEach((parameter) => {
         completionItems.push(

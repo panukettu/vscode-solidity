@@ -10,27 +10,29 @@ export const getFunctionsByNameOffset = (
   if (!functionNames?.length) {
     throw new Error("No function names found");
   }
+  try {
+    const functionName = functionNames[functionNames.length - 1];
 
-  const functionName = functionNames[functionNames.length - 1];
-
-  if (!functionName) {
-    throw new Error("No function name found");
-  }
-  let methodsFound = document
-    .getSelectedItem(offset)
-    .findMethodsInScope(functionName, true) as ParsedFunction[];
-
-  if (!methodsFound?.length && document.selectedFunction) {
-    methodsFound = document.selectedFunction.findMethodsInScope(
-      functionName
+    if (!functionName) {
+      throw new Error("No function name found");
+    }
+    const selectedItem = document.getSelectedItem(offset);
+    let methodsFound = selectedItem.findMethodsInScope(
+      functionName,
+      true
     ) as ParsedFunction[];
 
-    if (!methodsFound?.length) {
-      console.debug("not found", functionName);
+    if (!methodsFound?.length && document.selectedFunction) {
+      methodsFound = document.selectedFunction.findMethodsInScope(
+        functionName,
+        true
+      ) as ParsedFunction[];
     }
-  }
 
-  return methodsFound;
+    return methodsFound;
+  } catch (e) {
+    // console.debug("findFunc", e);
+  }
 };
 
 export const getFunctionByName = (
@@ -79,7 +81,7 @@ export const findByParam = (
   methods: ParsedFunction[],
   paramIndex?: number,
   searchParam?: { name: string },
-  removeself?: boolean
+  skipSelf?: boolean
 ) => {
   let selectedFunction: ParsedFunction;
 
@@ -87,25 +89,25 @@ export const findByParam = (
   if (!searchParam && !hasIndex) {
     return {
       selectedFunction: methods[0],
-      ...createFuncParams(methods[0], removeself),
+      ...createFuncParams(methods[0], skipSelf),
     };
   } else {
     for (const method of methods.filter(
       (x) =>
         x.input.length >
-        (hasIndex ? (removeself ? paramIndex + 1 : paramIndex) : 1)
+        (hasIndex ? (skipSelf ? paramIndex + 1 : paramIndex) : 1)
     )) {
       const matchingParam = method.input.find((inputParam, index) => {
         if (hasIndex) {
           if (index === paramIndex) {
-            method.selectedInput = removeself ? index - 1 : index;
+            method.selectedInput = skipSelf ? index - 1 : index;
             return true;
           }
         } else if (
           !!searchParam?.name &&
           inputParam.name === searchParam.name
         ) {
-          method.selectedInput = removeself ? index - 1 : index;
+          method.selectedInput = skipSelf ? index - 1 : index;
           return true;
         }
       });
@@ -126,7 +128,7 @@ export const findByParam = (
 
   return {
     selectedFunction,
-    ...createFuncParams(selectedFunction, removeself, paramIndex),
+    ...createFuncParams(selectedFunction, skipSelf, paramIndex),
   };
 };
 
@@ -135,15 +137,16 @@ export const createFuncParams = (
   removeSelf: boolean,
   activeParam?: number
 ) => {
-  const inputs = removeSelf
-    ? method.input.filter(
-        (i) =>
-          i.name !== "self" &&
-          i.name !== "_self" &&
-          i.name !== "this" &&
-          i.name !== "_this"
-      )
-    : method.input;
+  const inputs = removeSelf ? method.input.slice(1) : method.input;
+  // const inputs = removeSelf
+  //   ? method.input.filter(
+  //       (i) =>
+  //         i.name !== "self" &&
+  //         i.name !== "_self" &&
+  //         i.name !== "this" &&
+  //         i.name !== "_this"
+  //     )
+  //   : method.input;
   const parameters: ParameterInformation[] = inputs.map((i, index) => {
     return {
       label: i.name,
