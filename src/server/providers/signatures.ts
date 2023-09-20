@@ -10,7 +10,7 @@ export class SignatureHelpProvider {
     walker: CodeWalkerService
   ): vscode.SignatureHelp | undefined {
     try {
-      const documentContractSelected = walker.getSelectedDocument(
+      const documentContractSelected = walker.getSelectedDocumentProfiler(
         document,
         position
       );
@@ -61,7 +61,7 @@ export class SignatureHelpProvider {
         activeSignature: 0,
       };
     } catch (e) {
-      console.debug("SignatureHelp", e);
+      // console.debug("SignatureHelp", e);
       return null;
     }
   }

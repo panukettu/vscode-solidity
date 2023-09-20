@@ -104,6 +104,11 @@ export class ParsedCodeTypeHelper {
     outerFunc: ParsedFunction,
     innerFunc: ParsedFunction
   ) {
+    if (!innerFunc?.input?.length)
+      return {
+        relevantVars: [],
+        relevantParams: [],
+      };
     const targetTypes = innerFunc.input.map((i) => i.type.name);
 
     const outerFunctioVars = outerFunc.findAllLocalAndGlobalVariables(

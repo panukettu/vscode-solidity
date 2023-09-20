@@ -162,9 +162,9 @@ export class ParsedParameter extends ParsedVariable {
         ) {
           skipFirst = false;
         } else {
-          const typeString = ParsedCodeTypeHelper.getTypeString(
-            parameterElement.literal
-          );
+          // const typeString = ParsedCodeTypeHelper.getTypeString(
+          //   parameterElement.literal
+          // );
           counter = counter + 1;
           const currentParamSnippet =
             "${" + counter + ":" + parameterElement.id + "}";

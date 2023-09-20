@@ -85,6 +85,16 @@ export class CodeWalkerService {
     });
   }
 
+  public getSelectedDocumentProfiler(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): ParsedDocument {
+    // const start = Date.now();
+    // const result = this.getSelectedDocument(document, position);
+    // const end = Date.now();
+
+    return this.getSelectedDocument(document, position);
+  }
   public getSelectedDocument(
     document: vscode.TextDocument,
     position: vscode.Position
@@ -173,7 +183,7 @@ export class CodeWalkerService {
     sourceDocument: SourceDocument
   ) {
     documentMap.clear();
-    const foundDocument = this.parsedDocumentsCache.find(
+    let foundDocument = this.parsedDocumentsCache.find(
       (x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath
     );
     if (!foundDocument) {
@@ -182,15 +192,21 @@ export class CodeWalkerService {
       return;
     }
 
-    const newCache = this.parsedDocumentsCache
-      .filter((x) => x !== foundDocument)
-      .concat(newDocument);
+    this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
+      (x) => x !== foundDocument
+    );
+    const affectedDocuments = this.parsedDocumentsCache.filter((x) =>
+      x.importedDocuments.includes(foundDocument)
+    );
 
-    newCache.forEach((ref) => {
-      ref.initialiseDocumentReferences(newCache);
+    this.parsedDocumentsCache.push(newDocument);
+    newDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
+
+    affectedDocuments.concat(newDocument.importedDocuments).forEach((ref) => {
+      ref.initialiseDocumentReferences(this.parsedDocumentsCache);
     });
 
-    this.parsedDocumentsCache = newCache;
+    // this.parsedDocumentsCache = this.parsedDocumentsCache;
   }
 
   public parseDocumentChanged(

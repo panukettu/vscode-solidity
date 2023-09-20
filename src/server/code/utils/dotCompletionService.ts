@@ -7,6 +7,7 @@ import {
   ParsedExpressionIdentifier,
 } from "../ParsedExpression";
 import { ParsedContract } from "../ParsedContract";
+import { ParsedDeclarationType } from "../ParsedDeclarationType";
 
 export class AutoCompleteExpression {
   public isVariable = false;
@@ -87,7 +88,8 @@ export class DotCompletionService {
     position: Position,
     triggeredByDotStart: number,
     documentSelected: ParsedDocument,
-    offset: number
+    offset: number,
+    skipFirstParamSnipppet = false
   ): CompletionItem[] {
     let contractSelected: ParsedContract = null;
     let expressionContainer: IParsedExpressionContainer = null;
@@ -120,11 +122,13 @@ export class DotCompletionService {
       expressionContainer
     );
 
-    const contract = documentSelected.findContractByName(expression.name);
-    this.active = contract == null;
-    const result = expression.getInnerCompletionItems();
-    this.active = false;
-    return result;
+    if (expression instanceof ParsedExpressionCall) {
+      return expression.getInnerCompletionItems(true);
+    } else if (expression instanceof ParsedExpressionIdentifier) {
+      return expression.getInnerCompletionItems(true);
+    } else {
+      return expression.getInnerCompletionItems();
+    }
   }
 
   public static buildAutoCompleteExpression(

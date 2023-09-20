@@ -35,23 +35,29 @@ export class CompletionService {
     try {
       const offset = document.offsetAt(position);
 
-      const documentContractSelected = walker.getSelectedDocument(
+      const documentContractSelected = walker.getSelectedDocumentProfiler(
         document,
         position
       );
 
-      const { triggers, line, lines } = getTriggers(document, position);
+      const trigs = getTriggers(document, position);
 
+      let triggers = trigs.triggers;
       // console.debug(triggers);
+      if (triggers.declaration) return [];
       //  TODO: this does not work due to the trigger.
       // || (lines[position.line].trimLeft().startsWith('import "') && lines[position.line].trimLeft().lastIndexOf('"') === 7);
 
       if (triggers.dotStart > 0) {
         // console.debug("dot handler");
         try {
-          const matchers = dotStartMatchers(line, position, triggers.dotStart);
+          const matchers = dotStartMatchers(
+            trigs.line,
+            position,
+            triggers.dotStart
+          );
           const globals = getGlobalKeywordCompletions(
-            line,
+            trigs.line,
             position.character - 1
           );
           // console.debug(matchers);
@@ -68,7 +74,9 @@ export class CompletionService {
                 handleCustomFunctionCompletion(
                   documentContractSelected,
                   offset,
-                  matchers
+                  position,
+                  matchers,
+                  trigs
                 )
               );
             } catch (e) {
@@ -80,20 +88,22 @@ export class CompletionService {
               handleCustomMappingCompletion(
                 documentContractSelected,
                 offset,
-                matchers
+                position,
+                matchers,
+                trigs
               )
             );
           } else {
             if (triggers.emit) {
               // console.debug("custom emit handler");
               completionItems = completionItems.concat(
-                handleDotEmit(documentContractSelected, line)
+                handleDotEmit(documentContractSelected, trigs.line)
               );
             }
             // console.debug("dot handler");
             completionItems = completionItems.concat(
               DotCompletionService.getSelectedDocumentDotCompletionItems(
-                lines,
+                trigs.lines,
                 position,
                 triggers.dotStart,
                 documentContractSelected,
@@ -114,8 +124,7 @@ export class CompletionService {
             walker,
             completionItems,
             document,
-            triggers,
-            line,
+            trigs,
             position,
             this.rootPath
           );
@@ -126,7 +135,7 @@ export class CompletionService {
               walker,
               completionItems,
               document,
-              line,
+              trigs.line,
               position,
               triggers
             );

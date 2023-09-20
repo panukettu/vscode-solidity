@@ -13,6 +13,8 @@ import { InnerElement } from "./types";
 import { getFunctionSelector } from "viem";
 import { TypeReference } from "../search/TypeReference";
 import { DotCompletionService } from "./utils/dotCompletionService";
+import { ParsedCustomType } from "./ParsedCustomType";
+import { ParsedStruct } from "./ParsedStruct";
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
@@ -221,20 +223,42 @@ export class ParsedFunction
       if (input.type.isValueType) {
         selector = input.type.name;
       } else {
-        const item = this.contract
-          .getAllStructs()
-          .find((s) => s.name === input.type.name);
+        let item: ParsedStruct | undefined;
+        if (this.contract) {
+          item = this.contract
+            .getAllStructs()
+            .find((s) => s.name === input.type.name);
+        } else {
+          item = this.document
+            .getAllGlobalStructs()
+            .find((s) => s.name === input.type.name);
+        }
         if (item) {
           selector = item.abiType;
         } else {
-          if (
-            this.contract.getAllEnums().find((s) => s.name === input.type.name)
-          ) {
+          let isEnum = false;
+          if (this.contract) {
+            isEnum = !!this.contract
+              .getAllEnums()
+              .find((s) => s.name === input.type.name);
+          } else {
+            isEnum = !!this.document
+              .getAllGlobalEnums()
+              .find((s) => s.name === input.type.name);
+          }
+          if (isEnum) {
             selector = "uint8";
           } else {
-            const customType = this.contract
-              .getAllCustomTypes()
-              .find((s) => s.name === input.type.name);
+            let customType: ParsedCustomType | undefined;
+            if (this.contract) {
+              customType = this.contract
+                .getAllCustomTypes()
+                .find((s) => s.name === input.type.name);
+            } else {
+              customType = this.document
+                .getAllGlobalCustomTypes()
+                .find((s) => s.name === input.type.name);
+            }
             if (customType) {
               selector = customType.isType;
             } else {
@@ -460,7 +484,10 @@ export class ParsedFunction
   }
 
   public createCompletionItem(skipFirstParamSnipppet = false): CompletionItem {
-    if (this.completionItem === null) {
+    if (
+      this.completionItem === null ||
+      skipFirstParamSnipppet !== this.completionItem.data.skipFirstParamSnipppet
+    ) {
       const completionItem = this.initCompletionItem();
       completionItem.kind = CompletionItemKind.Function;
       const paramsSnippet = ParsedParameter.createFunctionParamsSnippet(
@@ -482,6 +509,9 @@ export class ParsedFunction
         };
       }
       completionItem.insertTextFormat = 2;
+      completionItem.data = {
+        skipFirstParamSnipppet,
+      };
       let closingSemi = ";";
       if (this.isModifier) {
         closingSemi = "";

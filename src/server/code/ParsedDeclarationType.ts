@@ -8,6 +8,7 @@ import { ParsedCode } from "./ParsedCode";
 import { ParsedContract } from "./ParsedContract";
 import { ParsedUsing } from "./ParsedUsing";
 import { TypeReference } from "../search/TypeReference";
+import { ParsedFunction } from "./ParsedFunction";
 
 export class ParsedDeclarationType extends ParsedCode {
   public isArray: boolean;
@@ -105,11 +106,15 @@ export class ParsedDeclarationType extends ParsedCode {
     this.isValueType = !this.isMapping && valueTypeReg.test(this.name);
   }
 
-  public override getInnerCompletionItems(): CompletionItem[] {
+  public override getInnerCompletionItems(skipSelf = false): CompletionItem[] {
     const result: CompletionItem[] = [];
 
     this.getExtendedMethodCallsFromUsing().forEach((x) => {
-      result.push(x.createCompletionItem());
+      if (x instanceof ParsedFunction) {
+        result.push(x.createCompletionItem(skipSelf));
+      } else {
+        result.push(x.createCompletionItem());
+      }
     });
 
     const type = this.findType();

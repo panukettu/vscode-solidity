@@ -31,6 +31,7 @@ export const isLeavingFunctionParams = (text: string, index: number) => {
 export const isControl = (text: string) => {
   return (
     text === "if" ||
+    text === "require" ||
     text === "else" ||
     text === "for" ||
     text === "while" ||
@@ -45,8 +46,22 @@ export const isControl = (text: string) => {
     text === "try" ||
     text === "catch" ||
     text === "finally" ||
-    text === "new" ||
     text === "delete" ||
     text === "revert"
+  );
+};
+
+export const isInnerExpression = (line: string) => {
+  return (
+    line.indexOf("if") !== -1 ||
+    line.indexOf("require") !== -1 ||
+    line.indexOf("while") !== -1 ||
+    line.indexOf("do") !== -1 ||
+    line.indexOf("switch") !== -1 ||
+    line.indexOf("case") !== -1 ||
+    line.indexOf("default") !== -1 ||
+    line.indexOf("try") !== -1 ||
+    line.indexOf("catch") !== -1 ||
+    line.indexOf("finally") !== -1
   );
 };

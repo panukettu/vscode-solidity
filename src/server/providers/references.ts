@@ -14,7 +14,7 @@ export class SolidityReferencesProvider {
     try {
       const offset = document.offsetAt(position);
 
-      const documentContractSelected = walker.getSelectedDocument(
+      const documentContractSelected = walker.getSelectedDocumentProfiler(
         document,
         position
       );

@@ -17,7 +17,7 @@ export const useProviderHelper = (
   position: vscode.Position,
   walker: CodeWalkerService
 ) => {
-  const documentContractSelected = walker.getSelectedDocument(
+  const documentContractSelected = walker.getSelectedDocumentProfiler(
     document,
     position
   );

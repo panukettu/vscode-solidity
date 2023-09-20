@@ -14,7 +14,7 @@ export class SolidityDefinitionProvider {
   ): vscode.Location | vscode.Location[] {
     try {
       this.currentOffset = document.offsetAt(position);
-      const documentContractSelected = walker.getSelectedDocument(
+      const documentContractSelected = walker.getSelectedDocumentProfiler(
         document,
         position
       );

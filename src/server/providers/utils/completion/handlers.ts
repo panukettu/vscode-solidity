@@ -1,5 +1,9 @@
 import { isControl } from "../matchers";
-import { getFunctionsByNameOffset } from "../functions";
+import {
+  getFunctionByName,
+  getFunctionsByName,
+  getFunctionsByNameOffset,
+} from "../functions";
 import { ParsedDocument } from "../../../code/ParsedDocument";
 import { ParsedCodeTypeHelper } from "../../../code/utils/ParsedCodeTypeHelper";
 import { ParsedStructVariable } from "../../../code/ParsedStructVariable";
@@ -19,10 +23,46 @@ import {
   GetGlobalFunctions,
   GetGlobalVariables,
 } from "./globals";
+import { DotCompletionService } from "../../../code/utils/dotCompletionService";
+import { ParsedContract } from "../../../code/ParsedContract";
+import { ParsedStruct } from "../../../code/ParsedStruct";
+
+const getLastDot = (
+  document: ParsedDocument,
+  offset: number,
+  triggers: ReturnType<typeof getTriggers>,
+  position: vscode.Position,
+  matchers: ReturnType<typeof dotStartMatchers>,
+  trigger: ReturnType<typeof getTriggers>,
+  indexToStart: number
+) => {
+  const index = triggers.line.lastIndexOf(".", indexToStart - 1);
+
+  let results = DotCompletionService.getSelectedDocumentDotCompletionItems(
+    triggers.lines,
+    position,
+    index,
+    document,
+    offset,
+    matchers.dotAfterFuncParams
+  );
+  if (!results.length && index > 1) {
+    results = results.concat(
+      getLastDot(document, offset, triggers, position, matchers, trigger, index)
+        .results
+    );
+  }
+  return {
+    results,
+    index,
+  };
+};
 export const handleCustomFunctionCompletion = (
   document: ParsedDocument,
   offset: number,
-  matchers: ReturnType<typeof dotStartMatchers>
+  position: vscode.Position,
+  matchers: ReturnType<typeof dotStartMatchers>,
+  triggers: ReturnType<typeof getTriggers>
 ) => {
   try {
     const items = getFunctionsByNameOffset(
@@ -31,7 +71,95 @@ export const handleCustomFunctionCompletion = (
       offset
     );
     if (!items?.length) {
-      return handleDefault(document, offset);
+      if (matchers.isReplacingCall && matchers.itemIdsFiltered?.length > 0) {
+        const itemsInner = getFunctionsByNameOffset(
+          matchers.itemIdsFiltered.slice(0, 1),
+          document,
+          offset
+        );
+        if (itemsInner?.length && document.selectedContract) {
+          // console.debug("inner found");
+          return document.selectedContract.using
+            .filter((u) => {
+              return u.for.name === itemsInner[0].name;
+            })
+            .map((u) => u.for.getInnerCompletionItems(true))
+            .flat();
+        }
+      } else if (
+        matchers.dotAfterFuncParams &&
+        matchers.mappingIds?.length > 0
+      ) {
+        const mappingType = document.findTypeInScope(
+          matchers.mappingId
+        ) as ParsedStructVariable;
+        if (!mappingType) return handleDefault(document, offset);
+
+        const { result, isValueType } =
+          ParsedCodeTypeHelper.mappingOutType(mappingType);
+
+        const type = document.findTypeInScope(result);
+
+        if (type instanceof ParsedStruct && !isValueType) {
+          let [lib, member] = type.findExtendedMethodCall(
+            matchers.itemIdsFiltered[matchers.itemIdsFiltered?.length - 1]
+          );
+
+          if (!member?.length && matchers.itemIdsFiltered?.length > 1) {
+            [lib, member] = type.findExtendedMethodCall(
+              matchers.itemIdsFiltered[matchers.itemIdsFiltered?.length - 2]
+            );
+          }
+          if (
+            lib?.length > 0 &&
+            member?.length > 0 &&
+            member[0].output?.length > 0 &&
+            document.selectedContract
+          ) {
+            return document.selectedContract.using
+              .filter((u) => {
+                return u.for.name === member[0].output[0].type.name;
+              })
+              .map((u) => u.for.getInnerCompletionItems(true))
+              .flat();
+          } else {
+            return getLastDot(
+              document,
+              offset,
+              triggers,
+              position,
+              matchers,
+              triggers,
+              triggers.triggers.dotStart
+            ).results;
+          }
+        }
+        return document.selectedContract.using
+          .filter((u) => {
+            return u.for.name === result;
+          })
+          .map((u) => u.for.getInnerCompletionItems(true))
+          .flat();
+        // if (!isValueType) {
+        //   // @ts-expect-error;
+        //   return type.getInnerCompletionItems(true);
+        // } else if (document.selectedContract) {
+
+        // }
+      } else {
+        if (matchers.dotAfterFuncParams) {
+          return getLastDot(
+            document,
+            offset,
+            triggers,
+            position,
+            matchers,
+            triggers,
+            triggers.triggers.dotStart
+          ).results;
+        }
+        return handleDefault(document, offset);
+      }
     }
 
     const { relevantVars, relevantParams } =
@@ -40,9 +168,50 @@ export const handleCustomFunctionCompletion = (
         document.getSelectedFunction(offset),
         items[0]
       );
-    return relevantVars
-      .map((v) => v.createCompletionItem(true))
-      .concat(relevantParams.map((v) => v.createFieldCompletionItem()));
+    if (items[0] instanceof ParsedContract) {
+      const item = items[0] as ParsedContract;
+      if (document.selectedContract) {
+        return document.selectedContract.using
+          .filter((u) => {
+            return u.for.name === item.name;
+          })
+          .map((u) => u.for.getInnerCompletionItems(true))
+          .flat();
+      } else {
+      }
+    } else {
+      if (
+        matchers.dotAfterFuncParams &&
+        items[0] &&
+        items[0].output?.length === 0
+      ) {
+        return [];
+      }
+    }
+
+    if (matchers.dotAfterFuncParams && matchers.itemIdsFiltered?.length > 1) {
+      const output = items[0].output?.length === 1 ? items[0].output[0] : null;
+      if (output?.type.isValueType) {
+        return output.type.getInnerCompletionItems(true);
+      }
+    }
+    let result = [];
+    if (!matchers.dotAfterFuncParams) {
+      result = relevantVars
+        .map((v) => v.createCompletionItem(true))
+        .concat(relevantParams.map((v) => v.createFieldCompletionItem()));
+    }
+
+    return result.concat(
+      DotCompletionService.getSelectedDocumentDotCompletionItems(
+        triggers.lines,
+        position,
+        triggers.triggers.dotStart,
+        document,
+        offset,
+        matchers.dotAfterFuncParams
+      )
+    );
   } catch (e) {
     // console.debug(e);
 
@@ -53,7 +222,9 @@ export const handleCustomFunctionCompletion = (
 export const handleCustomMappingCompletion = (
   document: ParsedDocument,
   offset: number,
-  matchers: ReturnType<typeof dotStartMatchers>
+  position: vscode.Position,
+  matchers: ReturnType<typeof dotStartMatchers>,
+  triggers: ReturnType<typeof getTriggers>
 ) => {
   let mappingType: ParsedStructVariable | undefined;
   mappingType = document.findTypeInScope(
@@ -83,10 +254,19 @@ export const handleCustomMappingCompletion = (
   if (matchers.isMappingAccessor) {
     const { result, isValueType } =
       ParsedCodeTypeHelper.mappingOutType(mappingType);
+    // console.debug(result, isValueType);
 
     if (!isValueType) {
       const type = document.findTypeInScope(result);
-      return type.getInnerCompletionItems();
+      // @ts-expect-error;
+      return type.getInnerCompletionItems(true);
+    } else if (document.selectedContract) {
+      return document.selectedContract.using
+        .filter((u) => {
+          return u.for.name === result;
+        })
+        .map((u) => u.for.getInnerCompletionItems(true))
+        .flat();
     }
   }
 
@@ -98,9 +278,19 @@ export const handleCustomMappingCompletion = (
       matchers.mappingParamIndex
     );
 
-  return relevantVars
+  const result = relevantVars
     .map((v) => v.createCompletionItem(true))
     .concat(relevantParams.map((v) => v.createFieldCompletionItem()));
+
+  return result.concat(
+    DotCompletionService.getSelectedDocumentDotCompletionItems(
+      triggers.lines,
+      position,
+      triggers.triggers.dotStart,
+      document,
+      offset
+    )
+  );
 };
 
 export const handleDotEmit = (document: ParsedDocument, line: string) => {
@@ -195,11 +385,11 @@ export const handleFileSearch = (
   walker: CodeWalkerService,
   completionItems: vscode.CompletionItem[],
   document: vscode.TextDocument,
-  triggers: ReturnType<typeof getTriggers>["triggers"],
-  line: ReturnType<typeof getTriggers>["line"],
+  trigs: ReturnType<typeof getTriggers>,
   position: vscode.Position,
   rootPath: string
 ) => {
+  const { triggers, line } = trigs;
   const hasSourceDir = walker.resolvedSources !== "";
   const sourcesDir = "/" + walker.resolvedSources;
   const files = glob.sync(

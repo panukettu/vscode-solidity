@@ -332,11 +332,11 @@ export class ParsedExpressionCall extends ParsedExpression {
     return [];
   }
 
-  public override getInnerCompletionItems(): CompletionItem[] {
+  public override getInnerCompletionItems(skipSelf = false): CompletionItem[] {
     this.initReference();
     this.initExpressionType();
     if (this.expressionType !== null) {
-      return this.expressionType.getInnerCompletionItems();
+      return this.expressionType.getInnerCompletionItems(skipSelf);
     }
     return [];
   }
@@ -549,11 +549,11 @@ export class ParsedExpressionIdentifier extends ParsedExpression {
     return results;
   }
 
-  public override getInnerCompletionItems(): CompletionItem[] {
+  public override getInnerCompletionItems(skipSelf = false): CompletionItem[] {
     this.initReference();
     this.initExpressionType();
     if (this.expressionType !== null) {
-      return this.expressionType.getInnerCompletionItems();
+      return this.expressionType.getInnerCompletionItems(skipSelf);
     }
     return [];
   }

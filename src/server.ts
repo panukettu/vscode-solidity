@@ -28,53 +28,78 @@ export const connection = vscode.createConnection(vscode.ProposedFeatures.all);
 console.log = connection.console.log.bind(connection.console);
 console.error = connection.console.error.bind(connection.console);
 
+export const profiler = (id: string, func: Function): any => {
+  return (...args: any[]) => {
+    // const start = Date.now();
+    const result = func(...args);
+    // const end = Date.now();
+    // console.log(`Function ${id} took ${end - start}ms`);
+    return result;
+  };
+};
 /* -------------------------------------------------------------------------- */
 /*                                    Init                                    */
 /* -------------------------------------------------------------------------- */
-connection.onInitialize((params) => {
-  const result = handleInitialize(params);
-  initCompiler(params);
-  return result;
-});
+connection.onInitialize(
+  profiler("initialize", (params) => {
+    const result = handleInitialize(params);
+    initCompiler(params);
+    return result;
+  })
+);
 
-connection.onInitialized((params) => {
-  handleInitialized();
-});
+connection.onInitialized(
+  profiler("onInitialized", (params) => {
+    handleInitialized();
+  })
+);
 
 /* -------------------------------------------------------------------------- */
 /*                                   Actions                                  */
 /* -------------------------------------------------------------------------- */
-connection.onCompletion((handler) => {
-  const rootPath = initCommon(handler.textDocument);
-  const result = new CompletionService(rootPath).getAllCompletionItems(
-    ...providerParams(handler)
-  );
-  return [...new Set(result)];
-});
+connection.onCompletion(
+  profiler("onCompletion", (handler: { textDocument: any }) => {
+    const rootPath = initCommon(handler.textDocument);
+    const result = new CompletionService(rootPath).getAllCompletionItems(
+      ...providerParams(handler)
+    );
+    return [...new Set(result)];
+  })
+);
 
-connection.onReferences((handler) => {
-  initCommon(handler.textDocument);
-  return SolidityReferencesProvider.provideReferences(
-    ...providerParams(handler)
-  );
-});
+connection.onReferences(
+  profiler("onReferences", (handler) => {
+    initCommon(handler.textDocument);
+    return SolidityReferencesProvider.provideReferences(
+      ...providerParams(handler)
+    );
+  })
+);
 
-connection.onDefinition((handler) => {
-  initCommon(handler.textDocument);
-  return SolidityDefinitionProvider.provideDefinition(
-    ...providerParams(handler)
-  );
-});
+connection.onDefinition(
+  profiler("onDefinition", (handler) => {
+    initCommon(handler.textDocument);
+    return SolidityDefinitionProvider.provideDefinition(
+      ...providerParams(handler)
+    );
+  })
+);
 
-connection.onHover((handler) => {
-  initCommon(handler.textDocument);
-  return SolidityHoverProvider.provideHover(...providerParams(handler));
-});
+connection.onHover(
+  profiler("onHover", (handler) => {
+    initCommon(handler.textDocument);
+    return SolidityHoverProvider.provideHover(...providerParams(handler));
+  })
+);
 
-connection.onSignatureHelp((handler) => {
-  initCommon(handler.textDocument);
-  return SignatureHelpProvider.provideSignatureHelp(...providerParams(handler));
-});
+connection.onSignatureHelp(
+  profiler("onSignatureHelp", (handler) => {
+    initCommon(handler.textDocument);
+    return SignatureHelpProvider.provideSignatureHelp(
+      ...providerParams(handler)
+    );
+  })
+);
 
 connection.onExecuteCommand((args) => {
   const [document, range] = args.arguments as CommandParamsBase;

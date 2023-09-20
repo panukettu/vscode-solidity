@@ -198,6 +198,31 @@ export class ParsedStruct extends ParsedCode {
 
     return result;
   }
+
+  public findExtendedMethodCall(
+    name: string
+  ): [ParsedContract[], ParsedFunction[]] {
+    let result: ParsedFunction[] = [];
+    let resultLibs: ParsedContract[] = [];
+    if (!this.usings.length) return [resultLibs, result];
+
+    this.usings.forEach((usingItem) => {
+      const foundLibrary = this.document
+        .getAllContracts()
+        .find((x) => x.name === usingItem.name);
+
+      if (foundLibrary !== undefined) {
+        const resultsTHis = foundLibrary
+          .getAllFunctions()
+          .filter((x) => x.name === name);
+        result = result.concat(resultsTHis);
+
+        if (resultsTHis.length > 0) resultLibs.push(foundLibrary);
+      }
+    });
+
+    return [resultLibs, result];
+  }
   public getAllReferencesToSelected(
     offset: number,
     documents: ParsedDocument[]

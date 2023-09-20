@@ -1,6 +1,10 @@
 import * as vscode from "vscode-languageserver/node";
 import { DotCompletionService } from "../../../code/utils/dotCompletionService";
-import { isControl } from "../matchers";
+import { isControl, isInnerExpression } from "../matchers";
+import {
+  valueTypeReg,
+  valueTypes,
+} from "../../../code/utils/ParsedCodeTypeHelper";
 
 const existingFuncRegexp = new RegExp(/(.*?\(.*?\))/s);
 const innerImportRegexp = new RegExp(/(import\s\{)/s);
@@ -58,6 +62,7 @@ export const getTriggers = (
     import: false,
     from: false,
     innerFrom: false,
+    declaration: false,
     symbolId: "",
   };
   const lines = document.getText().split(/\r?\n/g);
@@ -83,6 +88,44 @@ export const getTriggers = (
 
   if (!triggers.innerImport && !triggers.from) {
     triggers.import = importRegexp.test(line);
+  }
+  const textToPosition = line.slice(0, position.character).trimStart();
+  triggers.declaration =
+    textToPosition.indexOf("function") !== -1 &&
+    textToPosition.indexOf("(") === -1;
+
+  if (!triggers.declaration) {
+    triggers.declaration =
+      textToPosition.match(valueTypeReg) != null &&
+      textToPosition.indexOf("=") === -1;
+
+    triggers.declaration =
+      triggers.declaration &&
+      textToPosition.indexOf("{") === -1 &&
+      textToPosition.indexOf("=") === -1 &&
+      textToPosition.indexOf("(") === -1 &&
+      textToPosition.indexOf("[") === -1;
+  }
+
+  if (!triggers.declaration) {
+    triggers.declaration =
+      textToPosition.indexOf("contract") !== -1 ||
+      textToPosition.indexOf("interface") !== -1 ||
+      textToPosition.indexOf("library") !== -1 ||
+      textToPosition.indexOf("struct") !== -1 ||
+      textToPosition.indexOf("enum") !== -1 ||
+      textToPosition.indexOf("event") !== -1 ||
+      textToPosition.indexOf("mapping") !== -1 ||
+      textToPosition.indexOf("memory") !== -1 ||
+      textToPosition.indexOf("storage") !== -1 ||
+      textToPosition.indexOf("modifier") !== -1;
+
+    triggers.declaration =
+      triggers.declaration &&
+      textToPosition.indexOf("{") === -1 &&
+      textToPosition.indexOf("=") === -1 &&
+      textToPosition.indexOf("(") === -1 &&
+      textToPosition.indexOf("[") === -1;
   }
 
   triggers.searchFiles =
@@ -118,29 +161,61 @@ export const dotStartMatchers = (
     : [];
   const mappingIds = textFromStart.match(mappingIdRegexp);
 
-  const isControlStatement = itemIdsFiltered?.length !== itemIds?.length;
+  // const isControlStatement =
+  //   itemIds != null && itemIdsFiltered.length !== itemIds?.length;
+  const isControlStatement = isInnerExpression(line);
   const functionParamsIndex = line.lastIndexOf("(");
+  const functionParamsEndIndex = line.lastIndexOf(")");
   const functionsParamsIndexAssignment = line.lastIndexOf("(");
   const mappingParamsIndex = line.lastIndexOf("[");
+  const mappingEndIndex = line.lastIndexOf("]");
 
   const dotInsideFuncParams =
-    functionParamsIndex !== -1 && functionParamsIndex < triggeredByDotStart;
+    functionParamsIndex !== -1 &&
+    functionParamsIndex < triggeredByDotStart &&
+    (functionParamsEndIndex === -1 ||
+      functionParamsEndIndex > triggeredByDotStart);
+
+  let dotAfterFuncParams =
+    functionParamsEndIndex !== -1 &&
+    functionParamsEndIndex < triggeredByDotStart;
 
   const dotInsideMappingParams =
-    mappingParamsIndex !== -1 && mappingParamsIndex < triggeredByDotStart;
+    mappingParamsIndex !== -1 &&
+    mappingParamsIndex < triggeredByDotStart &&
+    (mappingEndIndex === -1 || mappingEndIndex > triggeredByDotStart);
+
+  let dotAfterMappingParams =
+    mappingEndIndex !== -1 && mappingEndIndex < triggeredByDotStart;
 
   const mappingId = mappingIds?.length > 0 ? mappingIds[0] : null;
 
   const isMappingAccessor = textFromStart.indexOf("].") !== -1;
   const mappingParamIndex = textFromStart.split("[")?.length - 1;
+
+  const isAssignment = textFromStart.indexOf("=") !== -1;
+  const isComparison = textFromStart.indexOf("==") !== -1;
+
+  dotAfterFuncParams =
+    dotAfterFuncParams &&
+    (mappingEndIndex === -1 || functionParamsEndIndex > mappingEndIndex);
+
+  dotAfterMappingParams =
+    dotAfterMappingParams &&
+    (functionParamsEndIndex === -1 || functionParamsEndIndex < mappingEndIndex);
+
   return {
     useCustomFunctionCompletion:
-      itemIdsFiltered?.length > 1 && !dotInsideFuncParams,
+      (itemIdsFiltered?.length > 1 && !dotInsideFuncParams) ||
+      dotAfterFuncParams,
     useCustomMappingCompletion:
-      mappingIds?.length > 0 && !dotInsideMappingParams,
+      (mappingIds?.length > 0 && !dotInsideMappingParams) ||
+      dotAfterMappingParams,
     isRegularStructMapping: mappingIds?.length > 0 && itemIds == null,
     dotInsideFuncParams,
     dotInsideMappingParams,
+    dotAfterMappingParams,
+    dotAfterFuncParams,
     useCustomFuncParamsCompletion:
       functionsParamsIndexAssignment > triggeredByDotStart &&
       itemIdsFiltered.length > 0,
@@ -148,6 +223,8 @@ export const dotStartMatchers = (
     textFromStart,
     isReplacingCall,
     itemIds,
+    isAssignment: isAssignment && !isComparison,
+    isComparison,
     itemIdsFiltered,
     mappingIds,
     mappingId,
