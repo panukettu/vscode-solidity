@@ -47,9 +47,6 @@ function languageServer(context: vscode.ExtensionContext): void {
       // Synchronize the setting section 'solidity' to the server
       configurationSection: "solidity",
       // Notify the server about file changes to '.sol.js files contain in the workspace (TODO node, linter)
-      fileEvents: vscode.workspace.createFileSystemWatcher(
-        "{**/remappings.txt,**/.solhint.json,**/brownie-config.yaml}"
-      ),
     },
     initializationOptions: context.extensionPath,
   };

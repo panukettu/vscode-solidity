@@ -33,6 +33,7 @@ export class CodeWalkerService {
       this.project = project;
       this.resolvedSources = sources;
     }
+
     this.initDocuments(this.config.initExclude);
   }
 
@@ -44,25 +45,33 @@ export class CodeWalkerService {
       const existing = sourceDocuments.documents.find(
         (d) => d.absolutePath === path
       );
+
       if (!existing) {
         const item = sourceDocuments.addSourceDocumentAndResolveImports(
           path,
           fs.readFileSync(path, "utf8"),
           this.project
         );
+
         this.parseDocument(item.unformattedCode, false, item);
       } else {
         this.parseDocument(existing.unformattedCode, false, existing);
       }
     }
+    const libFiles = this.project.getLibSourceFiles();
 
-    this.initialized = true;
+    for (const path of libFiles) {
+      const existing = sourceDocuments.documents.find(
+        (d) => d.absolutePath === path
+      );
+      if (!existing) continue;
 
+      this.parseDocument(existing.unformattedCode, true, existing);
+    }
     this.parsedDocumentsCache.forEach((element) => {
-      element.imports.forEach((importItem) => {
-        importItem.initialiseDocumentReference(this.parsedDocumentsCache);
-      });
+      element.initialiseDocumentReferences(this.parsedDocumentsCache);
     });
+    this.initialized = true;
   }
 
   public initialiseChangedDocuments() {
@@ -188,9 +197,18 @@ export class CodeWalkerService {
     );
     if (!foundDocument) {
       this.parsedDocumentsCache.push(newDocument);
-      newDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
+      this.parsedDocumentsCache.forEach((element) => {
+        element.initialiseDocumentReferences(this.parsedDocumentsCache);
+      });
       return;
     }
+
+    if (
+      foundDocument.fixedSource ||
+      foundDocument.sourceDocument.unformattedCode ===
+        sourceDocument.unformattedCode
+    )
+      return;
 
     this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
       (x) => x !== foundDocument
@@ -200,13 +218,11 @@ export class CodeWalkerService {
     );
 
     this.parsedDocumentsCache.push(newDocument);
-    newDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
 
+    newDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
     affectedDocuments.concat(newDocument.importedDocuments).forEach((ref) => {
       ref.initialiseDocumentReferences(this.parsedDocumentsCache);
     });
-
-    // this.parsedDocumentsCache = this.parsedDocumentsCache;
   }
 
   public parseDocumentChanged(
@@ -261,8 +277,12 @@ export class CodeWalkerService {
     );
     const newDocument = new ParsedDocument();
     if (foundDocument != null) {
+      this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
+        (x) => x !== foundDocument
+      );
+
       if (
-        foundDocument.sourceDocument.unformattedCode ===
+        foundDocument.sourceDocument.unformattedCode !==
         sourceDocument.unformattedCode
       ) {
         newDocument.initialiseDocument(
@@ -272,16 +292,15 @@ export class CodeWalkerService {
           foundDocument?.fixedSource
         );
 
-        this.parsedDocumentsCache.push(newDocument);
         this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
           (x) => x !== foundDocument
         );
 
+        this.parsedDocumentsCache.push(newDocument);
         return newDocument;
+      } else {
+        return foundDocument;
       }
-      this.parsedDocumentsCache = this.parsedDocumentsCache.filter(
-        (x) => x !== foundDocument
-      );
     }
     try {
       const result = solparse.parse(documentText);
@@ -295,7 +314,7 @@ export class CodeWalkerService {
 
       this.parsedDocumentsCache.push(newDocument);
     } catch (error) {
-      console.debug("parseDocument", error.message);
+      console.debug("parseDocument", error);
       // console.log(JSON.stringify(error));
       /*
             // if we error parsing (cannot cater for all combos) we fix by removing current line.

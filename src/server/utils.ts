@@ -21,7 +21,7 @@ export function initCommon(document: any) {
 }
 
 export function getCodeWalkerService() {
-  if (codeWalkerService !== null) {
+  if (codeWalkerService != null) {
     if (
       codeWalkerService.rootPath === selectedProjectFolder &&
       deepEqual(codeWalkerService.config, config)

@@ -2,6 +2,7 @@ import * as vscode from "vscode-languageserver/node";
 import { ParsedCode } from "../code/ParsedCode";
 import { CodeWalkerService } from "../code/walker/codeWalkerService";
 import { clearCaches } from "./utils/caches";
+import { selectedDocument } from "../utils";
 
 export class SolidityDefinitionProvider {
   public static currentOffset: number = 0;
@@ -37,7 +38,7 @@ export class SolidityDefinitionProvider {
           this.currentItem.name
         );
 
-        if (item) {
+        if (item?.getLocation) {
           const location = item.getLocation();
           result.push(location);
         }
@@ -50,7 +51,7 @@ export class SolidityDefinitionProvider {
       clearCaches();
       this.currentOffset = 0;
       this.currentItem = null;
-      // console.debug("Definition", e);
+      console.debug("definition", e);
       return null;
     }
   }

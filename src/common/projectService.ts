@@ -61,20 +61,16 @@ export function initialiseProject(
 } {
   // adding defaults to packages
 
-  const sourceLocationDefined = config.sources !== "";
-  const configSources = Array.from(
-    new Set(
-      [
-        getSourcesLocationFromFoundryConfig(rootPath),
-        getSourcesLocationFromHardhatConfig(rootPath),
-      ].filter((c) => typeof c === "string")
-    )
-  );
-
-  const sources = sourceLocationDefined
-    ? config.sources
-    : configSources.find((s) => typeof s === "string") ?? config.sources;
-
+  let sources = config.sources;
+  const foundrySources = getSourcesLocationFromFoundryConfig(rootPath);
+  const hardhatSource = getSourcesLocationFromHardhatConfig(rootPath);
+  if (!sources) {
+    sources = foundrySources.src;
+  }
+  if (!sources) {
+    sources = hardhatSource;
+  }
+  
   const projectPackage = createDefaultPackage(rootPath, sources);
 
   const dependencies: Package[] = loadAllPackageDependencies(
@@ -113,35 +109,68 @@ function loadAllPackageDependencies(
 }
 
 function getSourcesLocationFromHardhatConfig(rootPath: string): string | null {
-  const hardhatConfigFile = path.join(rootPath, hardhatConfigFileName);
-  if (fs.existsSync(hardhatConfigFile)) {
-    const config = require(hardhatConfigFile);
-    const sourceLocation: string = config["paths"]["sources"];
-    if (sourceLocation) {
-      return sourceLocation;
+  try {
+    const hardhatConfigFile = path.join(rootPath, hardhatConfigFileName);
+    if (fs.existsSync(hardhatConfigFile)) {
+      const config = require(hardhatConfigFile);
+      const sourceLocation: string = config["paths"]["sources"];
+      if (sourceLocation) {
+        return sourceLocation;
+      }
     }
+    return null;
+  } catch (e) {
+    console.debug("sol.hardhat.sources", e.message);
+    return null;
   }
-  return null;
 }
-
-function getSourcesLocationFromFoundryConfig(rootPath: string): string | null {
+function getSourcesLocationFromFoundryConfig(
+  rootPath: string
+): { src: string; test: string; script: string } | null {
   const foundryConfigFile = path.join(rootPath, foundryConfigFileName);
   if (fs.existsSync(foundryConfigFile)) {
     try {
       const fileContent = fs.readFileSync(foundryConfigFile, "utf8");
       const configOutput = toml.parse(fileContent);
       const sourceLocation: string = configOutput["profile"]["default"]["src"];
-      if (!sourceLocation) {
+      const scriptLocation: string =
+        configOutput["profile"]["default"]["script"];
+      const testLocation: string = configOutput["profile"]["default"]["test"];
+      if (!sourceLocation && !scriptLocation && !testLocation) {
         return null;
       }
-      return sourceLocation;
+      return {
+        src: sourceLocation,
+        script: scriptLocation,
+        test: testLocation,
+      };
     } catch (error) {
-      console.log("sol.foundry.sources", error.message);
+      console.debug("sol.foundry.sources", error.message);
     }
     return null;
   }
   return null;
 }
+
+
+// function getSourcesLocationFromFoundryConfig(rootPath: string): string | null {
+//   const foundryConfigFile = path.join(rootPath, foundryConfigFileName);
+//   if (fs.existsSync(foundryConfigFile)) {
+//     try {
+//       const fileContent = fs.readFileSync(foundryConfigFile, "utf8");
+//       const configOutput = toml.parse(fileContent);
+//       const sourceLocation: string = configOutput["profile"]["default"]["src"];
+//       if (!sourceLocation) {
+//         return null;
+//       }
+//       return sourceLocation;
+//     } catch (error) {
+//       console.log("sol.foundry.sources", error.message);
+//     }
+//     return null;
+//   }
+//   return null;
+// }
 function getRemappingsFromFoundryConfig(rootPath: string): string[] {
   const foundryConfigFile = path.join(rootPath, foundryConfigFileName);
   if (fs.existsSync(foundryConfigFile)) {

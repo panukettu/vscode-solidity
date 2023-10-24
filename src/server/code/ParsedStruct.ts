@@ -38,13 +38,17 @@ export class ParsedStruct extends ParsedCode {
     this.contract = contract;
     this.element = element;
     this.id = element.id;
-    this.name = element.name;
+    this.name = element?.name ? element.name : element.id;
     this.document = document;
     this.isGlobal = isGlobal;
-    this.usings = document.usings.filter((u) => u.for.name === this.name);
+    this.usings = document.usings.filter(
+      (u) => this?.name && u.for?.name && u.for.name === this.name
+    );
     if (contract) {
       this.usings = this.usings.concat(
-        contract.using.filter((u) => u.for.name === this.name)
+        contract.using.filter(
+          (u) => this?.name && u.for?.name && u.for.name === this.name
+        )
       );
     }
     if (this.element.body?.length) {

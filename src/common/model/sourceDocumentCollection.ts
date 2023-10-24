@@ -115,18 +115,18 @@ export class SourceDocumentCollection {
                 importPath,
                 importContractCode,
                 project
-              );
+                );
+              } 
             }
-          }
-        } else {
+          } else {
           this.addSourceDocumentAndResolveDependencyImport(
             importPath,
             contract,
             project
-          );
-        }
-      });
-    }
+            );
+          }
+        });
+      }
     return contract;
   }
 

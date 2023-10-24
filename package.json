@@ -9,7 +9,7 @@
     "diamond",
     "solhint"
   ],
-  "version": "0.7.4",
+  "version": "0.7.6",
   "publisher": "0xp",
   "license": "MIT",
   "engines": {
@@ -82,6 +82,7 @@
     "@types/lodash.debounce": "^4.0.7",
     "@types/node": "^11.15.3",
     "@types/vscode": "^1.77.0",
+    "@vscode/vsce": "^2.21.1",
     "class-utils": "^0.3.6",
     "esbuild": "0.19.2",
     "esbuild-plugin-copy": "^2.1.1",
@@ -94,7 +95,6 @@
     "tslint": "^5.20.1",
     "tsup": "^7.2.0",
     "typescript": "^5.0.4",
-    "vsce": "^2.15.0",
     "what-is-circular": "^1.0.1"
   },
   "nyc": {
@@ -218,7 +218,7 @@
             "src",
             "contracts"
           ],
-          "description": "Directories to look for lib solidity files."
+          "description": "Directories to look for solidity files within libs."
         },
         "solidity.remappings": {
           "type": "array",

@@ -30,9 +30,23 @@ export class Project {
       depPack.isImportForThis(contractDependencyImport)
     );
   }
-
+  public getLibSourceFiles() {
+    return Array.from(
+      new Set(
+        this.dependencies
+          .map((d) => {
+            const lib = d.getSolSourcesAbsolutePath();
+            return d.sol_sources_alternative_directories
+              .map((dir) => glob.sync(path.join(lib, dir, "/**/*.sol")))
+              .flat();
+          })
+          .flat()
+      )
+    );
+  }
   public getProjectSolFiles(extraExcludes?: string[]) {
     const sourcesPath = this.projectPackage.getSolSourcesAbsolutePath();
+
     const exclusions: string[] =
       extraExcludes?.length > 0
         ? extraExcludes.map((item) =>
