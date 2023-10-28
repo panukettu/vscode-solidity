@@ -4,6 +4,8 @@
 
 # Fork Features
 
+- Less verbose context menus
+- Does not auto-validate all documents. Validating is configured to these triggers: onSave, onChange or onOpen.
 - Bundles all js dependencies.
 - Removes nethereum, solium and dAppproject related things.
 - Seems to work bit faster on big projects.
@@ -339,19 +341,19 @@ Formatting uses the default formatting settings provided by prettier, if you wan
 
 ```json
 {
-  "overrides": [
-    {
-      "files": "*.sol",
-      "options": {
-        "printWidth": 80,
-        "tabWidth": 4,
-        "useTabs": true,
-        "singleQuote": false,
-        "bracketSpacing": true,
-        "explicitTypes": "always"
-      }
-    }
-  ]
+	"overrides": [
+		{
+			"files": "*.sol",
+			"options": {
+				"printWidth": 80,
+				"tabWidth": 4,
+				"useTabs": true,
+				"singleQuote": false,
+				"bracketSpacing": true,
+				"explicitTypes": "always"
+			}
+		}
+	]
 }
 ```
 
