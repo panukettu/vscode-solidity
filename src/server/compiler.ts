@@ -13,7 +13,7 @@ export let validatingAllDocuments = false;
 
 export let solcCompiler: SolcCompiler;
 export let compilerInitialized = false;
-export let isValidating = false;
+// export let isValidating = false;
 
 export let solcCachePath = "";
 const versionMap = new Map<string, number>();
