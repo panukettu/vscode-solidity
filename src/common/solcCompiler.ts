@@ -495,10 +495,7 @@ export class SolcCompiler {
 	): any {
 		const compiler = this.getCompiler(selectedCompiler);
 		try {
-			console.debug("Compiling");
-			const result = compiler.localSolc.compile(contracts);
-			console.debug("Returning");
-			return result;
+			return compiler.localSolc.compile(contracts);
 		} catch (e) {
 			console.debug("compile:", e);
 		}
@@ -546,7 +543,6 @@ export class SolcCompiler {
 				contracts.getDefaultSourceDocumentsForCompilationDiagnostics();
 
 			// contractsForCompilation.settings = null;
-			console.debug("Calling this.compile", !!this.compile);
 			const outputString = this.compile(
 				JSON.stringify(contractsForCompilation),
 				selectedCompiler,
@@ -565,7 +561,7 @@ export class SolcCompiler {
 					return output.errors.map((error) => errorToDiagnostic(error));
 				}
 			} catch (e: any) {
-				console.debug("compileSolidityDocumentAndGetDiagnosticErrors:", e);
+				// console.debug("compileSolidityDocumentAndGetDiagnosticErrors:", e);
 			}
 		}
 		return [];
