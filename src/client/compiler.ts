@@ -1,18 +1,11 @@
-"use strict";
-
-import * as fs from "fs";
-import * as path from "path";
-import * as fsex from "fs-extra";
-import * as vscode from "vscode";
-import {
-	RemoteCompilerDownloader,
-	RemoteReleases,
-	SolcCompiler,
-	compilerType,
-} from "../common/solcCompiler";
-import { SolidityConfig } from "../server/types";
-import { errorsToDiagnostics } from "./solErrorsToDiaganosticsClient";
-import * as workspaceUtil from "./workspaceUtil";
+import * as fs from 'fs';
+import * as path from 'path';
+import * as fsex from 'fs-extra';
+import * as vscode from 'vscode';
+import { CompilerType, RemoteCompilerDownloader, RemoteReleases, SolcCompiler } from '../common/solcCompiler';
+import { SolidityConfig } from '../server/types';
+import { errorsToDiagnostics } from './solErrorsToDiaganosticsClient';
+import * as workspaceUtil from './workspaceUtil';
 
 export class Compiler {
 	private solcCachePath: string;
@@ -21,7 +14,7 @@ export class Compiler {
 
 	constructor(solcCachePath: string) {
 		this.solcCachePath = solcCachePath;
-		this.outputChannel = vscode.window.createOutputChannel("Solidity Compiler");
+		this.outputChannel = vscode.window.createOutputChannel('Solidity Compiler');
 	}
 
 	public outputCompilerInfoEnsuringInitialised() {
@@ -33,33 +26,22 @@ export class Compiler {
 		try {
 			// tslint:disable-next-line:max-line-length
 			const compilers: string[] = [
-				compilerType[compilerType.remote],
-				compilerType[compilerType.localFile],
-				compilerType[compilerType.localNodeModule],
-				compilerType[compilerType.embedded],
+				CompilerType[CompilerType.Remote],
+				CompilerType[CompilerType.File],
+				CompilerType[CompilerType.NPM],
+				CompilerType[CompilerType.Default],
 			];
-			const selectedCompiler: string = await vscode.window.showQuickPick(
-				compilers,
-			);
-			vscode.workspace
-				.getConfiguration("solidity")
-				.update("defaultCompiler", selectedCompiler, target);
-			vscode.window.showInformationMessage(
-				`Compiler changed to: ${selectedCompiler}`,
-			);
+			const selectedCompiler: string = await vscode.window.showQuickPick(compilers);
+			vscode.workspace.getConfiguration('solidity').update('defaultCompiler', selectedCompiler, target);
+			vscode.window.showInformationMessage(`Compiler changed to: ${selectedCompiler}`);
 		} catch (e) {
 			vscode.window.showErrorMessage(`Error changing default compiler: ${e}`);
 		}
 	}
 
-	public async downloadRemoteVersionAndSetLocalPathSetting(
-		target: vscode.ConfigurationTarget,
-		folderPath: string,
-	) {
+	public async downloadRemoteVersionAndSetLocalPathSetting(target: vscode.ConfigurationTarget, folderPath: string) {
 		const downloadPath = await this.downloadRemoteVersion(folderPath);
-		vscode.workspace
-			.getConfiguration("solidity")
-			.update("compileUsingLocalVersion", downloadPath, target);
+		vscode.workspace.getConfiguration('solidity').update('compileUsingLocalVersion', downloadPath, target);
 	}
 
 	public async downloadRemoteVersion(folderPath: string): Promise<string> {
@@ -70,26 +52,17 @@ export class Compiler {
 			for (const release in releases) {
 				releasesToSelect.push(release);
 			}
-			const selectedVersion: string = await vscode.window.showQuickPick(
-				releasesToSelect,
-			);
-			let version = "";
+			const selectedVersion: string = await vscode.window.showQuickPick(releasesToSelect);
+			let version = '';
 
 			const value: string = releases[selectedVersion];
-			if (value !== "undefined") {
-				version = value.replace("soljson-", "");
-				version = version.replace(".js", "");
+			if (value !== 'undefined') {
+				version = value.replace('soljson-', '');
+				version = version.replace('.js', '');
 			}
-			const pathVersion = path.resolve(
-				path.join(folderPath, `soljson-${version}.js`),
-			);
-			await new RemoteCompilerDownloader().downloadCompilationFile(
-				version,
-				pathVersion,
-			);
-			vscode.window.showInformationMessage(
-				`Compiler downloaded: ${pathVersion}`,
-			);
+			const pathVersion = path.resolve(path.join(folderPath, `soljson-${version}.js`));
+			await new RemoteCompilerDownloader().downloadCompilationFile(version, pathVersion);
+			vscode.window.showInformationMessage(`Compiler downloaded: ${pathVersion}`);
 			return pathVersion;
 		} catch (e) {
 			vscode.window.showErrorMessage(`Error downloading compiler: ${e}`);
@@ -98,37 +71,36 @@ export class Compiler {
 
 	public async selectRemoteVersion(target: vscode.ConfigurationTarget) {
 		const releases = await this.getSolcReleases();
-		const releasesToSelect: string[] = ["none", "latest"];
+		const releasesToSelect: string[] = ['none', 'latest'];
 		// tslint:disable-next-line: forin
 		for (const release in releases) {
 			releasesToSelect.push(release);
 		}
 		vscode.window.showQuickPick(releasesToSelect).then((selected: string) => {
-			let updateValue = "";
-			if (selected !== "none") {
-				if (selected === "latest") {
+			let updateValue = '';
+			if (selected !== 'none') {
+				if (selected === 'latest') {
 					updateValue = selected;
 				} else {
 					const value: string = releases[selected];
-					if (value !== "undefined") {
-						updateValue = value.replace("soljson-", "");
-						updateValue = updateValue.replace(".js", "");
+					if (value !== 'undefined') {
+						updateValue = value.replace('soljson-', '');
+						updateValue = updateValue.replace('.js', '');
 					}
 				}
 			}
-			vscode.workspace
-				.getConfiguration("solidity")
-				.update("compileUsingRemoteVersion", updateValue, target);
+			vscode.workspace.getConfiguration('solidity').update('compileUsingRemoteVersion', updateValue, target);
 		});
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public getSolcReleases(): Promise<any> {
 		return new RemoteReleases().getSolcReleases();
 	}
 
 	public async outputSolcReleases() {
 		this.outputChannel.clear();
-		this.outputChannel.appendLine("Retrieving solc versions ..");
+		this.outputChannel.appendLine('Retrieving solc versions ..');
 		try {
 			const releases = await this.getSolcReleases();
 			// tslint:disable-next-line: forin
@@ -140,28 +112,36 @@ export class Compiler {
 		}
 	}
 
-	public async compile(
-		contracts: any,
-		diagnosticCollection: vscode.DiagnosticCollection,
-		buildDir: string,
-		rootDir: string,
-		sourceDir: string,
-		excludePath?: string[],
-		singleContractFilePath?: string,
-		overrideDefaultCompiler: compilerType = null,
-	): Promise<Array<string>> {
+	public async compile({
+		contracts,
+		diagnosticCollection,
+		buildDir,
+		rootDir,
+		sourceDir,
+		excludePath,
+		singleContractFilePath,
+		overrideDefaultCompiler,
+	}: {
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		contracts: any;
+		diagnosticCollection: vscode.DiagnosticCollection;
+		buildDir: string;
+		rootDir: string;
+		sourceDir: string;
+		excludePath?: string[];
+		singleContractFilePath?: string;
+		overrideDefaultCompiler?: CompilerType;
+	}): Promise<Array<string>> {
 		// Did we find any sol files after all?
 		if (Object.keys(contracts).length === 0) {
-			vscode.window.showWarningMessage("No solidity files (*.sol) found");
+			vscode.window.showWarningMessage('No solidity files (*.sol) found');
 			return;
 		}
 		return new Promise((resolve, reject) => {
 			this.initialiseCompiler(overrideDefaultCompiler).then(() => {
 				try {
-					const output = this.solc.compile(
-						JSON.stringify(contracts),
-						overrideDefaultCompiler,
-					);
+					this.outputChannel.appendLine(`Compiling ${Object.keys(contracts.sources).length} source files..`);
+					const output = this.solc.compile(JSON.stringify(contracts), overrideDefaultCompiler);
 					resolve(
 						this.processCompilationOutput(
 							output,
@@ -170,8 +150,8 @@ export class Compiler {
 							buildDir,
 							sourceDir,
 							excludePath,
-							singleContractFilePath,
-						),
+							singleContractFilePath
+						)
 					);
 				} catch (reason) {
 					vscode.window.showWarningMessage(reason);
@@ -181,53 +161,46 @@ export class Compiler {
 		});
 	}
 
-	private outputErrorsToChannel(
-		outputChannel: vscode.OutputChannel,
-		errors: any,
-	) {
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		errors.forEach((error) => {
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	private outputErrorsToChannel(outputChannel: vscode.OutputChannel, errors: any[]) {
+		for (const error of errors) {
 			outputChannel.appendLine(error.formattedMessage);
-		});
+		}
 		outputChannel.show();
 	}
 
-	private outputCompilerInfo(overrideDefaultCompiler: compilerType = null) {
+	private outputCompilerInfo(overrideDefaultCompiler: CompilerType = null) {
 		this.outputChannel.clear();
 		this.outputChannel.show();
-		this.outputChannel.appendLine("Retrieving compiler information:");
+		this.outputChannel.appendLine('Retrieving compiler information:');
 		const compiler = this.solc.getCompiler(overrideDefaultCompiler);
-		if (compiler.compilerType === compilerType.localFile) {
+		if (compiler.type === CompilerType.File) {
 			this.outputChannel.appendLine(
-				`Using local solc file: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`,
+				`Using local solc file: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`
 			);
 		}
 
-		if (compiler.compilerType === compilerType.localNodeModule) {
+		if (compiler.type === CompilerType.NPM) {
 			this.outputChannel.appendLine(
-				`Using solc from npm: ${compiler.getConfiguration()} version: ${compiler.getVersion()}`,
+				`Using solc from npm: ${compiler.getConfiguration()} version: ${compiler.getVersion()}`
 			);
 		}
 
-		if (compiler.compilerType === compilerType.remote) {
+		if (compiler.type === CompilerType.Remote) {
 			this.outputChannel.appendLine(
-				`Using remote solc: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`,
+				`Using remote solc: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`
 			);
 		}
 
-		if (compiler.compilerType === compilerType.embedded) {
-			this.outputChannel.appendLine(
-				`Using embedded solc: ${compiler.getVersion()}`,
-			);
+		if (compiler.type === CompilerType.Default) {
+			this.outputChannel.appendLine(`Using embedded solc: ${compiler.getVersion()}`);
 		}
 	}
 
-	private initialiseCompiler(
-		overrideDefaultCompiler: compilerType = null,
-	): Promise<void> {
+	private initialiseCompiler(compilerTypeOverride: CompilerType = null): Promise<void> {
 		const rootPath = workspaceUtil.getCurrentProjectInWorkspaceRootFsPath();
 
-		if (typeof this.solc === "undefined" || this.solc === null) {
+		if (this.solc == null) {
 			this.solc = new SolcCompiler(rootPath);
 			this.solc.setSolcCache(this.solcCachePath);
 		}
@@ -235,31 +208,22 @@ export class Compiler {
 		this.outputChannel.clear();
 		this.outputChannel.show();
 		const compileUsingRemoteVersion = vscode.workspace
-			.getConfiguration("solidity")
-			.get<string>("compileUsingRemoteVersion");
+			.getConfiguration('solidity')
+			.get<string>('compileUsingRemoteVersion');
 		const compileUsingLocalVersion = vscode.workspace
-			.getConfiguration("solidity")
-			.get<string>("compileUsingLocalVersion");
-		const compilerPackage = vscode.workspace
-			.getConfiguration("solidity")
-			.get<string>("compilerPackage");
-		const compilerSetting = vscode.workspace
-			.getConfiguration("solidity")
-			.get<string>("defaultCompiler");
-		const defaultCompiler = compilerType[compilerSetting];
-		this.outputChannel.appendLine("Initialising solc:");
+			.getConfiguration('solidity')
+			.get<string>('compileUsingLocalVersion');
+		const compilerPackage = vscode.workspace.getConfiguration('solidity').get<string>('compilerPackage');
+		const compilerSetting = vscode.workspace.getConfiguration('solidity').get<string>('compilerType');
+		const selectedType = CompilerType[compilerSetting];
+		this.outputChannel.appendLine('Compilers:');
 		this.outputChannel.appendLine(`Remote: ${compileUsingRemoteVersion}`);
 		this.outputChannel.appendLine(`Local: ${compileUsingLocalVersion}`);
-		this.outputChannel.appendLine(`NPM: ${compilerPackage}`);
-		this.outputChannel.appendLine(`Embedded: ${compilerSetting}`);
-		if (overrideDefaultCompiler != null) {
-			this.outputChannel.appendLine(
-				`Compiling with solc: ${compilerType[overrideDefaultCompiler]}`,
-			);
+		this.outputChannel.appendLine(`npm: ${compilerPackage}`);
+		if (compilerTypeOverride != null) {
+			this.outputChannel.appendLine(`Compiling with: ${CompilerType[compilerTypeOverride]}`);
 		}
-		this.outputChannel.appendLine(
-			"A few seconds as we may need to download the solc binaries...",
-		);
+		this.outputChannel.appendLine('A few seconds may be needed to download the solc binaries..');
 		return new Promise((resolve, reject) => {
 			try {
 				this.solc.initialiseAllCompilerSettings(
@@ -268,50 +232,50 @@ export class Compiler {
 						compileUsingLocalVersion,
 						compilerPackage,
 					} as SolidityConfig,
-					defaultCompiler,
+					selectedType
 				);
 
-				if (overrideDefaultCompiler == null) {
+				if (!compilerTypeOverride) {
 					this.solc
 						.initialiseSelectedCompiler()
 						.then(() => {
 							this.outputCompilerInfo();
 							resolve();
 						})
-						.catch((reason: any) => {
+						.catch((reason: string) => {
 							vscode.window.showWarningMessage(reason);
 							reject(reason);
 						});
 				} else {
 					this.solc
-						.initialiseCompiler(overrideDefaultCompiler)
+						.initialiseCompiler(compilerTypeOverride)
 						.then(() => {
-							this.outputCompilerInfo(overrideDefaultCompiler);
+							this.outputCompilerInfo(compilerTypeOverride);
 							resolve();
 						})
-						.catch((reason: any) => {
+						.catch((reason: string) => {
 							vscode.window.showWarningMessage(reason);
 							reject(reason);
 						});
 				}
 			} catch (e) {
-				console.debug("compiler", e.message);
+				console.debug('Compiler Initialization Failed:', e.message);
 			}
 		});
 	}
 
 	private processCompilationOutput(
-		outputString: any,
+		outputString: string,
 		outputChannel: vscode.OutputChannel,
 		diagnosticCollection: vscode.DiagnosticCollection,
 		buildDir: string,
 		sourceDir: string,
 		excludePath?: string[],
-		singleContractFilePath?: string,
+		singleContractFilePath?: string
 	): Array<string> {
 		const output = JSON.parse(outputString);
 		if (Object.keys(output).length === 0) {
-			const noOutputMessage = "No output from the compiler";
+			const noOutputMessage = 'Compiled but output is empty.';
 			vscode.window.showWarningMessage(noOutputMessage);
 			vscode.window.setStatusBarMessage(noOutputMessage);
 			outputChannel.appendLine(noOutputMessage);
@@ -319,51 +283,49 @@ export class Compiler {
 		}
 
 		diagnosticCollection.clear();
-
 		if (output.errors) {
-			const errorWarningCounts = errorsToDiagnostics(
-				diagnosticCollection,
-				output.errors,
-			);
+			const errorWarningCounts = errorsToDiagnostics(diagnosticCollection, output.errors);
 			this.outputErrorsToChannel(outputChannel, output.errors);
 
 			if (errorWarningCounts.errors > 0) {
-				const compilationWithErrorsMessage = `Compilation failed with ${errorWarningCounts.errors} errors`;
+				const compilationWithErrorsMessage = `Compile failed with ${errorWarningCounts.errors} errors`;
+				const warningMessage = errorWarningCounts.warnings > 0 ? ` and ${errorWarningCounts.warnings} warnings.` : '';
+				vscode.window.showErrorMessage(compilationWithErrorsMessage + warningMessage);
 				vscode.window.showErrorMessage(compilationWithErrorsMessage);
 				vscode.window.setStatusBarMessage(compilationWithErrorsMessage);
 				outputChannel.appendLine(compilationWithErrorsMessage);
-				if (errorWarningCounts.warnings > 0) {
-					vscode.window.showWarningMessage(
-						`Compilation had ${errorWarningCounts.warnings} warnings`,
-					);
-				}
 			} else if (errorWarningCounts.warnings > 0) {
 				const files = this.writeCompilationOutputToBuildDirectory(
 					output,
 					buildDir,
 					sourceDir,
 					excludePath,
-					singleContractFilePath,
+					singleContractFilePath
 				);
-				const compilationWithWarningsMessage = `Compilation completed! With ${errorWarningCounts.warnings} warnings`;
+				const compilationWithWarningsMessage = `Compiled with ${errorWarningCounts.warnings} warnings.`;
 				vscode.window.showWarningMessage(compilationWithWarningsMessage);
 				vscode.window.setStatusBarMessage(compilationWithWarningsMessage);
 				outputChannel.appendLine(compilationWithWarningsMessage);
 				return files;
 			}
 		} else {
-			const files = this.writeCompilationOutputToBuildDirectory(
-				output,
-				buildDir,
-				sourceDir,
-				excludePath,
-				singleContractFilePath,
-			);
-			const compilationSuccessMessage = "Compilation completed successfully!";
-			vscode.window.showInformationMessage(compilationSuccessMessage);
-			vscode.window.setStatusBarMessage(compilationSuccessMessage);
-			outputChannel.appendLine(compilationSuccessMessage);
-			return files;
+			try {
+				const files = this.writeCompilationOutputToBuildDirectory(
+					output,
+					buildDir,
+					sourceDir,
+					excludePath,
+					singleContractFilePath
+				);
+				const compilationSuccessMessage = 'Compiled succesfully.';
+				vscode.window.showInformationMessage(compilationSuccessMessage);
+				vscode.window.setStatusBarMessage(compilationSuccessMessage);
+				outputChannel.appendLine(compilationSuccessMessage);
+				return files;
+				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			} catch (e: any) {
+				this.outputChannel.appendLine(e.message);
+			}
 		}
 	}
 
@@ -377,11 +339,12 @@ export class Compiler {
 	}
 
 	private writeCompilationOutputToBuildDirectory(
-		output: any,
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		output: { contracts: any; sources: any },
 		buildDir: string,
 		sourceDir: string,
 		excludePath?: string[],
-		singleContractFilePath?: string,
+		singleContractFilePath?: string
 	): Array<string> {
 		const rootPath = workspaceUtil.getCurrentProjectInWorkspaceRootFsPath();
 		const binPath = path.join(rootPath, buildDir);
@@ -391,24 +354,18 @@ export class Compiler {
 			fs.mkdirSync(binPath);
 		}
 
-		if (
-			typeof singleContractFilePath !== "undefined" &&
-			singleContractFilePath !== null
-		) {
+		if (singleContractFilePath) {
 			const relativePath = path.relative(rootPath, singleContractFilePath);
 			const dirName = path.dirname(path.join(binPath, relativePath));
 			const outputCompilationPath = path.join(
 				dirName,
-				`${path.basename(singleContractFilePath, ".sol")}-solc-output.json`,
+				`${path.basename(singleContractFilePath, '.sol')}-solc-output.json`
 			);
 			this.ensureDirectoryExistence(outputCompilationPath);
 			fs.writeFileSync(outputCompilationPath, JSON.stringify(output, null, 4));
 		} else {
 			const dirName = binPath;
-			const outputCompilationPath = path.join(
-				dirName,
-				"solc-output-compile-all" + ".json",
-			);
+			const outputCompilationPath = path.join(dirName, 'solc-output-compile-all' + '.json');
 			this.ensureDirectoryExistence(outputCompilationPath);
 			if (fs.existsSync(outputCompilationPath)) {
 				fs.unlinkSync(outputCompilationPath);
@@ -427,6 +384,7 @@ export class Compiler {
 					// Output only source directory compilation or all (this will exclude external references)
 					if (!sourceDir || source.startsWith(sourceDir)) {
 						for (const contractName in output.contracts[source]) {
+							// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 							if (output.contracts[source].hasOwnProperty(contractName)) {
 								const contract = output.contracts[source][contractName];
 								const relativePath = path.relative(rootPath, source);
@@ -436,18 +394,9 @@ export class Compiler {
 									fsex.mkdirsSync(dirName);
 								}
 
-								const contractAbiPath = path.join(
-									dirName,
-									`${contractName}.abi`,
-								);
-								const contractBinPath = path.join(
-									dirName,
-									`${contractName}.bin`,
-								);
-								const contractJsonPath = path.join(
-									dirName,
-									`${contractName}.json`,
-								);
+								const contractAbiPath = path.join(dirName, `${contractName}.abi`);
+								const contractBinPath = path.join(dirName, `${contractName}.bin`);
+								const contractJsonPath = path.join(dirName, `${contractName}.json`);
 
 								if (fs.existsSync(contractAbiPath)) {
 									fs.unlinkSync(contractAbiPath);
@@ -464,14 +413,14 @@ export class Compiler {
 								fs.writeFileSync(contractBinPath, contract.evm.bytecode.object);
 								fs.writeFileSync(contractAbiPath, JSON.stringify(contract.abi));
 
-								let version = "";
+								let version = '';
 								try {
 									version = JSON.parse(contract.metadata).compiler.version;
 									// tslint:disable-next-line: no-empty
 								} catch {} // i could do a check for string.empty but this catches (literally :) ) all scenarios
 
 								const shortJsonOutput = {
-									contractName: contractName,
+									contractName,
 									// tslint:disable-next-line:object-literal-sort-keys
 									abi: contract.abi,
 									metadata: contract.metadata,
@@ -481,7 +430,7 @@ export class Compiler {
 									deployedSourceMap: contract.evm.deployedBytecode.sourceMap,
 									sourcePath: source,
 									compiler: {
-										name: "solc",
+										name: 'solc',
 										version: version,
 									},
 									ast: output.sources[source].ast,
@@ -489,10 +438,7 @@ export class Compiler {
 									gasEstimates: contract.evm.gasEstimates,
 								};
 
-								fs.writeFileSync(
-									contractJsonPath,
-									JSON.stringify(shortJsonOutput, null, 4),
-								);
+								fs.writeFileSync(contractJsonPath, JSON.stringify(shortJsonOutput, null, 4));
 								compiledFiles.push(contractJsonPath);
 							}
 						}

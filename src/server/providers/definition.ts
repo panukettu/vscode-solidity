@@ -1,117 +1,98 @@
-import * as vscode from "vscode-languageserver/node";
-import { ParsedCode } from "../code/ParsedCode";
-import { CodeWalkerService } from "../code/walker/codeWalkerService";
-import { selectedDocument } from "../utils";
-import { clearCaches } from "./utils/caches";
+import * as vscode from 'vscode-languageserver/node';
+import { ParsedCode } from '../code/ParsedCode';
+import { CodeWalkerService } from '../code/walker/codeWalkerService';
+import { clearCaches } from './utils/caches';
 
-export class SolidityDefinitionProvider {
-	public static currentOffset: number = 0;
-	public static currentItem: ParsedCode | null = null;
+export let currentOffset = 0;
+export let currentItem: ParsedCode | undefined;
 
-	public static provideDefinition(
-		document: vscode.TextDocument,
-		position: vscode.Position,
-		walker: CodeWalkerService,
-	): vscode.Location | vscode.Location[] {
-		try {
-			this.currentOffset = document.offsetAt(position);
-			const documentContractSelected = walker.getSelectedDocumentProfiler(
-				document,
-				position,
-			);
-			this.currentItem = documentContractSelected.getSelectedItem(
-				this.currentOffset,
-			);
+export const getDefinition = (document: vscode.TextDocument, position: vscode.Position, walker: CodeWalkerService) => {
+	try {
+		currentOffset = document.offsetAt(position);
+		const documentContractSelected = walker.getSelectedDocumentProfiler(document, position);
+		currentItem = documentContractSelected.getSelectedItem(currentOffset);
+		const references = documentContractSelected.getSelectedTypeReferenceLocation(currentOffset);
 
-			const references =
-				documentContractSelected.getSelectedTypeReferenceLocation(
-					this.currentOffset,
-				);
+		const foundLocations = references.filter((x) => x.location != null).map((x) => x.location);
 
-			const foundLocations = references
-				.filter((x) => x.location !== null)
-				.map((x) => x.location);
-			const result = this.removeDuplicates(foundLocations, ["range", "uri"]);
+		if (!foundLocations?.length) {
+			const item = documentContractSelected.findTypeInScope(currentItem.name);
 
-			if (!result.length) {
-				const item = documentContractSelected.findTypeInScope(
-					this.currentItem.name,
-				);
-
-				if (item?.getLocation) {
-					const location = item.getLocation();
-					result.push(location);
-				}
+			if (item?.getLocation) {
+				foundLocations.push(item.getLocation());
 			}
-			this.currentOffset = 0;
-			this.currentItem = null;
-			clearCaches();
-			return <vscode.Location[]>result;
-		} catch (e) {
-			clearCaches();
-			this.currentOffset = 0;
-			this.currentItem = null;
-			// console.debug("definition", e);
-			return null;
 		}
+		currentOffset = 0;
+		currentItem = null;
+		clearCaches();
+		return removeDuplicates(foundLocations);
+	} catch (e) {
+		clearCaches();
+		currentOffset = 0;
+		currentItem = null;
+		// console.debug('definition', e);
+		return null;
 	}
-	// public static getDefinition(
-	//   document: vscode.TextDocument,
-	//   position: vscode.Position,
-	//   walker: CodeWalkerService
-	// ): ParsedCode[] {
-	//   try {
-	//     this.currentOffset = document.offsetAt(position);
-	//     const documentContractSelected = walker.getSelectedDocument(
-	//       document,
-	//       position
-	//     );
-	//     this.currentItem = documentContractSelected.getSelectedItem(
-	//       this.currentOffset
-	//     );
+};
+const removeDuplicates = (foundLocations: vscode.Location[]) => {
+	return foundLocations.filter(
+		(v, i, a) => a.findIndex((t) => t.uri === v.uri && t.range.start === v.range.start) === i
+	);
+};
 
-	//     const references =
-	//       documentContractSelected.getSelectedTypeReferenceLocation(
-	//         this.currentOffset
-	//       );
+// return Object.values(
+// 	foundLocations.reduce((r: vscode.Location[], o) => {
+// 		const key = keys.map((k: string) => o[k]).join("|");
+// 		// tslint:disable-next-line:curly
+// 		if (r[key]) r[key].condition = [].concat(r[key].condition, o.condition);
+// 		// tslint:disable-next-line:curly
+// 		else r[key] = { ...o };
+// 		return r;
+// 	}, {}),
+// );
+// public static getDefinition(
+//   document: vscode.TextDocument,
+//   position: vscode.Position,
+//   walker: CodeWalkerService
+// ): ParsedCode[] {
+//   try {
+//     this.currentOffset = document.offsetAt(position);
+//     const documentContractSelected = walker.getSelectedDocument(
+//       document,
+//       position
+//     );
+//     this.currentItem = documentContractSelected.getSelectedItem(
+//       this.currentOffset
+//     );
 
-	//     console.debug(references);
-	//     const foundLocations = references
-	//       .filter((x) => x.location !== null)
-	//       .map((x) => x.reference);
+//     const references =
+//       documentContractSelected.getSelectedTypeReferenceLocation(
+//         this.currentOffset
+//       );
 
-	//     if (foundLocations.length) {
-	//       const item = documentContractSelected.findTypeInScope(
-	//         this.currentItem.name
-	//       );
+//     console.debug(references);
+//     const foundLocations = references
+//       .filter((x) => x.location !== null)
+//       .map((x) => x.reference);
 
-	//       if (item) {
-	//         foundLocations.push(item);
-	//       }
-	//     }
-	//     this.currentOffset = 0;
-	//     this.currentItem = null;
-	//     clearCaches();
-	//     return foundLocations;
-	//   } catch (e) {
-	//     clearCaches();
-	//     this.currentOffset = 0;
-	//     this.currentItem = null;
-	//     // console.debug("Definition", e);
-	//     return null;
-	//   }
-	// }
+//     if (foundLocations.length) {
+//       const item = documentContractSelected.findTypeInScope(
+//         this.currentItem.name
+//       );
 
-	public static removeDuplicates(foundLocations: any[], keys: string[]) {
-		return Object.values(
-			foundLocations.reduce((r, o: any) => {
-				const key = keys.map((k) => o[k]).join("|");
-				// tslint:disable-next-line:curly
-				if (r[key]) r[key].condition = [].concat(r[key].condition, o.condition);
-				// tslint:disable-next-line:curly
-				else r[key] = { ...o };
-				return r;
-			}, {}),
-		);
-	}
-}
+//       if (item) {
+//         foundLocations.push(item);
+//       }
+//     }
+//     this.currentOffset = 0;
+//     this.currentItem = null;
+//     clearCaches();
+//     return foundLocations;
+//   } catch (e) {
+//     clearCaches();
+//     this.currentOffset = 0;
+//     this.currentItem = null;
+//     // console.debug("Definition", e);
+//     return null;
+//   }
+// }

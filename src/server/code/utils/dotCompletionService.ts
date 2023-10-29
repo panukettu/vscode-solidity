@@ -1,231 +1,204 @@
-import { CompletionItem, Position } from "vscode-languageserver";
-import { IParsedExpressionContainer } from "../IParsedExpressionContainer";
-import { ParsedDocument } from "../ParsedDocument";
-import {
-  ParsedExpression,
-  ParsedExpressionCall,
-  ParsedExpressionIdentifier,
-} from "../ParsedExpression";
-import { ParsedContract } from "../ParsedContract";
-import { ParsedDeclarationType } from "../ParsedDeclarationType";
+import { CompletionItem, Position } from 'vscode-languageserver';
+import { IParsedExpressionContainer } from '../IParsedExpressionContainer';
+import { ParsedContract } from '../ParsedContract';
+import { ParsedDocument } from '../ParsedDocument';
+import { ParsedExpression, ParsedExpressionCall, ParsedExpressionIdentifier } from '../ParsedExpression';
 
 export class AutoCompleteExpression {
-  public isVariable = false;
-  public isMethod = false;
-  public isArray = false;
-  public parent: AutoCompleteExpression = null; // could be a property or a method
-  public child: AutoCompleteExpression = null;
-  public name = "";
+	public isVariable = false;
+	public isMethod = false;
+	public isArray = false;
+	public parent: AutoCompleteExpression = null; // could be a property or a method
+	public child: AutoCompleteExpression = null;
+	public name = '';
 
-  public getTopParent(): AutoCompleteExpression {
-    if (this.parent != null) {
-      return this.parent.getTopParent();
-    }
-    return this;
-  }
+	public getTopParent(): AutoCompleteExpression {
+		if (this.parent != null) {
+			return this.parent.getTopParent();
+		}
+		return this;
+	}
 }
 
+// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export class DotCompletionService {
-  public static active = false;
-  public static getTriggeredByDotStart(
-    lines: string[],
-    position: Position
-  ): number {
-    let start = 0;
-    let triggeredByDot = false;
-    for (let i = position.character; i >= 0; i--) {
-      if (lines[position.line[i]] === " ") {
-        triggeredByDot = false;
-        i = 0;
-        start = 0;
-      }
-      if (lines[position.line][i] === ".") {
-        start = i;
-        i = 0;
-        triggeredByDot = true;
-      }
-    }
-    return start;
-  }
+	public static active = false;
+	public static getTriggeredByDotStart(lines: string[], position: Position): number {
+		let start = 0;
+		let triggeredByDot = false;
+		for (let i = position.character; i >= 0; i--) {
+			if (lines[position.line[i]] === ' ') {
+				triggeredByDot = false;
+				i = 0;
+				start = 0;
+			}
+			if (lines[position.line][i] === '.') {
+				start = i;
+				i = 0;
+				triggeredByDot = true;
+			}
+		}
+		return start;
+	}
 
-  public static convertAutoCompleteExpressionToParsedExpression(
-    autocompleteExpression: AutoCompleteExpression,
-    expressionChild: ParsedExpression,
-    document: ParsedDocument,
-    contract: ParsedContract,
-    expressionContainer: IParsedExpressionContainer
-  ): ParsedExpression {
-    let expression: ParsedExpression = null;
+	public static convertAutoCompleteExpressionToParsedExpression(
+		autocompleteExpression: AutoCompleteExpression,
+		expressionChild: ParsedExpression,
+		document: ParsedDocument,
+		contract: ParsedContract,
+		expressionContainer: IParsedExpressionContainer
+	): ParsedExpression {
+		let expression: ParsedExpression = null;
 
-    if (autocompleteExpression.isMethod) {
-      expression = new ParsedExpressionCall();
-    }
+		if (autocompleteExpression.isMethod) {
+			expression = new ParsedExpressionCall();
+		}
 
-    if (autocompleteExpression.isVariable) {
-      expression = new ParsedExpressionIdentifier();
-    }
+		if (autocompleteExpression.isVariable) {
+			expression = new ParsedExpressionIdentifier();
+		}
 
-    expression.name = autocompleteExpression.name;
-    expression.document = document;
-    expression.contract = contract;
-    expression.child = expressionChild;
-    expression.expressionContainer = expressionContainer;
-    if (autocompleteExpression.parent !== null) {
-      expression.parent = this.convertAutoCompleteExpressionToParsedExpression(
-        autocompleteExpression.parent,
-        expression,
-        document,
-        contract,
-        expressionContainer
-      );
-    }
+		expression.name = autocompleteExpression.name;
+		expression.document = document;
+		expression.contract = contract;
+		expression.child = expressionChild;
+		expression.expressionContainer = expressionContainer;
+		if (autocompleteExpression.parent != null) {
+			expression.parent = this.convertAutoCompleteExpressionToParsedExpression(
+				autocompleteExpression.parent,
+				expression,
+				document,
+				contract,
+				expressionContainer
+			);
+		}
 
-    return expression;
-  }
+		return expression;
+	}
 
-  public static getSelectedDocumentDotCompletionItems(
-    lines: string[],
-    position: Position,
-    triggeredByDotStart: number,
-    documentSelected: ParsedDocument,
-    offset: number,
-    skipFirstParamSnipppet = false
-  ): CompletionItem[] {
-    let contractSelected: ParsedContract = null;
-    let expressionContainer: IParsedExpressionContainer = null;
+	public static getSelectedDocumentDotCompletionItems(
+		lines: string[],
+		position: Position,
+		triggeredByDotStart: number,
+		documentSelected: ParsedDocument,
+		offset: number,
+		skipFirstParamSnipppet = false
+	): CompletionItem[] {
+		let contractSelected: ParsedContract = null;
+		let expressionContainer: IParsedExpressionContainer = null;
 
-    if (
-      documentSelected.selectedContract === null ||
-      documentSelected.selectedContract === undefined
-    ) {
-      expressionContainer = documentSelected;
-    } else {
-      contractSelected = documentSelected.selectedContract;
-      const functionSelected =
-        documentSelected.selectedContract.getSelectedFunction(offset);
-      if (!functionSelected) {
-        expressionContainer = contractSelected;
-      } else {
-        expressionContainer = functionSelected;
-      }
-    }
+		if (documentSelected.selectedContract == null) {
+			expressionContainer = documentSelected;
+		} else {
+			contractSelected = documentSelected.selectedContract;
+			const functionSelected = documentSelected.selectedContract.getSelectedFunction(offset);
+			if (!functionSelected) {
+				expressionContainer = contractSelected;
+			} else {
+				expressionContainer = functionSelected;
+			}
+		}
 
-    const autocompleteByDot = this.buildAutoCompleteExpression(
-      lines[position.line],
-      triggeredByDotStart - 1
-    );
-    const expression = this.convertAutoCompleteExpressionToParsedExpression(
-      autocompleteByDot,
-      null,
-      documentSelected,
-      contractSelected,
-      expressionContainer
-    );
+		const autocompleteByDot = this.buildAutoCompleteExpression(lines[position.line], triggeredByDotStart - 1);
+		const expression = this.convertAutoCompleteExpressionToParsedExpression(
+			autocompleteByDot,
+			null,
+			documentSelected,
+			contractSelected,
+			expressionContainer
+		);
 
-    if (expression instanceof ParsedExpressionCall) {
-      return expression.getInnerCompletionItems(true);
-    } else if (expression instanceof ParsedExpressionIdentifier) {
-      return expression.getInnerCompletionItems(true);
-    } else {
-      return expression.getInnerCompletionItems();
-    }
-  }
+		if (expression instanceof ParsedExpressionCall) {
+			return expression.getInnerCompletionItems(true);
+		} else if (expression instanceof ParsedExpressionIdentifier) {
+			return expression.getInnerCompletionItems(true);
+		} else {
+			return expression.getInnerCompletionItems();
+		}
+	}
 
-  public static buildAutoCompleteExpression(
-    lineText: string,
-    wordEndPosition: number
-  ): AutoCompleteExpression {
-    let searching = true;
-    const result: AutoCompleteExpression = new AutoCompleteExpression();
-    // simpler way might be to find the first space or beginning of line
-    // and from there split / match (but for now kiss or slowly)
+	public static buildAutoCompleteExpression(lineText: string, wordEndPosition: number): AutoCompleteExpression {
+		let searching = true;
+		const result: AutoCompleteExpression = new AutoCompleteExpression();
+		// simpler way might be to find the first space or beginning of line
+		// and from there split / match (but for now kiss or slowly)
 
-    wordEndPosition = this.getArrayStart(lineText, wordEndPosition, result);
+		wordEndPosition = this.getArrayStart(lineText, wordEndPosition, result);
 
-    if (lineText[wordEndPosition] === ")") {
-      result.isMethod = true;
-      let methodParamBeginFound = false;
-      while (!methodParamBeginFound && wordEndPosition >= 0) {
-        if (lineText[wordEndPosition] === "(") {
-          methodParamBeginFound = true;
-        }
-        wordEndPosition = wordEndPosition - 1;
-      }
-    }
+		if (lineText[wordEndPosition] === ')') {
+			result.isMethod = true;
+			let methodParamBeginFound = false;
+			while (!methodParamBeginFound && wordEndPosition >= 0) {
+				if (lineText[wordEndPosition] === '(') {
+					methodParamBeginFound = true;
+				}
+				wordEndPosition = wordEndPosition - 1;
+			}
+		}
 
-    if (!result.isMethod && !result.isArray) {
-      result.isVariable = true;
-    }
+		if (!result.isMethod && !result.isArray) {
+			result.isVariable = true;
+		}
 
-    while (searching && wordEndPosition >= 0) {
-      const currentChar = lineText[wordEndPosition];
-      if (
-        this.isAlphaNumeric(currentChar) ||
-        currentChar === "_" ||
-        currentChar === "$"
-      ) {
-        result.name = currentChar + result.name;
-        wordEndPosition = wordEndPosition - 1;
-      } else {
-        if (currentChar === " ") {
-          // we only want a full word for a variable / method // this cannot be parsed due incomplete statements
-          searching = false;
-          return result;
-        } else {
-          if (currentChar === ".") {
-            result.parent = this.buildAutoCompleteExpression(
-              lineText,
-              wordEndPosition - 1
-            );
-            result.parent.child = result;
-          }
-        }
-        searching = false;
-        return result;
-      }
-    }
+		while (searching && wordEndPosition >= 0) {
+			const currentChar = lineText[wordEndPosition];
+			if (this.isAlphaNumeric(currentChar) || currentChar === '_' || currentChar === '$') {
+				result.name = currentChar + result.name;
+				wordEndPosition = wordEndPosition - 1;
+			} else {
+				if (currentChar === ' ') {
+					// we only want a full word for a variable / method // this cannot be parsed due incomplete statements
+					searching = false;
+					return result;
+				} else {
+					if (currentChar === '.') {
+						result.parent = this.buildAutoCompleteExpression(lineText, wordEndPosition - 1);
+						result.parent.child = result;
+					}
+				}
+				searching = false;
+				return result;
+			}
+		}
 
-    return result;
-  }
+		return result;
+	}
 
-  public static getArrayStart(
-    lineText: string,
-    wordEndPosition: number,
-    result: AutoCompleteExpression
-  ) {
-    if (lineText[wordEndPosition] === "]") {
-      result.isArray = true;
-      let arrayBeginFound = false;
-      while (!arrayBeginFound && wordEndPosition >= 0) {
-        if (lineText[wordEndPosition] === "[") {
-          arrayBeginFound = true;
-        }
-        wordEndPosition = wordEndPosition - 1;
-      }
-    }
-    if (lineText[wordEndPosition] === "]") {
-      wordEndPosition = this.getArrayStart(lineText, wordEndPosition, result);
-    }
-    return wordEndPosition;
-  }
+	public static getArrayStart(lineText: string, wordEndPosition: number, result: AutoCompleteExpression) {
+		if (lineText[wordEndPosition] === ']') {
+			result.isArray = true;
+			let arrayBeginFound = false;
+			while (!arrayBeginFound && wordEndPosition >= 0) {
+				if (lineText[wordEndPosition] === '[') {
+					arrayBeginFound = true;
+				}
+				wordEndPosition = wordEndPosition - 1;
+			}
+		}
+		if (lineText[wordEndPosition] === ']') {
+			wordEndPosition = this.getArrayStart(lineText, wordEndPosition, result);
+		}
+		return wordEndPosition;
+	}
 
-  private static isAlphaNumeric(str) {
-    let code, i, len;
-    for (i = 0, len = str.length; i < len; i++) {
-      code = str.charCodeAt(i);
-      if (
-        !(code > 47 && code < 58) && // numeric (0-9)
-        !(code > 64 && code < 91) && // upper alpha (A-Z)
-        !(code > 96 && code < 123)
-      ) {
-        // lower alpha (a-z)
-        return false;
-      }
-    }
-    return true;
-  }
+	private static isAlphaNumeric(str) {
+		let code, i, len;
+		for (i = 0, len = str.length; i < len; i++) {
+			code = str.charCodeAt(i);
+			if (
+				!(code > 47 && code < 58) && // numeric (0-9)
+				!(code > 64 && code < 91) && // upper alpha (A-Z)
+				!(code > 96 && code < 123)
+			) {
+				// lower alpha (a-z)
+				return false;
+			}
+		}
+		return true;
+	}
+}
 
-  /*
+/*
     public static getSelectedDocumentDotCompletionItems(lines: string[],
                                                         position: Position,
                                                         triggeredByDotStart: number,
@@ -472,5 +445,4 @@ export class DotCompletionService {
             }
         });
         */
-  /* } */
-}
+/* } */

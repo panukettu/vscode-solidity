@@ -1,10 +1,11 @@
-import * as vscode from "vscode-languageserver/node";
-import { compilerType } from "../common/solcCompiler";
-import { ParsedDocument } from "./code/ParsedDocument";
+import * as vscode from 'vscode-languageserver/node';
+import { CompilerType } from '../common/solcCompiler';
+import { ParsedDocument } from './code/ParsedDocument';
 
 //DocumentExecuteCommand
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type CommandParamsBase = [{ uri: { external: string } }, any[]];
-export interface SolidityConfig<T = compilerType> {
+export interface SolidityConfig {
 	// option for backward compatibilities, please use "linter" option instead
 	linter: boolean | string;
 	validateOnSave: boolean;
@@ -13,9 +14,10 @@ export interface SolidityConfig<T = compilerType> {
 	compileUsingLocalVersion: string;
 	compileUsingRemoteVersion: string;
 	compilerPackage: string;
-	defaultCompiler: T;
-	solhintRules: any;
+	compilerType: CompilerType;
+	solhintRules: object;
 	initExclude: string[];
+	outDir: string;
 	validationDelay: number;
 	libs: string[];
 	libSources: string[];
@@ -34,6 +36,7 @@ export type ExtendedSettings = {
 };
 
 export interface Linter {
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	setIdeRules(rules: any);
 	validate(filePath: string, documentText: string): vscode.Diagnostic[];
 	loadFileConfig(rootPath: string);
@@ -46,10 +49,11 @@ export type ProviderRequestHelp = {
 	position: vscode.Position;
 	currentRange?: vscode.Range;
 	selectedDocument?: ParsedDocument;
-	action?: "definition" | "references" | "hover";
+	action?: 'definition' | 'references' | 'hover';
 };
 
 export interface CompilerError {
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	diagnostic: any;
 	fileName: string;
 }

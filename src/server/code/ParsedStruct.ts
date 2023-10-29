@@ -1,24 +1,21 @@
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-import { providerRequest } from "../providers/utils/common";
-import { TypeReference } from "../search/TypeReference";
-import { ParsedCode } from "./ParsedCode";
-import { ParsedContract } from "./ParsedContract";
-import { ParsedDeclarationType } from "./ParsedDeclarationType";
-import { ParsedDocument } from "./ParsedDocument";
-import { ParsedEnum } from "./ParsedEnum";
-import { ParsedExpression } from "./ParsedExpression";
-import { ParsedFunction } from "./ParsedFunction";
-import { ParsedParameter } from "./ParsedParameter";
-import { ParsedStructVariable } from "./ParsedStructVariable";
-import { ParsedUsing } from "./ParsedUsing";
-import { Element, LiteralMapping } from "./types";
-import {
-	ParsedCodeTypeHelper,
-	valueTypeReg,
-} from "./utils/ParsedCodeTypeHelper";
+import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
+import { providerRequest } from '../providers/utils/common';
+import { TypeReference } from '../search/TypeReference';
+import { ParsedCode } from './ParsedCode';
+import { ParsedContract } from './ParsedContract';
+import { ParsedDeclarationType } from './ParsedDeclarationType';
+import { ParsedDocument } from './ParsedDocument';
+import { ParsedEnum } from './ParsedEnum';
+import { ParsedFunction } from './ParsedFunction';
+import { ParsedParameter } from './ParsedParameter';
+import { ParsedStructVariable } from './ParsedStructVariable';
+import { ParsedUsing } from './ParsedUsing';
+import { Element, ElementParams, LiteralMapping } from './types';
+import { valueTypeReg } from './utils/ParsedCodeTypeHelper';
 
 export class ParsedStruct extends ParsedCode {
 	public properties: ParsedStructVariable[] = [];
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public id: any;
 	private completionItem: CompletionItem = null;
 	public abiType: string;
@@ -29,50 +26,43 @@ export class ParsedStruct extends ParsedCode {
 
 	public type: ParsedDeclarationType;
 
-	public initialise(
-		element: any,
-		document: ParsedDocument,
-		contract: ParsedContract,
-		isGlobal: boolean,
-	) {
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	public initialise(element: any, document: ParsedDocument, contract: ParsedContract, isGlobal: boolean) {
 		this.contract = contract;
 		this.element = element;
 		this.id = element.id;
 		this.name = element?.name ? element.name : element.id;
 		this.document = document;
 		this.isGlobal = isGlobal;
-		this.usings = document.usings.filter(
-			(u) => this?.name && u.for?.name && u.for.name === this.name,
-		);
+		this.usings = document.usings.filter((u) => this?.name && u.for?.name && u.for.name === this.name);
 		if (contract) {
 			this.usings = this.usings.concat(
-				contract.using.filter(
-					(u) => this?.name && u.for?.name && u.for.name === this.name,
-				),
+				contract.using.filter((u) => this?.name && u.for?.name && u.for.name === this.name)
 			);
 		}
 		if (this.element.body?.length) {
-			this.element.body.forEach((structBodyElement) => {
-				if (structBodyElement.type === "DeclarativeExpression") {
-					const literalType = structBodyElement.literal.literal;
+			for (const item of this.element.body) {
+				if (item.type === 'DeclarativeExpression') {
+					const literalType = item.literal.literal;
 
-					const isMapping = literalType?.type === "MappingExpression";
-					const isValueType =
-						!isMapping && valueTypeReg.test(literalType as unknown as string);
+					const isMapping = literalType?.type === 'MappingExpression';
+					const isValueType = !isMapping && valueTypeReg.test(literalType as unknown as string);
 					let typeRef: ParsedStruct | ParsedEnum;
 					const hasContract = !!contract?.findType;
 					if (!isValueType && !isMapping) {
 						if (hasContract) {
+							// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 							typeRef = contract.findType(literalType as any) as typeof typeRef;
 						}
 						if (!typeRef?.name && document?.findType) {
+							// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 							typeRef = document.findType(literalType as any) as typeof typeRef;
 						}
 					} else if (isMapping) {
 						const toType = (literalType as LiteralMapping).to.literal;
 
-						let resultingType = "";
-						if (toType.type === "MappingExpression") {
+						let resultingType = '';
+						if (toType.type === 'MappingExpression') {
 							resultingType = toType.to.literal;
 						} else {
 							resultingType = toType;
@@ -82,9 +72,7 @@ export class ParsedStruct extends ParsedCode {
 
 						if (!isValueType) {
 							if (providerRequest.selectedDocument) {
-								typeRef = providerRequest.selectedDocument.findType(
-									resultingType,
-								) as typeof typeRef;
+								typeRef = providerRequest.selectedDocument.findType(resultingType) as typeof typeRef;
 							}
 							if (!typeRef?.name && hasContract) {
 								typeRef = contract.findType(resultingType) as typeof typeRef;
@@ -96,23 +84,16 @@ export class ParsedStruct extends ParsedCode {
 					}
 
 					const variable = new ParsedStructVariable();
-					variable.initialiseStructVariable(
-						structBodyElement,
-						this.contract,
-						this.document,
-						this,
-						typeRef,
-					);
+					variable.initialiseStructVariable(item, this.contract, this.document, this, typeRef);
 
 					if (isMapping) {
 						this.hasMapping = true;
 					}
 					this.properties.push(variable);
 				}
-			});
-			this.abiType = this.hasMapping
-				? "invalid"
-				: `(${this.properties.map((p) => p.abiType)})`;
+			}
+
+			this.abiType = this.hasMapping ? 'invalid' : `(${this.properties.map((p) => p.abiType)})`;
 		} else {
 			// console.debug("No body for struct", element);
 		}
@@ -140,9 +121,7 @@ export class ParsedStruct extends ParsedCode {
 		return null;
 	}
 
-	public override getSelectedTypeReferenceLocation(
-		offset: number,
-	): TypeReference[] {
+	public override getSelectedTypeReferenceLocation(offset: number): TypeReference[] {
 		if (this.isCurrentElementedSelected(offset)) {
 			const variableSelected = this.getVariableSelected(offset);
 			if (variableSelected !== undefined) {
@@ -155,12 +134,12 @@ export class ParsedStruct extends ParsedCode {
 	}
 
 	public createCompletionItem(): CompletionItem {
-		if (this.completionItem === null) {
+		if (!this.completionItem) {
 			const completionItem = this.initCompletionItem();
 			completionItem.kind = CompletionItemKind.Struct;
 			completionItem.insertText = this.name;
 			completionItem.detail = this.getDetail();
-			completionItem.documentation = this.getMarkupInfo();
+			completionItem.documentation = this.getMarkupInfo(true);
 			this.completionItem = completionItem;
 		}
 		return this.completionItem;
@@ -168,14 +147,19 @@ export class ParsedStruct extends ParsedCode {
 
 	public override getInnerCompletionItems(): CompletionItem[] {
 		const completionItems: CompletionItem[] = [];
-		this.properties.forEach((x) =>
-			completionItems.push(x.createCompletionItem()),
-		);
+		for (const property of this.properties) {
+			completionItems.push(property.createCompletionItem());
+		}
+
 		const extendedItems = this.getExtendedMethodCallsFromUsing();
 		if (extendedItems?.length > 0) {
-			extendedItems.forEach((x: ParsedFunction) =>
-				completionItems.push(x.createCompletionItem(true)),
-			);
+			for (const item of extendedItems) {
+				if (item instanceof ParsedFunction) {
+					completionItems.push(item.createCompletionItem(true));
+				} else {
+					completionItems.push(item.createCompletionItem());
+				}
+			}
 		}
 		return completionItems;
 	}
@@ -183,54 +167,35 @@ export class ParsedStruct extends ParsedCode {
 	public getExtendedMethodCallsFromUsing(): ParsedCode[] {
 		let result: ParsedCode[] = [];
 		if (!this.usings.length) return result;
+		for (const usingItem of this.usings) {
+			const foundLibrary = this.document.getAllContracts().find((x) => x.name === usingItem.name);
 
-		this.usings.forEach((usingItem) => {
-			const foundLibrary = this.document
-				.getAllContracts()
-				.find((x) => x.name === usingItem.name);
+			if (!foundLibrary) continue;
 
-			if (foundLibrary !== undefined) {
-				result = result.concat(
-					foundLibrary
-						.getAllFunctions()
-						.filter(
-							(x) => x.input.length > 0 && x.input[0].type.name === this.name,
-						),
-				);
-			}
-		});
-
+			const allFuncs = foundLibrary.getAllFunctions();
+			result = result.concat(allFuncs.filter((x) => x.input.length > 0 && x.input[0].type.name === this.name));
+		}
 		return result;
 	}
 
-	public findExtendedMethodCall(
-		name: string,
-	): [ParsedContract[], ParsedFunction[]] {
+	public findExtendedMethodCall(name: string): [ParsedContract[], ParsedFunction[]] {
 		let result: ParsedFunction[] = [];
-		let resultLibs: ParsedContract[] = [];
+		const resultLibs: ParsedContract[] = [];
 		if (!this.usings.length) return [resultLibs, result];
 
-		this.usings.forEach((usingItem) => {
-			const foundLibrary = this.document
-				.getAllContracts()
-				.find((x) => x.name === usingItem.name);
+		for (const usingItem of this.usings) {
+			const foundLibrary = this.document.getAllContracts().find((x) => x.name === usingItem.name);
 
-			if (foundLibrary !== undefined) {
-				const resultsTHis = foundLibrary
-					.getAllFunctions()
-					.filter((x) => x.name === name);
-				result = result.concat(resultsTHis);
+			if (!foundLibrary) continue;
+			const results = foundLibrary.getAllFunctions().filter((x) => x.name === name);
+			result = result.concat(results);
 
-				if (resultsTHis.length > 0) resultLibs.push(foundLibrary);
-			}
-		});
+			if (results.length > 0) resultLibs.push(foundLibrary);
+		}
 
 		return [resultLibs, result];
 	}
-	public getAllReferencesToSelected(
-		offset: number,
-		documents: ParsedDocument[],
-	): TypeReference[] {
+	public getAllReferencesToSelected(offset: number, documents: ParsedDocument[]): TypeReference[] {
 		if (this.isCurrentElementedSelected(offset)) {
 			const selectedProperty = this.getSelectedProperty(offset);
 			if (selectedProperty !== undefined) {
@@ -246,52 +211,38 @@ export class ParsedStruct extends ParsedCode {
 		return this.properties.find((x) => x.isCurrentElementedSelected(offset));
 	}
 	public override getContractNameOrGlobal(): string {
-		return "";
+		return '';
 	}
 	public getDetail() {
 		return this.isGlobal
-			? `File Level ${this.getParsedObjectType()}`
-			: this.getParsedObjectType();
+			? `(File level) ${this.getParsedObjectType()}: ${this.getElementInfo()}`
+			: `${this.getParsedObjectType()}: ${this.getElementInfo()}`;
 	}
 
 	public override getParsedObjectType(): string {
-		return "Struct";
+		return 'Struct';
 	}
 	public getElementInfo() {
-		let storageType = "";
+		let storageType = '';
 		if (this.hasMapping) {
-			storageType = "storage";
+			storageType = 'storage';
 		}
 
-		return this.name + (storageType ? ` ${storageType}` : "");
+		return this.name + (storageType ? ` ${storageType}` : '');
+	}
+	public override getShortInfo(): string {
+		return `${this.createShortInfo(`${this.getRootName(true)}:`, this.getElementInfo())}`;
 	}
 	public override getInfo(): string {
 		const properties =
 			this.properties.length > 0
 				? this.properties
 						.map((p) =>
-							p
-								? "\t" +
-								  ParsedParameter.getParamInfo(p.element as any) +
-								  " " +
-								  p.name +
-								  "\n"
-								: "",
+							p ? `\t${ParsedParameter.getParamInfo(p.element as unknown as ElementParams)} ${p.name}\n` : ''
 						)
-						.join("")
-				: "";
+						.join('')
+				: '';
 
-		return (
-			this.createInfo(
-				this.getRootName(),
-				"",
-				this.getElementInfo(),
-				undefined,
-				true,
-				false,
-			) +
-			"\n" +
-			properties
-		);
+		return `${this.createInfo(this.getRootName(), '', this.getElementInfo(), undefined, true, false)}\n${properties}`;
 	}
 }

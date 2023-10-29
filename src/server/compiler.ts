@@ -1,21 +1,18 @@
-import debounce from "lodash.debounce";
-// import throttle from "lodash.throttle";
-import * as vscode from "vscode-languageserver/node";
-import { URI } from "vscode-uri";
-import { SolcCompiler, compilerType } from "../common/solcCompiler";
-import { connection, documents } from "../server";
-import { config, settings } from "./settings";
-import { CompilerError } from "./types";
-import { initCommon } from "./utils";
-// flags to avoid trigger concurrent validations (compiling is slow)
+import debounce from 'lodash.debounce';
+import * as vscode from 'vscode-languageserver/node';
+import { URI } from 'vscode-uri';
+import { CompilerType, SolcCompiler } from '../common/solcCompiler';
+import { connection } from '../server';
+import { config as configImport, settings } from './settings';
+import { CompilerError, SolidityConfig } from './types';
+import { initCommon } from './utils';
 export let validatingDocument = false;
 export let validatingAllDocuments = false;
 
 export let solcCompiler: SolcCompiler;
 export let compilerInitialized = false;
-// export let isValidating = false;
+export let solcCachePath = '';
 
-export let solcCachePath = "";
 const versionMap = new Map<string, number>();
 
 export function initCompiler(params: vscode.InitializeParams) {
@@ -23,14 +20,10 @@ export function initCompiler(params: vscode.InitializeParams) {
 	solcCompiler = new SolcCompiler(settings.rootPath);
 	solcCompiler.setSolcCache(solcCachePath);
 }
-const validateDebounced = debounce(validate, config.validationDelay, {
+const validateDebounced = debounce(validate, configImport.validationDelay, {
 	leading: false,
 	trailing: true,
 });
-// const validateThrottle = throttle(validate, config.validationDelay, {
-// 	leading: false,
-// 	trailing: true,
-// });
 
 export function validateDocument(document: vscode.TextDocument) {
 	const version = versionMap.get(document.uri);
@@ -54,30 +47,25 @@ export function validateAllDocuments() {
 	}
 }
 
-export async function initCompilerSettings() {
-	// return;
-
-	solcCompiler.initialiseAllCompilerSettings(config, config.defaultCompiler);
-
-	solcCompiler
-		.initialiseSelectedCompiler()
-		.then(() => {
-			connection.console.info(
-				`Compiler initialized: ${compilerType[config.defaultCompiler]}`,
-			);
-			// validateAllDocuments();
-		})
-		.catch((reason) => {
-			connection.console.error(
-				`Compiler initialization failed: ${
-					compilerType[config.defaultCompiler]
-				}, reverting to embedded compiler. Error: ${reason}`,
-			);
-			solcCompiler.initialiseAllCompilerSettings(config, compilerType.embedded);
-			solcCompiler.initialiseSelectedCompiler()
-
-			.catch(() => {});
-		});
+export async function initCompilerSettings(config: SolidityConfig) {
+	try {
+		solcCompiler.initialiseAllCompilerSettings(config, config.compilerType);
+		await solcCompiler.initialiseSelectedCompiler();
+		connection.console.info(
+			`${CompilerType[solcCompiler.type]} solc ready (${solcCompiler.getCompiler().getVersion()})`
+		);
+	} catch (reason) {
+		connection.console.error(
+			`${CompilerType[config.compilerType]} solc setup failed: ${reason}. Trying to use default.`
+		);
+		solcCompiler.initialiseAllCompilerSettings(config, CompilerType.Default);
+		connection.console.info(`Default solc ready (${solcCompiler.getCompiler().getVersion()})`);
+		try {
+			await solcCompiler.initialiseSelectedCompiler();
+		} catch (e) {
+			console.debug('Unhandled:', e);
+		}
+	}
 
 	compilerInitialized = true;
 }
@@ -94,28 +82,28 @@ export function validate(document: vscode.TextDocument) {
 		let linterDiagnostics: vscode.Diagnostic[] = [];
 		const compileErrorDiagnostics: vscode.Diagnostic[] = [];
 		try {
-			if (settings.linter !== null) {
+			if (settings.linter != null) {
 				linterDiagnostics = settings.linter.validate(filePath, documentText);
 			}
 		} catch (e) {
 			// console.debug("linter:", e);
 		}
-		if (config.validateOnChange || config.validateOnOpen) {
+		if (configImport.validateOnChange || configImport.validateOnOpen) {
 			try {
-				const errors: CompilerError[] =
-					solcCompiler.compileSolidityDocumentAndGetDiagnosticErrors(
-						filePath,
-						documentText,
-						config,
-					);
-				errors.forEach((errorItem) => {
+				const errors: CompilerError[] = solcCompiler.compileSolidityDocumentAndGetDiagnosticErrors(
+					filePath,
+					documentText,
+					configImport,
+					configImport.compilerType
+				);
+				for (const errorItem of errors) {
 					const uriCompileError = URI.file(errorItem.fileName);
 					if (uriCompileError.toString() === uri) {
 						compileErrorDiagnostics.push(errorItem.diagnostic);
 					}
-				});
+				}
 			} catch (e) {
-				console.debug("validate:", e);
+				console.debug('Unhandled:', e);
 			}
 		}
 

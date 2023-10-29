@@ -1,25 +1,19 @@
-"use strict";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import * as toml from "@iarna/toml";
-import * as yaml from "yaml-js";
-import { SolidityConfig } from "../server/types";
-import { Package } from "./model/package";
-import { Project } from "./model/project";
-import * as util from "./util";
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as toml from '@iarna/toml';
+import * as yaml from 'yaml-js';
+import { SolidityConfig } from '../server/types';
+import { Package } from './model/package';
+import { Project } from './model/project';
+import * as util from './util';
 
-// TODO: These are temporary constants until standard agreed
-// A project standard is needed so each project can define where it store its project dependencies
-// and if are relative or at project source
-// also versioning (as it was defined years ago)
-
-const packageConfigFileName = "dappFile";
-const remappingConfigFileName = "remappings.txt";
-const brownieConfigFileName = "brownie-config.yaml";
-const hardhatConfigFileName = "hardhat.config.js";
-const truffleConfigFileName = "truffle-config.js";
-const foundryConfigFileName = "foundry.toml";
+const packageConfigFileName = 'dappFile';
+const remappingConfigFileName = 'remappings.txt';
+const brownieConfigFileName = 'brownie-config.yaml';
+const hardhatConfigFileName = 'hardhat.config.js';
+const truffleConfigFileName = 'truffle-config.js';
+const foundryConfigFileName = 'foundry.toml';
 
 const projectFilesAtRoot = [
 	remappingConfigFileName,
@@ -31,18 +25,15 @@ const projectFilesAtRoot = [
 ];
 
 // These are set using user configuration settings
-let libLocations = "lib";
-let defaultSourceLocation = "src";
-let sourceLocationsLibs = ["", "src", "contracts"];
+// const libLocations = 'lib';
+// const defaultSourceLocation = 'src';
+// const sourceLocationsLibs = ['', 'src', 'contracts'];
 
-export function findFirstRootProjectFile(
-	rootPath: string,
-	currentDocument: string,
-) {
+export function findFirstRootProjectFile(rootPath: string, currentDocument: string) {
 	return util.findDirUpwardsToCurrentDocumentThatContainsAtLeastFileNameSync(
 		projectFilesAtRoot,
 		currentDocument,
-		rootPath,
+		rootPath
 	);
 }
 
@@ -53,7 +44,7 @@ function readYamlSync(filePath: string) {
 
 export function initialiseProject(
 	rootPath: string,
-	config: SolidityConfig,
+	config: SolidityConfig
 ): {
 	project: Project;
 	sources: string;
@@ -71,39 +62,22 @@ export function initialiseProject(
 		sources = hardhatSource;
 	}
 
-	const projectPackage = createDefaultPackage(rootPath, sources);
+	const projectPackage = createDefaultPackage(rootPath, sources, config.outDir);
 
-	const dependencies: Package[] = loadAllPackageDependencies(
-		config.libs,
-		rootPath,
-		projectPackage,
-		config.libSources,
-	);
+	const dependencies: Package[] = loadAllPackageDependencies(config.libs, rootPath, projectPackage, config.libSources);
 	const remappings = loadRemappings(rootPath, config.remappings);
 	return {
-		project: new Project(
-			projectPackage,
-			dependencies,
-			config.libs,
-			remappings,
-			rootPath,
-		),
+		project: new Project(projectPackage, dependencies, config.libs, remappings, rootPath),
 		sources: sources,
 		remappings: remappings,
 	};
 }
 
-function loadAllPackageDependencies(
-	libs: string[],
-	rootPath: string,
-	projectPackage: Package,
-	sources: string[],
-) {
+function loadAllPackageDependencies(libs: string[], rootPath: string, projectPackage: Package, sources: string[]) {
 	let dependencies: Package[] = [];
+	// biome-ignore lint/complexity/noForEach: <explanation>
 	libs.forEach((libDirectory) => {
-		dependencies = dependencies.concat(
-			loadDependencies(rootPath, projectPackage, libDirectory, sources),
-		);
+		dependencies = dependencies.concat(loadDependencies(rootPath, projectPackage, libDirectory, sources));
 	});
 	return dependencies;
 }
@@ -113,7 +87,8 @@ function getSourcesLocationFromHardhatConfig(rootPath: string): string | null {
 		const hardhatConfigFile = path.join(rootPath, hardhatConfigFileName);
 		if (fs.existsSync(hardhatConfigFile)) {
 			const config = require(hardhatConfigFile);
-			const sourceLocation: string = config["paths"]["sources"];
+			// biome-ignore lint/complexity/useLiteralKeys: <explanation>
+			const sourceLocation: string = config['paths']['sources'];
 			if (sourceLocation) {
 				return sourceLocation;
 			}
@@ -124,18 +99,18 @@ function getSourcesLocationFromHardhatConfig(rootPath: string): string | null {
 		return null;
 	}
 }
-function getSourcesLocationFromFoundryConfig(
-	rootPath: string,
-): { src: string; test: string; script: string } | null {
+function getSourcesLocationFromFoundryConfig(rootPath: string): { src: string; test: string; script: string } | null {
 	const foundryConfigFile = path.join(rootPath, foundryConfigFileName);
 	if (fs.existsSync(foundryConfigFile)) {
 		try {
-			const fileContent = fs.readFileSync(foundryConfigFile, "utf8");
+			const fileContent = fs.readFileSync(foundryConfigFile, 'utf8');
 			const configOutput = toml.parse(fileContent);
-			const sourceLocation: string = configOutput["profile"]["default"]["src"];
-			const scriptLocation: string =
-				configOutput["profile"]["default"]["script"];
-			const testLocation: string = configOutput["profile"]["default"]["test"];
+			// biome-ignore lint/complexity/useLiteralKeys: <explanation>
+			const sourceLocation: string = configOutput['profile']['default']['src'];
+			// biome-ignore lint/complexity/useLiteralKeys: <explanation>
+			const scriptLocation: string = configOutput['profile']['default']['script'];
+			// biome-ignore lint/complexity/useLiteralKeys: <explanation>
+			const testLocation: string = configOutput['profile']['default']['test'];
 			if (!sourceLocation && !scriptLocation && !testLocation) {
 				return null;
 			}
@@ -174,19 +149,18 @@ function getRemappingsFromFoundryConfig(rootPath: string): string[] {
 	const foundryConfigFile = path.join(rootPath, foundryConfigFileName);
 	if (fs.existsSync(foundryConfigFile)) {
 		try {
-			const fileContent = fs.readFileSync(foundryConfigFile, "utf8");
+			const fileContent = fs.readFileSync(foundryConfigFile, 'utf8');
 			const configOutput = toml.parse(fileContent);
+			// biome-ignore lint/style/useConst: <explanation>
 			let remappingsLoaded: string[];
-			remappingsLoaded = configOutput["profile"]["default"]["remappings"];
-			if (!remappingsLoaded) {
-				return null;
-			}
-			if (remappingsLoaded.length === 0) {
+			// biome-ignore lint/complexity/useLiteralKeys: <explanation>
+			remappingsLoaded = configOutput['profile']['default']['remappings'];
+			if (!remappingsLoaded || remappingsLoaded.length === 0) {
 				return null;
 			}
 			return remappingsLoaded;
 		} catch (error) {
-			console.log("remappings", error.message);
+			console.log('remappings', error.message);
 		}
 		return;
 	}
@@ -203,21 +177,17 @@ function getRemappingsFromBrownieConfig(rootPath: string): string[] {
 			if (!remappingsLoaded) {
 				return;
 			}
+			// biome-ignore lint/suspicious/noShadowRestrictedNames: <explanation>
 		} catch (TypeError) {
 			return;
 		}
 		const remappings = remappingsLoaded.map((i) => {
-			const [alias, packageID] = i.split("=");
-			if (packageID.startsWith("/")) {
+			const [alias, packageID] = i.split('=');
+			if (packageID.startsWith('/')) {
 				// correct processing for imports defined with global path
 				return `${alias}=${packageID}`;
 			} else {
-				return `${alias}=${path.join(
-					os.homedir(),
-					".brownie",
-					"packages",
-					packageID,
-				)}`;
+				return `${alias}=${path.join(os.homedir(), '.brownie', 'packages', packageID)}`;
 			}
 		});
 		return remappings;
@@ -229,9 +199,10 @@ function getRemappingsFromRemappingsFile(rootPath: string) {
 	const remappingsFile = path.join(rootPath, remappingConfigFileName);
 	if (fs.existsSync(remappingsFile)) {
 		const remappings = [];
-		const fileContent = fs.readFileSync(remappingsFile, "utf8");
+		const fileContent = fs.readFileSync(remappingsFile, 'utf8');
 		const remappingsLoaded = fileContent.split(/\r\n|\r|\n/); // split lines
 		if (remappingsLoaded) {
+			// biome-ignore lint/complexity/noForEach: <explanation>
 			remappingsLoaded.forEach((element) => {
 				remappings.push(element);
 			});
@@ -241,10 +212,7 @@ function getRemappingsFromRemappingsFile(rootPath: string) {
 	return null;
 }
 
-export function loadRemappings(
-	rootPath: string,
-	remappings: string[],
-): string[] {
+export function loadRemappings(rootPath: string, remappings: string[]): string[] {
 	if (!remappings) {
 		remappings = [];
 	}
@@ -265,28 +233,19 @@ function loadDependencies(
 	projectPackage: Package,
 	libLocation: string,
 	libSourcesLocations: string[],
-	libPackages: Array<Package> = new Array<Package>(),
+	libPackages: Array<Package> = new Array<Package>()
 ) {
 	const libPath = path.join(projectPackage.absoluletPath, libLocation);
 	if (!fs.existsSync(libPath)) return libPackages;
 
+	// biome-ignore lint/complexity/noForEach: <explanation>
 	getDirectories(libPath).forEach((directory) => {
-		const depPackage = createDefaultPackage(path.join(libPath, directory));
+		const depPackage = createDefaultPackage(path.join(libPath, directory), undefined, projectPackage.build_dir);
 		depPackage.sol_sources_alternative_directories = libSourcesLocations;
-		if (
-			!libPackages.some(
-				(existingDepPack: Package) => existingDepPack.name === depPackage.name,
-			)
-		) {
+		if (!libPackages.some((existingDepPack: Package) => existingDepPack.name === depPackage.name)) {
 			libPackages.push(depPackage);
 
-			loadDependencies(
-				rootPath,
-				depPackage,
-				libLocation,
-				libSourcesLocations,
-				libPackages,
-			);
+			loadDependencies(rootPath, depPackage, libLocation, libSourcesLocations, libPackages);
 		}
 	});
 
@@ -300,8 +259,8 @@ function getDirectories(dirPath: string): string[] {
 	});
 }
 
-function createDefaultPackage(packagePath: string, sources = ""): Package {
-	const defaultPackage = new Package(sources);
+function createDefaultPackage(packagePath: string, sources = '', outDir = 'bin'): Package {
+	const defaultPackage = new Package(sources, outDir);
 	defaultPackage.absoluletPath = packagePath;
 	defaultPackage.name = path.basename(packagePath);
 	return defaultPackage;

@@ -9,14 +9,19 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.7.9",
+	"version": "0.7.10",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
 		"vscode": "^1.77.0"
 	},
-	"files": ["/out"],
-	"contributors": ["Juan Blanco", "panukettu"],
+	"files": [
+		"/out"
+	],
+	"contributors": [
+		"Juan Blanco",
+		"panukettu"
+	],
 	"bugs": {
 		"url": "https://github.com/panukettu/vscode-solidity/issues"
 	},
@@ -25,7 +30,10 @@
 		"type": "git",
 		"url": "https://github.com/panukettu/vscode-solidity"
 	},
-	"categories": ["Programming Languages", "Snippets"],
+	"categories": [
+		"Programming Languages",
+		"Snippets"
+	],
 	"main": "./out/src/extension.js",
 	"bin": {
 		"vscode-solidity-server": "./out/src/server.js"
@@ -92,9 +100,17 @@
 		"what-is-circular": "^1.0.1"
 	},
 	"nyc": {
-		"extension": [".ts"],
-		"include": ["src/**/*.ts"],
-		"exclude": ["**/*.d.ts", "out", "dist"],
+		"extension": [
+			".ts"
+		],
+		"include": [
+			"src/**/*.ts"
+		],
+		"exclude": [
+			"**/*.d.ts",
+			"out",
+			"dist"
+		],
 		"all": true
 	},
 	"contributes": {
@@ -103,19 +119,26 @@
 			"title": "Solidity configuration",
 			"properties": {
 				"solidity.initExclude": {
-					"type": ["array"],
+					"type": [
+						"array"
+					],
 					"default": [],
-					"description": "Project source folders to exclude from the initial parsing, i.e: ['temp', 'test']"
+					"description": "Folders to exclude from sources, i.e: ['temp', 'test']"
 				},
 				"solidity.compilerPackage": {
 					"type": "string",
 					"default": "solc",
 					"description": "The node modules package to find the solcjs compiler"
 				},
+				"solidity.outDir": {
+					"type": "string",
+					"default": "bin",
+					"description": "The output directory for extension compilation results eg. 'bin'"
+				},
 				"solidity.compileUsingRemoteVersion": {
 					"type": "string",
 					"default": "latest",
-					"description": "Configuration to download a 'remote' solc (js) version binary file from 'https://binaries.soliditylang.org/', for example: 'latest' will always use the latest version, or a specific version like: 'v0.4.3+commit.2353da71', use the command 'Solidity: Get solidity releases' to list all versions available, or just right click in a solidity file and select either `Solidity: Change global compiler version (Remote)` or `Solidity: Change workspace compiler version (Remote)` to use the wizard to set the correct version or setting for either the current workspace or globally"
+					"description": "Get solc binaries from 'https://binaries.soliditylang.org/', eg. 'latest', 'v0.4.3+commit.2353da71'. For versions: 'Solidity: Get solidity releases'"
 				},
 				"solidity.compilerOptimization": {
 					"type": "number",
@@ -127,28 +150,42 @@
 					"default": "",
 					"description": "Compile using a local solc (js) binary file, please include the path of the file if wanted: 'C://v0.4.3+commit.2353da71.js'"
 				},
-				"solidity.defaultCompiler": {
+				"solidity.compilerType": {
 					"type": "string",
-					"description": "Sets the default compiler and compiler configuration to use. Remote will use the configured compiler using the setting 'compileUsingRemoteVersion' downloaded from https://binaries.soliditylang.org/', `localFile` will use the solc file in the location configured in the setting: `compileUsingLocalVersion`, `localNodeModule` will attempt to find the solc file in the node_modules folder / package configured on 'nodemodulespackage' and 'embedded' which will use the solc version packaged with the extension. The default is 'remote' which is configured as 'latest'",
-					"enum": ["remote", "localFile", "localNodeModule", "embedded"],
-					"default": "remote"
+					"description": "Set type for solc. Remote version is set with 'compileUsingRemoteVersion' (https://binaries.soliditylang.org/). `File` version is set with `compileUsingLocalVersion`. `NPM` looks from node_modules folder or configured 'compilerPackage'. Default uses solc included with this extension",
+					"enum": [
+						"Remote",
+						"File",
+						"NPM",
+						"Default"
+					],
+					"default": "Default"
 				},
 				"solidity.linter": {
 					"type": "string",
-					"enum": ["", "solhint"],
+					"enum": [
+						"",
+						"solhint"
+					],
 					"default": "solhint",
 					"description": "Enables linting using solhint."
 				},
 				"solidity.solhintRules": {
-					"type": ["object"],
+					"type": [
+						"object"
+					],
 					"default": null,
 					"description": "Solhint validation rules"
 				},
 				"solidity.formatter": {
 					"type": "string",
 					"default": "prettier",
-					"enum": ["none", "prettier", "forge"],
-					"description": "Enables / disables the solidity formatter prettier (default) or forge (note it needs to be installed)"
+					"enum": [
+						"none",
+						"prettier",
+						"forge"
+					],
+					"description": "Set the formatter used, prettier (default) or forge fmt (note: forge needs to exist)"
 				},
 				"solidity.validateOnChange": {
 					"type": "boolean",
@@ -163,31 +200,41 @@
 				"solidity.validateOnOpen": {
 					"type": "boolean",
 					"default": true,
-					"description": "Compile and provide validations on file open."
+					"description": "Compile and provide validations on file open. Will not validate on initial project open."
 				},
 				"solidity.validationDelay": {
 					"type": "number",
 					"default": 400,
-					"description": "Delay (debounce) for triggering validation after file changes (in milliseconds)"
+					"description": "Delay (debounce) for triggering validation after file changes (in ms)"
 				},
 				"solidity.libs": {
-					"type": ["array"],
-					"default": ["node_modules", "lib"],
+					"type": [
+						"array"
+					],
+					"default": [
+						"node_modules",
+						"lib"
+					],
 					"description": "Directories to look for dependencies, eg. ['node_modules', 'lib']."
 				},
 				"solidity.monoRepoSupport": {
 					"type": "boolean",
 					"default": true,
-					"description": "Enables mono repo support in the current workspace, a project folder will be signaled if a file is found on the current folder or above including: remappings.txt, truffle-config.js, brownie-config.yaml, foundry.toml, hardhat.config.js, dappfile"
+					"description": "Enables multiple project roots. Project is deduced using these files: remappings.txt, truffle-config.js, brownie-config.yaml, foundry.toml, hardhat.config.js, dappfile"
 				},
 				"solidity.sources": {
 					"type": "string",
 					"default": "",
-					"description": "Directory where to look for project files, i.e: 'src' or empty to use foundry/hardhat.config.js (NOT-ts) or finally, the root directory"
+					"description": "Folder containing the solidity sources eg. 'src'. If not specified looks for folder set in foundry.toml or hardhat.config.js (NOT-ts), if not found defaults to project root."
 				},
 				"solidity.libSources": {
-					"type": ["array"],
-					"default": ["src", "contracts"],
+					"type": [
+						"array"
+					],
+					"default": [
+						"src",
+						"contracts"
+					],
 					"description": "Directories to look for solidity files within libs."
 				},
 				"solidity.remappings": {
@@ -210,8 +257,13 @@
 		"languages": [
 			{
 				"id": "solidity",
-				"aliases": ["Solidity", "solidity"],
-				"extensions": [".sol"],
+				"aliases": [
+					"Solidity",
+					"solidity"
+				],
+				"extensions": [
+					".sol"
+				],
 				"configuration": "./solidity.configuration.json"
 			}
 		],
@@ -341,7 +393,6 @@
 					"command": "solidity.compile.activeUsingNodeModule",
 					"group": "1_solidity"
 				},
-
 				{
 					"when": "editorLangId == 'solidity'",
 					"command": "solidity.changeDefaultCompilerType",
@@ -438,8 +489,12 @@
 				"language": "solidity",
 				"scopeName": "source.solidity",
 				"path": "./syntaxes/solidity.json",
-				"balancedBracketScopes": ["*"],
-				"unbalancedBracketScopes": ["meta.scope.case-pattern.solidity"]
+				"balancedBracketScopes": [
+					"*"
+				],
+				"unbalancedBracketScopes": [
+					"meta.scope.case-pattern.solidity"
+				]
 			}
 		]
 	}

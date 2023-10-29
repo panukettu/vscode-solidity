@@ -1,57 +1,53 @@
-import { compilerType } from "../common/solcCompiler";
+import { CompilerType } from '../common/solcCompiler';
 
-import * as vscode from "vscode-languageserver";
-import packageJson from "../../package.json";
-import { replaceRemappings } from "../common/util";
-import { connection } from "../server";
-import { initCompilerSettings } from "./compiler";
-import SolhintService from "./linter/solhint";
-import { SERVER_COMMANDS_LIST } from "./providers/command";
-import { ExtendedSettings, SolidityConfig } from "./types";
-function defaultConfig(): SolidityConfig<any> {
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const result = {} as SolidityConfig<any>;
-	// biome-ignore lint/complexity/noForEach: <explanation>
-	Object.entries(packageJson.contributes.configuration.properties).forEach(
-		([key, value]) => {
-			const keys = key.split(".");
-			if (keys.length === 2 && keys[0] === "solidity") {
-				result[keys[1]] = value.default;
+import * as vscode from 'vscode-languageserver';
+import packageJson from '../../package.json';
+import { replaceRemappings } from '../common/util';
+import { connection } from '../server';
+import { initCompilerSettings } from './compiler';
+import SolhintService from './linter/solhint';
+import { SERVER_COMMANDS_LIST } from './providers/command';
+import { ExtendedSettings, SolidityConfig } from './types';
+function defaultConfig(): SolidityConfig {
+	const result = {} as SolidityConfig;
+
+	let defaultCompiler = CompilerType.Default;
+	for (const key in packageJson.contributes.configuration.properties) {
+		const keys = key.split('.');
+		if (keys.length === 2 && keys[0] === 'solidity') {
+			if (key === 'solidity.compilerType') {
+				defaultCompiler = CompilerType[packageJson.contributes.configuration.properties[key].default];
+			} else {
+				result[keys[1]] = packageJson.contributes.configuration.properties[key].default;
 			}
-		},
-	);
+		}
+	}
 
 	return {
 		...result,
-		defaultCompiler: compilerType[result.defaultCompiler],
+		compilerType: defaultCompiler,
 	};
 }
 export const settings: ExtendedSettings = {
 	hasWorkspaceFolderCapability: false,
 	workspaceFolders: [],
 	linter: null,
-	rootPath: "",
+	rootPath: '',
 };
 
 export let config = defaultConfig();
 
-export const handleConfigChange = async (
-	change: vscode.DidChangeConfigurationParams,
-) => {
+export const handleConfigChange = async (change: vscode.DidChangeConfigurationParams) => {
 	updateConfig({
 		...config,
 		...(await requestConfig()),
 	});
 };
-export function handleInitialize(
-	params: vscode.InitializeParams,
-): vscode.InitializeResult {
-	settings.rootPath = params.rootPath;
+export function handleInitialize(params: vscode.InitializeParams): vscode.InitializeResult {
+	settings.rootPath = params.rootUri.replace('file://', '');
 	const capabilities = params.capabilities;
 
-	settings.hasWorkspaceFolderCapability = !!(
-		capabilities.workspace && !!capabilities.workspace.workspaceFolders
-	);
+	settings.hasWorkspaceFolderCapability = !!(capabilities.workspace && !!capabilities.workspace.workspaceFolders);
 
 	if (params.workspaceFolders) {
 		settings.workspaceFolders = params.workspaceFolders;
@@ -61,14 +57,14 @@ export function handleInitialize(
 		capabilities: {
 			completionProvider: {
 				resolveProvider: false,
-				triggerCharacters: [".", "/", '"', "'"],
+				triggerCharacters: ['.', '/', '"', "'"],
 			},
 			definitionProvider: true,
 			referencesProvider: true,
 			hoverProvider: true,
 			signatureHelpProvider: {
 				workDoneProgress: false,
-				triggerCharacters: ["(", ","],
+				triggerCharacters: ['(', ','],
 			},
 			textDocumentSync: vscode.TextDocumentSyncKind.Full,
 			executeCommandProvider: {
@@ -95,55 +91,47 @@ export async function handleInitialized() {
 	connection.workspace.onDidChangeWorkspaceFolders((_event) => {
 		if (!connection.workspace) return;
 		connection.workspace.onDidChangeWorkspaceFolders((event) => {
-			event.removed.forEach((workspaceFolder) => {
-				const index = settings.workspaceFolders.findIndex(
-					(folder) => folder.uri === workspaceFolder.uri,
-				);
+			for (const workspaceFolder of event.removed) {
+				const index = settings.workspaceFolders.findIndex((folder) => folder.uri === workspaceFolder.uri);
 				if (index !== -1) {
 					settings.workspaceFolders.splice(index, 1);
 				}
-			});
-
+			}
 			settings.workspaceFolders.push(...event.added);
 		});
 	});
 }
 
-export function updateConfig(
-	soliditySettings: SolidityConfig<keyof compilerType>,
-) {
+export function updateConfig(soliditySettings: SolidityConfig) {
 	config = {
 		...soliditySettings,
-		defaultCompiler: compilerType[soliditySettings.defaultCompiler],
+		compilerType: soliditySettings.compilerType || CompilerType.Default,
 		remappings: replaceRemappings(
 			soliditySettings.remappings,
-			process.platform === "win32"
-				? soliditySettings.remappingsWindows
-				: soliditySettings.remappingsUnix,
+			process.platform === 'win32' ? soliditySettings.remappingsWindows : soliditySettings.remappingsUnix
 		),
 	};
-	if (config.linter === "solhint") {
-		settings.linter = new SolhintService(
-			settings.rootPath,
-			config.solhintRules,
-		);
+	if (config.linter === 'solhint') {
+		settings.linter = new SolhintService(settings.rootPath, config.solhintRules);
 		settings.linter.setIdeRules(config.solhintRules);
 	}
 
-	initCompilerSettings();
+	initCompilerSettings(config);
 }
 async function requestConfig() {
 	try {
 		const params: vscode.ConfigurationParams = {
-			items: [{ section: "solidity" }],
+			items: [{ section: 'solidity' }],
 		};
-		const [solidityConfig] = (await connection.sendRequest(
-			"workspace/configuration",
-			params,
-		)) as [SolidityConfig<keyof compilerType>];
-		return solidityConfig;
+		const [configuration] = (await connection.sendRequest('workspace/configuration', params)) as [
+			Partial<SolidityConfig>,
+		];
+		return {
+			...configuration,
+			compilerType: CompilerType[configuration.compilerType] || CompilerType.Default,
+		} as SolidityConfig;
 	} catch (e) {
-		console.log("Error getting config, using defaults..", e.message);
+		console.debug('Config not received:', e.message);
 		return defaultConfig();
 	}
 }

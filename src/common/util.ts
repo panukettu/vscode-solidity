@@ -1,12 +1,11 @@
-"use strict";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from 'fs';
+import * as path from 'path';
 
 export function formatPath(contractPath: string) {
-  if (contractPath !== null) {
-    return contractPath.replace(/\\/g, "/");
-  }
-  return contractPath;
+	if (contractPath != null) {
+		return contractPath.replace(/\\/g, '/');
+	}
+	return contractPath;
 }
 
 /**
@@ -18,52 +17,50 @@ export function formatPath(contractPath: string) {
  * @param replacer second array of remappings strings
  * @returns an array containing unique remappings
  */
-export function replaceRemappings(
-  remappings: string[],
-  replacer: string[]
-): string[] {
-  remappings.forEach(function (remapping, index) {
-    const prefix = remapping.split("=")[0];
-    for (const replaceRemapping of replacer) {
-      const replacePrefix = replaceRemapping.split("=")[0];
-      if (prefix === replacePrefix) {
-        remappings[index] = replaceRemapping;
-        break;
-      }
-    }
-  });
-  return [...new Set([...remappings, ...replacer])];
+export function replaceRemappings(remappings: string[], replacer: string[]): string[] {
+	// biome-ignore lint/complexity/noForEach: <explanation>
+	remappings.forEach(function (remapping, index) {
+		const prefix = remapping.split('=')[0];
+		for (const replaceRemapping of replacer) {
+			const replacePrefix = replaceRemapping.split('=')[0];
+			if (prefix === replacePrefix) {
+				remappings[index] = replaceRemapping;
+				break;
+			}
+		}
+	});
+	return [...new Set([...remappings, ...replacer])];
 }
 
 export function findDirUpwardsToCurrentDocumentThatContainsAtLeastFileNameSync(
-  filenames: string[],
-  currentDocument: string,
-  rootPath: string
+	filenames: string[],
+	currentDocument: string,
+	rootPath: string
 ) {
-  let currentDir = path.dirname(path.resolve(currentDocument));
+	let currentDir = path.dirname(path.resolve(currentDocument));
 
-  while (currentDir !== rootPath) {
-    if (exitsAnyFileSync(filenames, currentDir)) {
-      return currentDir;
-    }
+	while (currentDir !== rootPath) {
+		if (exitsAnyFileSync(filenames, currentDir)) {
+			return currentDir;
+		}
 
-    currentDir = path.dirname(currentDir);
-  }
+		currentDir = path.dirname(currentDir);
+	}
 
-  return null;
+	return null;
 }
 
 export function exitsAnyFileSync(filenames: string[], dir: string) {
-  for (const fileName of filenames) {
-    const file = path.join(dir, fileName);
-    if (fs.existsSync(file)) {
-      return true;
-    }
-  }
-  return false;
+	for (const fileName of filenames) {
+		const file = path.join(dir, fileName);
+		if (fs.existsSync(file)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 export function isPathSubdirectory(parent: string, dir: string) {
-  const relative = path.relative(parent, dir);
-  return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+	const relative = path.relative(parent, dir);
+	return relative && !relative.startsWith('..') && !path.isAbsolute(relative);
 }

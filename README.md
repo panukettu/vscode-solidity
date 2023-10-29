@@ -4,6 +4,7 @@
 
 # Fork Features
 
+- .solhintignore
 - Less verbose context menus
 - Does not auto-validate all documents. Validating is configured to these triggers: onSave, onChange or onOpen.
 - Bundles all js dependencies.
