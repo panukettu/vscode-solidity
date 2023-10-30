@@ -501,10 +501,14 @@ export class SolcCompiler {
 
 			const contractsForCompilation = contracts.getDefaultSourceDocumentsForCompilationDiagnostics(project);
 
-			const outputString = this.compile(JSON.stringify(contractsForCompilation), selectedType, project);
-			const output = JSON.parse(outputString);
-			if (output.errors) {
-				return output.errors.map((error: unknown) => errorToDiagnostic(error));
+			try {
+				const outputString = this.compile(JSON.stringify(contractsForCompilation), selectedType, project);
+				const output = JSON.parse(outputString);
+				if (output.errors) {
+					return output.errors.map((error: unknown) => errorToDiagnostic(error));
+				}
+			} catch (e) {
+				// console.debug(e);
 			}
 		} else {
 			try {

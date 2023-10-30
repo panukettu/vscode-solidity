@@ -69,7 +69,7 @@ export async function initCompilerSettings(config: SolidityConfig) {
 
 	compilerInitialized = true;
 }
-
+let forgeInfoShown = false;
 export function validate(document: vscode.TextDocument) {
 	try {
 		initCommon(document);
@@ -81,6 +81,7 @@ export function validate(document: vscode.TextDocument) {
 		const documentText = document.getText();
 		let linterDiagnostics: vscode.Diagnostic[] = [];
 		const compileErrorDiagnostics: vscode.Diagnostic[] = [];
+
 		try {
 			if (settings.linter != null) {
 				linterDiagnostics = settings.linter.validate(filePath, documentText);
@@ -88,8 +89,12 @@ export function validate(document: vscode.TextDocument) {
 		} catch (e) {
 			// console.debug("linter:", e);
 		}
-		if (configImport.validateOnChange || configImport.validateOnOpen) {
+		if (configImport.validateOnChange || configImport.validateOnOpen || configImport.validateOnSave) {
 			try {
+				if (!forgeInfoShown) {
+					connection.console.info('Validation support for .t.sol or .s.sol files is incomplete.');
+					forgeInfoShown = true;
+				}
 				const errors: CompilerError[] = solcCompiler.compileSolidityDocumentAndGetDiagnosticErrors(
 					filePath,
 					documentText,
@@ -113,3 +118,26 @@ export function validate(document: vscode.TextDocument) {
 		validatingDocument = false;
 	}
 }
+
+// Convert this solidity compiler stdout into json disagnostic format below:
+
+// stdout:
+// Error (4487): No unique declaration found after argument-dependent lookup.
+//   --> src/contracts/test/Test.t.sol:48:9:
+
+// result format:
+// [
+//     {
+//     diagnostic: {
+//     message: 'No unique declaration found after argument-dependent lookup',
+//     code: '4487',
+//     range, /**
+//             vscode.Range eg. 2x:
+//             readonly line: number;
+//             readonly character: number;
+//            **/
+//     severity: 1
+//     },
+//     fileName,
+//     }
+// ]

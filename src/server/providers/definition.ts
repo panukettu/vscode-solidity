@@ -3,17 +3,27 @@ import { ParsedCode } from '../code/ParsedCode';
 import { CodeWalkerService } from '../code/walker/codeWalkerService';
 import { clearCaches } from './utils/caches';
 
-export let currentOffset = 0;
-export let currentItem: ParsedCode | undefined;
+let currentOffset = 0;
+let currentItem: ParsedCode | undefined;
+
+export function defCtx() {
+	return {
+		currentOffset,
+		currentItem,
+	};
+}
 
 export const getDefinition = (document: vscode.TextDocument, position: vscode.Position, walker: CodeWalkerService) => {
 	try {
 		currentOffset = document.offsetAt(position);
-		const documentContractSelected = walker.getSelectedDocumentProfiler(document, position);
+		const documentContractSelected = walker.getSelectedDocument(document, position);
 		currentItem = documentContractSelected.getSelectedItem(currentOffset);
 		const references = documentContractSelected.getSelectedTypeReferenceLocation(currentOffset);
-
-		const foundLocations = references.filter((x) => x.location != null).map((x) => x.location);
+		const refsWorkaround = currentItem.getSelectedTypeReferenceLocation(currentOffset);
+		const foundLocations = references
+			.concat(refsWorkaround)
+			.filter((x) => x.location != null)
+			.map((x) => x.location);
 
 		if (!foundLocations?.length) {
 			const item = documentContractSelected.findTypeInScope(currentItem.name);
@@ -23,15 +33,15 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 			}
 		}
 		currentOffset = 0;
-		currentItem = null;
+		currentItem = undefined;
 		clearCaches();
 		return removeDuplicates(foundLocations);
 	} catch (e) {
 		clearCaches();
 		currentOffset = 0;
-		currentItem = null;
+		currentItem = undefined;
 		// console.debug('definition', e);
-		return null;
+		return [];
 	}
 };
 const removeDuplicates = (foundLocations: vscode.Location[]) => {

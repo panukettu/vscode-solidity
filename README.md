@@ -1,22 +1,29 @@
 # Solidity for Visual Studio Code
 
-[![Version](https://vsmarketplacebadges.dev/version/0xp.vsvsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/0xp.vsvsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/0xp.vsvsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/0xp.vsvsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity#review-details)
+[![Version](https://vsmarketplacebadges.dev/version/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity#review-details)
 
 # Fork Features
 
-- .solhintignore
-- Less verbose context menus
-- Does not auto-validate all documents. Validating is configured to these triggers: onSave, onChange or onOpen.
+- Execute forge test function on save / from codelens.
+
+  - Diagnostics for assertions and logs WITH identifier: eg. assertEq(a,b, "identifier") or console.log("foo", bar)
+
+- .solhintignore works
+- Less verbose menus
+- No auto-validating of all documents. Validation is configured to triggers: onSave, onChange or onOpen.
+- Can configure location for compilation output
 - Bundles all js dependencies.
-- Removes nethereum, solium and dAppproject related things.
-- Seems to work bit faster on big projects.
+- Removes Nethereum, Solium and dApproject related things.
+- Works bit faster on big projects.
 - Go To Definition, Find All References and Auto Completions work on global using for injections.
 - Loads all sol files to cache on project open.
 - Auto-complete improved for using for globals, libs (+lib events).
 - Improved hover.
 - Signature help on function calls.
 - Natspec displayed inherits from `@inheritdoc`
+
 - Adds some CodeLens:
+  - Run active test function (t.sol).
   - Preview bytes4 selector of functions without compilation (should work on structs and custom types as well)
   - Preview hash of eg. keccak256("some.string")
   - Generate natspec for functions with a click.
@@ -24,6 +31,8 @@
 
 # Fork Config Changes
 
+- solidity.defaultCompiler -> solidity.compilerType
+  - Default: "Default"
 - solidity.nodemodulespackage -> solidity.compilerPackage
   - Default: "solc"
 - solidity.packageDefaultDependenciesDirectory -> solidity.libs
@@ -33,6 +42,21 @@
 
 # New Config
 
+- solidity.validateOnSave:
+  - Validate file on save.
+  - Default: true
+- solidity.validateOnChange
+  - Validate file on change (typing)
+  - Default: false
+- solidity.validateOnOpen
+  - Validate file on open.
+  - Default: true
+- solidity.executeTestFunctionOnSave
+  - Run forge test in cursor position on file save.
+  - Default: true
+- solidity.outDir
+  - Output for compilation artifacts generated from this extension.
+  - Default: 'bin'
 - solidity.sources (string):
   - Your solidity source folder.
   - Tries to get from foundry.toml or hardhat.config.js if not set.
@@ -67,7 +91,7 @@ Solidity is the language used in Ethereum to create smart contracts, this extens
 
 Sometimes you may want to use a different compiler than the one provided. You can find all the different versions in the solc-bin repository https://binaries.soliditylang.org/
 
-Currently we support four ways supported to use a different version of the solidity compiler. Remote, Local, NodeModule and Embedded
+Currently we support four ways supported to use a different version of the solidity compiler. Remote, File, NPM and Default
 
 You can change the compiler, in your user settings or workspace settings.
 

@@ -427,6 +427,10 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 				results = results.concat(func.getAllReferencesToSelected(offset, documents));
 			}
 
+			for (const item of this.innerContracts) {
+				results = results.concat(item.getAllReferencesToSelected(offset, documents));
+			}
+
 			for (const error of this.errors) {
 				results = results.concat(error.getAllReferencesToSelected(offset, documents));
 			}
@@ -668,6 +672,10 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 			results = results.concat(func.getAllReferencesToObject(parsedCode));
 		}
 
+		for (const item of this.innerContracts) {
+			results = results.concat(item.getAllReferencesToObject(parsedCode));
+		}
+
 		for (const error of this.errors) {
 			results = results.concat(error.getAllReferencesToObject(parsedCode));
 		}
@@ -752,6 +760,10 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 
 		for (const func of this.functions) {
 			results = results.concat(func.getSelectedTypeReferenceLocation(offset));
+		}
+
+		for (const item of this.innerContracts) {
+			results = results.concat(item.getSelectedTypeReferenceLocation(offset));
 		}
 
 		for (const error of this.errors) {

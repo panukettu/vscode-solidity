@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.7.10",
+	"version": "0.8.0",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -118,6 +118,13 @@
 			"type": "object",
 			"title": "Solidity configuration",
 			"properties": {
+				"solidity.executeTestFunctionOnSave": {
+					"type": [
+						"boolean"
+					],
+					"default": true,
+					"description": "Run forge test in cursor position on file save."
+				},
 				"solidity.initExclude": {
 					"type": [
 						"array"
@@ -269,87 +276,174 @@
 		],
 		"commands": [
 			{
-				"title": "Solidity: Preview Selector",
+				"title": "Preview Selector",
+				"enablement": "resourceExtname == .sol",
 				"command": "solidity.lens.function.selector",
-				"category": "solidity.codelens"
+				"category": "Solidity"
 			},
 			{
-				"title": "Solidity: Preview Sig",
+				"title": "Run Test Function",
+				"enablement": "resourceExtname == .sol",
+				"command": "solidity.lens.function.test",
+				"category": "Solidity"
+			},
+			{
+				"title": "Clear test diagnostics",
+				"command": "solidity.lens.diagnostics.clear",
+				"category": "Solidity"
+			},
+			{
+				"title": "Preview Funcsig",
+				"enablement": "resourceExtname == .sol",
 				"command": "solidity.lens.function.natspec",
-				"category": "solidity.codelens"
+				"category": "Solidity"
 			},
 			{
-				"title": "Solidity: Preview String Hash",
+				"title": "Preview String Hash",
+				"enablement": "resourceExtname == .sol",
 				"command": "solidity.lens.string.keccak256",
-				"category": "solidity.codelens"
+				"category": "Solidity"
 			},
 			{
-				"title": "Solidity: Enable CodeLens",
+				"title": "Enable CodeLens",
 				"command": "solidity.enableCodeLens",
-				"category": "solidity.codelens"
+				"category": "Solidity"
 			},
 			{
-				"title": "Solidity: Disable Codelens",
+				"title": "Disable Codelens",
 				"command": "solidity.disableCodeLens",
-				"category": "solidity.codelens"
+				"category": "Solidity"
 			},
 			{
-				"command": "solidity.compile.active",
-				"title": "Solidity: Compile file"
+				"title": "Disable Exec Test On Save",
+				"command": "solidity.disableExecuteTestFunctionOnSave",
+				"enablement": "config.solidity.executeTestFunctionOnSave",
+				"category": "Solidity"
 			},
 			{
+				"title": "Enable Exec Test On Save",
+				"command": "solidity.enableExecuteTestFunctionOnSave",
+				"enablement": "!config.solidity.executeTestFunctionOnSave",
+				"category": "Solidity"
+			},
+			{
+				"title": "Disable All Validation",
+				"enablement": "config.solidity.validateOnChange || config.solidity.validateOnSave || config.solidity.validateOnOpen",
+				"command": "solidity.disableAllValidation",
+				"category": "Solidity"
+			},
+			{
+				"title": "Disable Validate On Change",
+				"enablement": "config.solidity.validateOnChange",
+				"command": "solidity.disableValidateOnChange",
+				"category": "Solidity"
+			},
+			{
+				"title": "Enable Validate On Change",
+				"enablement": "!config.solidity.validateOnChange",
+				"command": "solidity.enableValidateOnChange",
+				"category": "Solidity"
+			},
+			{
+				"title": "Disable Validate On Save",
+				"enablement": "config.solidity.validateOnSave",
+				"command": "solidity.disableValidateOnSave",
+				"category": "Solidity"
+			},
+			{
+				"title": "Enable Validate On Save",
+				"enablement": "!config.solidity.validateOnSave",
+				"command": "solidity.enableValidateOnSave",
+				"category": "Solidity"
+			},
+			{
+				"title": "Disable Validate On Open",
+				"enablement": "config.solidity.validateOnOpen",
+				"command": "solidity.disableValidateOnOpen",
+				"category": "Solidity"
+			},
+			{
+				"title": "Enable Validate On Open",
+				"enablement": "!config.solidity.validateOnOpen",
+				"command": "solidity.enableValidateOnOpen",
+				"category": "Solidity"
+			},
+			{
+				"title": "Compile File",
+				"enablement": "editorLangId == 'solidity'",
+				"category": "Solidity",
+				"command": "solidity.compile.active"
+			},
+			{
+				"title": "Compile File (remote solc)",
+				"enablement": "editorLangId == 'solidity'",
 				"command": "solidity.compile.activeUsingRemote",
-				"title": "Solidity: Compile file (remote solc)"
+				"category": "Solidity"
 			},
 			{
+				"title": "Compile File (local file)",
+				"enablement": "editorLangId == 'solidity'",
 				"command": "solidity.compile.activeUsingLocalFile",
-				"title": "Solidity: Compile file (local solc)"
+				"category": "Solidity"
 			},
 			{
+				"title": "Compile File (npm)",
+				"enablement": "editorLangId == 'solidity'",
 				"command": "solidity.compile.activeUsingNodeModule",
-				"title": "Solidity: Compile file (npm solc)"
+				"category": "Solidity"
 			},
 			{
+				"title": "Compile All",
+				"enablement": "editorLangId == 'solidity'",
 				"command": "solidity.compile",
-				"title": "Solidity: Compile all"
+				"category": "Solidity"
 			},
 			{
+				"title": "Compiler Info",
 				"command": "solidity.compilerInfo",
-				"title": "Solidity: Compiler info"
+				"category": "Solidity"
 			},
 			{
+				"title": "Get Solc Versions",
 				"command": "solidity.solcReleases",
-				"title": "Solidity: Peek solc versions"
+				"category": "Solidity"
 			},
 			{
+				"title": "Set workspace solc (Remote)",
 				"command": "solidity.selectWorkspaceRemoteSolcVersion",
-				"title": "Solidity: Set workspace solc (Remote)"
+				"category": "Solidity"
 			},
 			{
+				"title": "Set global solc (Remote)",
 				"command": "solidity.selectGlobalRemoteSolcVersion",
-				"title": "Solidity: Set global solc (Remote)"
+				"category": "Solidity"
 			},
 			{
+				"title": "Download compiler",
 				"command": "solidity.downloadRemoteSolcVersion",
-				"title": "Solidity: Download compiler"
+				"category": "Solidity"
 			},
 			{
+				"title": "Download and set workspace compiler",
 				"command": "solidity.downloadRemoteVersionAndSetLocalPathSetting",
-				"title": "Solidity: Download compiler and set workspace local Path"
+				"category": "Solidity"
 			},
 			{
+				"title": "Set workspace solc location",
 				"command": "solidity.changeDefaultCompilerType",
-				"title": "Solidity: Set workspace solc location"
+				"category": "Solidity"
 			},
 			{
+				"title": "Download sources from etherscan",
 				"command": "solidity.downloadVerifiedSmartContractEtherscan",
-				"title": "Solidity: Download contract sources/ABI from etherscan"
+				"category": "Solidity"
 			}
 		],
 		"submenus": [
 			{
 				"id": "solidity.actions",
-				"label": "Solidity"
+				"label": "Solidity",
+				"icon": "images/icon.png"
 			}
 		],
 		"menus": {
@@ -432,12 +526,67 @@
 					"when": "editorLangId == 'solidity'",
 					"command": "solidity.downloadVerifiedSmartContractEtherscan",
 					"group": "3_solidity"
+				},
+				{
+					"when": "editorLangId == 'solidity' && config.solidity.validateOnChange",
+					"command": "solidity.disableValidateOnChange",
+					"group": "4_solidity"
+				},
+				{
+					"when": "editorLangId == 'solidity' && !config.solidity.validateOnChange",
+					"command": "solidity.enableValidateOnChange",
+					"group": "4_solidity"
+				},
+				{
+					"when": "editorLangId == 'solidity' && config.solidity.validateOnSave",
+					"command": "solidity.disableValidateOnSave",
+					"group": "4_solidity"
+				},
+				{
+					"when": "editorLangId == 'solidity' && !config.solidity.validateOnSave",
+					"command": "solidity.enableValidateOnSave",
+					"group": "4_solidity"
+				},
+				{
+					"when": "editorLangId == 'solidity' && config.solidity.validateOnOpen",
+					"command": "solidity.disableValidateOnOpen",
+					"group": "4_solidity"
+				},
+				{
+					"when": "editorLangId == 'solidity' && !config.solidity.validateOnOpen",
+					"command": "solidity.enableValidateOnOpen",
+					"group": "4_solidity"
+				},
+				{
+					"when": "editorLangId == 'solidity' && !config.solidity.validateOnOpen",
+					"command": "solidity.disableAllValidation",
+					"group": "4_solidity"
 				}
 			],
 			"editor/context": [
 				{
 					"when": "editorLangId == 'solidity'",
 					"command": "solidity.compile.active",
+					"group": "0_solidity"
+				},
+				{
+					"when": "resourceExtname == .sol && !config.solidity.validateOnChange",
+					"command": "solidity.enableValidateOnChange",
+					"group": "0_solidity"
+				},
+				{
+					"when": "resourceExtname == .sol && config.solidity.validateOnChange",
+					"command": "solidity.disableValidateOnChange",
+					"group": "0_solidity"
+				},
+				{
+					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && !config.solidity.executeTestFunctionOnSave",
+					"command": "solidity.enableExecuteTestFunctionOnSave",
+					"group": "0_solidity"
+				},
+				{
+					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.executeTestFunctionOnSave",
+					"command": "solidity.disableExecuteTestFunctionOnSave",
 					"group": "0_solidity"
 				},
 				{

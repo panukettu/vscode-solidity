@@ -9,7 +9,7 @@ import { Compiler } from './compiler';
 import { SettingsService } from './settingsService';
 import * as workspaceUtil from './workspaceUtil';
 
-let diagnosticCollection: vscode.DiagnosticCollection;
+export let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function initDiagnosticCollection(diagnostics: vscode.DiagnosticCollection) {
 	diagnosticCollection = diagnostics;

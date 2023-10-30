@@ -5,13 +5,20 @@ import { compileAllContracts } from '../compileAll';
 import { Compiler } from '../compiler';
 import { formatDocument } from '../formatter/formatter';
 import * as workspaceUtil from '../workspaceUtil';
+import { initTestDiagnosticCollection, runForgeTest } from '../formatter/forgeFormatter';
+import { initDecorations } from '../decorations';
+import { CodelensProvider } from '../codeActionProviders/lensProvider';
 
 export function baseSubscriptions(context: vscode.ExtensionContext): [Compiler, vscode.DiagnosticCollection] {
 	const compiler = new Compiler(context.extensionPath);
 	const diagnosticCollection = vscode.languages.createDiagnosticCollection('solidity');
+	const diagnosticCollectionTest = vscode.languages.createDiagnosticCollection('solidity-test');
 	context.subscriptions.push(diagnosticCollection);
+	context.subscriptions.push(diagnosticCollectionTest);
 
+	initTestDiagnosticCollection(diagnosticCollectionTest);
 	initDiagnosticCollection(diagnosticCollection);
+
 	context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.compile.active', async () => {
 			const compiledResults = await compileActiveContract(compiler);
@@ -70,11 +77,12 @@ export function baseSubscriptions(context: vscode.ExtensionContext): [Compiler, 
 		})
 	);
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand('solidity.fixDocument', () => {
-			// lintAndfixCurrentDocument();
-		})
-	);
+	// context.subscriptions
+	// 	.push
+	// 	// vscode.commands.registerCommand('solidity.fixDocument', () => {
+	// 	// 	// lintAndfixCurrentDocument();
+	// 	// })
+	// 	();
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.compilerInfo', async () => {

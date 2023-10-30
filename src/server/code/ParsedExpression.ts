@@ -1,5 +1,5 @@
 import { CompletionItem } from 'vscode-languageserver';
-import { currentItem, currentOffset } from '../providers/definition';
+import { defCtx } from '../providers/definition';
 import { TypeReference } from '../search/TypeReference';
 import { IParsedExpressionContainer } from './IParsedExpressionContainer';
 import { ParsedCode } from './ParsedCode';
@@ -291,7 +291,8 @@ export class ParsedExpressionCall extends ParsedExpression {
 					this.reference = foundResults[0];
 				}
 			} else {
-				const name = currentOffset > 0 ? currentItem.name : this.name;
+				const ctx = defCtx();
+				const name = ctx.currentOffset > 0 ? ctx.currentItem.name : this.name;
 
 				try {
 					this.reference = locate(
@@ -303,10 +304,10 @@ export class ParsedExpressionCall extends ParsedExpression {
 				} catch (e) {
 					try {
 						// @ts-expect-error
-						if (currentItem?.parent) {
+						if (ctx.currentItem?.parent) {
 							const found =
 								// @ts-expect-error
-								currentItem.parent.findMethodsInScope(name);
+								ctx.currentItem.parent.findMethodsInScope(name);
 							if (found.length > 0) {
 								this.reference = found[0];
 							} else {

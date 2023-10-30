@@ -239,7 +239,7 @@ export class CodeWalkerService {
 
 			this.parsedDocumentsCache.push(newDocument);
 		} catch (error) {
-			console.debug('Unhandled (parse document)', error);
+			console.debug('Unhandled (parse)', error);
 			// console.log(JSON.stringify(error));
 			/*
             // if we error parsing (cannot cater for all combos) we fix by removing current line.

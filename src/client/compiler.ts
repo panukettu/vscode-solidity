@@ -176,7 +176,7 @@ export class Compiler {
 		const compiler = this.solc.getCompiler(overrideDefaultCompiler);
 		if (compiler.type === CompilerType.File) {
 			this.outputChannel.appendLine(
-				`Using local solc file: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`
+				`Using solc from file: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`
 			);
 		}
 
@@ -188,7 +188,7 @@ export class Compiler {
 
 		if (compiler.type === CompilerType.Remote) {
 			this.outputChannel.appendLine(
-				`Using remote solc: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`
+				`Using solc from remote: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`
 			);
 		}
 

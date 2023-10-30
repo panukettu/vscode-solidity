@@ -14,6 +14,7 @@ export function getDiagnosticSeverity(severity: string): DiagnosticSeverity {
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export function errorToDiagnostic(error: any): CompilerError {
 	if (error.sourceLocation.file != null) {
 		const fileName = error.sourceLocation.file;
@@ -71,7 +72,8 @@ export function splitErrorToDiagnostic(error: any, errorSplit: any, index: numbe
 		endCharacter = 0;
 		startCharacter = 1;
 	}
-	return {
+
+	const result = {
 		diagnostic: {
 			message: errorMessage,
 			code: error.errorCode,
@@ -89,4 +91,24 @@ export function splitErrorToDiagnostic(error: any, errorSplit: any, index: numbe
 		},
 		fileName: fileName,
 	};
+
+	return result;
+}
+
+export function stdoutToDiagnostics(match: string[], rootPath: string): CompilerError {
+	const [, code, message, fileName, line, character] = match;
+	const position = { line: parseInt(line) - 1, character: parseInt(character) };
+	const result = {
+		diagnostic: {
+			message: message.trim(),
+			code: code.trim(),
+			range: {
+				start: position,
+				end: position,
+			},
+			severity: 1,
+		},
+		fileName: `${rootPath}/${fileName}`,
+	};
+	return result;
 }
