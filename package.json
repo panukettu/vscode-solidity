@@ -248,7 +248,7 @@
 				},
 				"solidity.monoRepoSupport": {
 					"type": "boolean",
-					"default": true,
+					"default": false,
 					"description": "Enables multiple project roots. Project is deduced using these files: remappings.txt, truffle-config.js, brownie-config.yaml, foundry.toml, hardhat.config.js, dappfile"
 				},
 				"solidity.sources": {
