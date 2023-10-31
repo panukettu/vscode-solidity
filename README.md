@@ -4,6 +4,8 @@
 
 # Fork Features
 
+- Configure solc settings directly with `solidity.compilerOutputSelection` or `solidity.compilerSettings`.
+
 - Execute forge test function on save / from codelens.
 
   - Diagnostics for assertions and logs WITH identifier: eg. assertEq(a,b, "identifier") or console.log("foo", bar)
@@ -42,6 +44,10 @@
 
 # New Config
 
+- solidity.compilerOutputSelection
+  - Configure contract output items.
+- solidity.compilerSettings
+  - Configure all solcjs supported settings for the compiler.
 - solidity.validateOnSave:
   - Validate file on save.
   - Default: true

@@ -3,35 +3,39 @@
 // Hover to view descriptions of existing attributes.
 // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Extension",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
-      "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "preLaunchTask": {
-        "type": "npm",
-        "script": "compile:tsc"
-      },
-      "sourceMaps": true
-    },
-    {
-      "type": "node",
-      "request": "attach",
-      "name": "Attach to Server",
-      "port": 6009,
-      "restart": true,
-      "outFiles": ["${workspaceRoot}/out/**/*.js"]
-    }
-  ],
-  "compounds": [
-    {
-      "name": "Client + Server",
-      "configurations": ["Extension", "Attach to Server"],
-      "stopAll": true
-    }
-  ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": ["--extensionDevelopmentPath=${workspaceFolder}", "--disable-extensions"],
+			"outFiles": ["${workspaceFolder}/out/**/**/*.js"],
+			"preLaunchTask": {
+				"type": "npm",
+				"script": "compile"
+			},
+			"env": {
+				"NODE_PATH": "out/",
+				"NODE_ENV": "development"
+			},
+			"sourceMaps": true
+		},
+		{
+			"type": "node",
+			"request": "attach",
+			"name": "Attach to Server",
+			"port": 6009,
+			"restart": true,
+			"outFiles": ["${workspaceRoot}/out/**/*.js"]
+		}
+	],
+	"compounds": [
+		{
+			"name": "Client + Server",
+			"configurations": ["Extension", "Attach to Server"],
+			"stopAll": true
+		}
+	]
 }

@@ -1,0 +1,26 @@
+import { CompilerType } from '@shared/enums';
+import { SolcLoader } from './loader';
+
+export class DefaultSolc extends SolcLoader {
+	public type: CompilerType = CompilerType.Default;
+	public matchesConfiguration(): boolean {
+		return true;
+	}
+
+	public getConfiguration() {
+		return '';
+	}
+
+	constructor() {
+		super();
+		this.solc = require('solc');
+	}
+
+	public hasValidConfig(): boolean {
+		return true;
+	}
+
+	public async initializeSolc(): Promise<void> {
+		return;
+	}
+}

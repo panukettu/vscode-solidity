@@ -1,11 +1,16 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as vscode from 'vscode-languageserver/node';
-import { compilerInitialized, initCompiler, validateAllDocuments, validateDocument } from './server/compiler';
+import {
+	compilerInitialized,
+	configureServerCachePath,
+	validateAllDocuments,
+	validateDocument,
+} from './server/compiler-server';
 import { ExecuteCommandProvider } from './server/providers/command';
 import { getCompletionItems } from './server/providers/completions';
 import { getDefinition } from './server/providers/definition';
 import { SolidityHoverProvider } from './server/providers/hoverProvider';
-import { SolidityReferencesProvider } from './server/providers/references';
+import { getAllReferencesToItem } from './server/providers/references';
 import { SignatureHelpProvider } from './server/providers/signatures';
 import { providerParams } from './server/providers/utils/common';
 import { config, handleConfigChange, handleInitialize, handleInitialized, settings } from './server/settings';
@@ -23,7 +28,7 @@ console.error = connection.console.error.bind(connection.console);
 /* -------------------------------------------------------------------------- */
 connection.onInitialize((params) => {
 	const result = handleInitialize(params);
-	initCompiler(params);
+	configureServerCachePath(params.initializationOptions.solcCachePath);
 	return result;
 });
 
@@ -42,7 +47,8 @@ connection.onCompletion((handler) => {
 
 connection.onReferences((handler) => {
 	initCommon(handler.textDocument);
-	return SolidityReferencesProvider.provideReferences(...providerParams(handler));
+	const [document, position, walker] = providerParams(handler);
+	return getAllReferencesToItem(walker, walker.getSelectedDocument(document, position), document.offsetAt(position));
 });
 
 connection.onDefinition((handler) => {

@@ -1,13 +1,13 @@
-import { CompilerType } from '../common/solcCompiler';
-
+import { CompilerType } from '@shared/enums';
+import type { MultisolcSettings, SolidityConfig } from '@shared/types';
+import packageJson from 'package.json';
 import * as vscode from 'vscode-languageserver';
-import packageJson from '../../package.json';
-import { replaceRemappings } from '../common/util';
 import { connection } from '../server';
-import { initCompilerSettings } from './compiler';
+import { replaceRemappings } from '../shared/util';
+import { createServerMultisolc } from './compiler-server';
 import SolhintService from './linter/solhint';
 import { SERVER_COMMANDS_LIST } from './providers/command';
-import { ExtendedSettings, SolidityConfig } from './types';
+import { ExtendedSettings } from './types';
 function defaultConfig(): SolidityConfig {
 	const result = {} as SolidityConfig;
 
@@ -116,8 +116,37 @@ export function updateConfig(soliditySettings: SolidityConfig) {
 		settings.linter.setIdeRules(config.solhintRules);
 	}
 
-	initCompilerSettings(config);
+	createServerMultisolc(getCurrentMultisolcSettings(config));
 }
+
+export async function requestMultisolcSettings(): Promise<MultisolcSettings> {
+	return getCurrentMultisolcSettings(await requestConfig());
+}
+
+export function getCurrentMultisolcSettings(_config?: SolidityConfig): MultisolcSettings {
+	if (!_config) {
+		_config = config;
+	}
+	return {
+		outDir: config.outDir,
+		compilerConfig: {
+			settings: {
+				optimizer: {
+					enabled: false,
+					runs: 200,
+				},
+			},
+		},
+		rootPath: settings.rootPath,
+		excludePaths: config.initExclude,
+		sourceDir: config.sources,
+		localSolcVersion: config.localSolcVersion,
+		remoteSolcVersion: config.remoteSolcVersion,
+		compilerPackage: config.compilerPackage,
+		selectedType: config.compilerType,
+	};
+}
+
 async function requestConfig() {
 	try {
 		const params: vscode.ConfigurationParams = {

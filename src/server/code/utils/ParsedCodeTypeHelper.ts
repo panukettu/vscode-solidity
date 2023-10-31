@@ -2,12 +2,10 @@ import { ParsedCode } from '../ParsedCode';
 import { ParsedFunction } from '../ParsedFunction';
 import { ParsedFunctionVariable } from '../ParsedFunctionVariable';
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export const getTypeString = (literal: any) => {
 	const isArray = literal?.array_parts && literal?.array_parts?.length > 0;
 	let isMapping = false;
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	let literalType: any;
 	let parentType: string | undefined;
 	if (literal.members !== undefined && literal.members?.length > 0) {
@@ -42,12 +40,10 @@ export const getTypeString = (literal: any) => {
 	return literalType + suffixType;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export const getMappingParts = (literal: any) => {
 	const isArray = literal?.array_parts && literal?.array_parts?.length > 0;
 	let isMapping = false;
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	let literalType: any;
 	let parentType: string | undefined;
 
@@ -84,13 +80,12 @@ export const getMappingParts = (literal: any) => {
 };
 
 export const typeHelp = {
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	getMappingFrom(literal: any): string {
 		if (literal?.literal?.from) {
 			return literal.literal.from.literal;
 		}
 	},
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	getMappingTo(literal: any): string {
 		if (literal?.literal?.from) {
 			return literal.literal.to.literal;

@@ -1,8 +1,8 @@
 import { deepEqual } from 'fast-equals';
 import { URI } from 'vscode-uri';
-import { findFirstRootProjectFile } from '../common/projectService';
+import { findFirstRootProjectFile } from '../shared/project';
 import { CodeWalkerService } from './code/walker/codeWalkerService';
-import { solcCompiler } from './compiler';
+import { ServerCompilers } from './compiler-server';
 import { config, settings } from './settings';
 
 export let selectedDocument = null;
@@ -10,7 +10,6 @@ export let selectedProjectFolder = null;
 
 export let codeWalkerService: CodeWalkerService = null;
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export function initCommon(document: any) {
 	if (typeof document.uri === 'string') {
 		initWorkspaceRootFolder(document.uri);
@@ -40,7 +39,7 @@ export function initWorkspaceRootFolder(uri: string) {
 			const newRootFolder = settings.workspaceFolders.find((x) => uri.startsWith(x.uri));
 			if (newRootFolder != null) {
 				settings.rootPath = URI.parse(newRootFolder.uri).fsPath;
-				solcCompiler.rootPath = settings.rootPath;
+				ServerCompilers.rootPath = settings.rootPath;
 				if (settings.linter != null) {
 					settings.linter.loadFileConfig(settings.rootPath);
 				}
@@ -63,7 +62,7 @@ export function initCurrentProjectInWorkspaceRootFsPath(currentDocument: string)
 		} else {
 			selectedProjectFolder = projectFolder;
 			selectedDocument = currentDocument;
-			solcCompiler.rootPath = projectFolder;
+			ServerCompilers.rootPath = projectFolder;
 			if (settings.linter != null) {
 				settings.linter.loadFileConfig(projectFolder);
 			}
@@ -71,7 +70,7 @@ export function initCurrentProjectInWorkspaceRootFsPath(currentDocument: string)
 		}
 	} else {
 		// we might have changed settings
-		solcCompiler.rootPath = settings.rootPath;
+		ServerCompilers.rootPath = settings.rootPath;
 		selectedProjectFolder = settings.rootPath;
 		selectedDocument = currentDocument;
 		return settings.rootPath;

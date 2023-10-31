@@ -78,11 +78,12 @@
 		"yaml-js": "0.2.3"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^1.3.1",
 		"@enio.ai/data-ferret": "^2.0.1",
 		"@types/glob": "^8.1.0",
 		"@types/lodash.debounce": "^4.0.7",
-		"@types/node": "^11.15.3",
 		"@types/lodash.throttle": "^4.1.8",
+		"@types/node": "^20.8.9",
 		"@types/vscode": "^1.77.0",
 		"@vscode/vsce": "^2.21.1",
 		"class-utils": "^0.3.6",
@@ -94,6 +95,7 @@
 		"safe-clone-deep": "^1.1.5",
 		"ts-node": "^7.0.1",
 		"ts-node-dev": "^2.0.0",
+		"tsconfig-paths": "^4.2.0",
 		"tslint": "^5.20.1",
 		"tsup": "^7.2.0",
 		"typescript": "^5.0.4",
@@ -116,8 +118,35 @@
 	"contributes": {
 		"configuration": {
 			"type": "object",
-			"title": "Solidity configuration",
+			"title": "Solidity",
 			"properties": {
+				"solidity.compilerOutputSelection": {
+					"type": [
+						"string"
+					],
+					"default": [
+						"abi",
+						"devdoc",
+						"userdoc",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.bytecode.object",
+						"evm.deployedBytecode.object"
+					],
+					"description": "Select output items (contract level) from compilation"
+				},
+				"solidity.compilerSettings": {
+					"type": "object",
+					"default": {
+						"viaIR": true,
+						"evmVersion": "paris",
+						"optimizer": {
+							"enabled": true,
+							"runs": 1000
+						}
+					},
+					"description": "Compiler settings used. Overrides other configuration values if clashing. (https://docs.soliditylang.org/en/latest/using-the-compiler.html#input-description) "
+				},
 				"solidity.executeTestFunctionOnSave": {
 					"type": [
 						"boolean"
@@ -126,9 +155,7 @@
 					"description": "Run forge test in cursor position on file save."
 				},
 				"solidity.initExclude": {
-					"type": [
-						"array"
-					],
+					"type": "array",
 					"default": [],
 					"description": "Folders to exclude from sources, i.e: ['temp', 'test']"
 				},
@@ -142,24 +169,19 @@
 					"default": "bin",
 					"description": "The output directory for extension compilation results eg. 'bin'"
 				},
-				"solidity.compileUsingRemoteVersion": {
+				"solidity.remoteSolcVersion": {
 					"type": "string",
 					"default": "latest",
-					"description": "Get solc binaries from 'https://binaries.soliditylang.org/', eg. 'latest', 'v0.4.3+commit.2353da71'. For versions: 'Solidity: Get solidity releases'"
+					"description": "Version of remote solc, downloaded from 'https://binaries.soliditylang.org/'. 'latest', 'v0.4.3+commit.2353da71'. See: 'Get solidity releases'"
 				},
-				"solidity.compilerOptimization": {
-					"type": "number",
-					"default": 200,
-					"description": "Optimize for how many times you intend to run the code. Lower values will optimize more for initial deployment cost, higher values will optimize more for high-frequency usage."
-				},
-				"solidity.compileUsingLocalVersion": {
+				"solidity.localSolcVersion": {
 					"type": "string",
 					"default": "",
-					"description": "Compile using a local solc (js) binary file, please include the path of the file if wanted: 'C://v0.4.3+commit.2353da71.js'"
+					"description": "Compile using a local solc (js) binary file, please include the path of the file if wanted eg. 'C://v0.4.3+commit.2353da71.js'"
 				},
 				"solidity.compilerType": {
 					"type": "string",
-					"description": "Set type for solc. Remote version is set with 'compileUsingRemoteVersion' (https://binaries.soliditylang.org/). `File` version is set with `compileUsingLocalVersion`. `NPM` looks from node_modules folder or configured 'compilerPackage'. Default uses solc included with this extension",
+					"description": "Solc location used. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `compileUsingLocalVersion`. `NPM` looks from node_modules folder or configured 'compilerPackage'. Default uses solc included with this extension",
 					"enum": [
 						"Remote",
 						"File",
@@ -369,43 +391,43 @@
 				"category": "Solidity"
 			},
 			{
-				"title": "Compile File",
+				"title": "Compile Active",
 				"enablement": "editorLangId == 'solidity'",
 				"category": "Solidity",
 				"command": "solidity.compile.active"
 			},
 			{
-				"title": "Compile File (remote solc)",
+				"title": "Compile Active (remote solc)",
 				"enablement": "editorLangId == 'solidity'",
-				"command": "solidity.compile.activeUsingRemote",
+				"command": "solidity.compile.activeWithRemoteSolc",
 				"category": "Solidity"
 			},
 			{
-				"title": "Compile File (local file)",
+				"title": "Compile Active (local file)",
 				"enablement": "editorLangId == 'solidity'",
-				"command": "solidity.compile.activeUsingLocalFile",
+				"command": "solidity.compile.activeWithLocalSolc",
 				"category": "Solidity"
 			},
 			{
-				"title": "Compile File (npm)",
+				"title": "Compile Active (npm)",
 				"enablement": "editorLangId == 'solidity'",
-				"command": "solidity.compile.activeUsingNodeModule",
+				"command": "solidity.compile.activeWithNPMSolc",
 				"category": "Solidity"
 			},
 			{
 				"title": "Compile All",
 				"enablement": "editorLangId == 'solidity'",
-				"command": "solidity.compile",
+				"command": "solidity.compile.all",
 				"category": "Solidity"
 			},
 			{
 				"title": "Compiler Info",
-				"command": "solidity.compilerInfo",
+				"command": "solidity.peekActiveCompilers",
 				"category": "Solidity"
 			},
 			{
 				"title": "Get Solc Versions",
-				"command": "solidity.solcReleases",
+				"command": "solidity.peekSolcReleases",
 				"category": "Solidity"
 			},
 			{
@@ -425,12 +447,12 @@
 			},
 			{
 				"title": "Download and set workspace compiler",
-				"command": "solidity.downloadRemoteVersionAndSetLocalPathSetting",
+				"command": "solidity.downloadSolcAndSetAsLocal",
 				"category": "Solidity"
 			},
 			{
 				"title": "Set workspace solc location",
-				"command": "solidity.changeDefaultCompilerType",
+				"command": "solidity.changeSolcType",
 				"category": "Solidity"
 			},
 			{
@@ -458,7 +480,7 @@
 				},
 				{
 					"when": "resourceExtname == .sol",
-					"command": "solidity.compile"
+					"command": "solidity.compile.all"
 				}
 			],
 			"solidity.actions": [
@@ -469,27 +491,27 @@
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.compile",
+					"command": "solidity.compile.all",
 					"group": "1_solidity"
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.compile.activeUsingRemote",
+					"command": "solidity.compile.activeWithRemoteSolc",
 					"group": "1_solidity"
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.compile.activeUsingLocalFile",
+					"command": "solidity.compile.activeWithLocalSolc",
 					"group": "1_solidity"
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.compile.activeUsingNodeModule",
+					"command": "solidity.compile.activeWithNPMSolc",
 					"group": "1_solidity"
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.changeDefaultCompilerType",
+					"command": "solidity.changeSolcType",
 					"group": "2_solidity"
 				},
 				{
@@ -509,17 +531,17 @@
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.downloadRemoteVersionAndSetLocalPathSetting",
+					"command": "solidity.downloadSolcAndSetAsLocal",
 					"group": "2_solidity"
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.compilerInfo",
+					"command": "solidity.peekActiveCompilers",
 					"group": "3_solidity"
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.solcReleases",
+					"command": "solidity.peekSolcReleases",
 					"group": "3_solidity"
 				},
 				{
@@ -603,7 +625,7 @@
 				},
 				{
 					"when": "resourceExtname == .sol",
-					"command": "solidity.compile",
+					"command": "solidity.compile.all",
 					"group": "2_solidity"
 				},
 				{
@@ -621,7 +643,7 @@
 				"when": "editorTextFocus && editorLangId == 'solidity'"
 			},
 			{
-				"command": "solidity.compile",
+				"command": "solidity.compile.all",
 				"key": "Ctrl+f5",
 				"mac": "Cmd+f5",
 				"when": "editorTextFocus && editorLangId == 'solidity'"

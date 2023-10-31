@@ -6,7 +6,7 @@ import { ParsedDocument } from './ParsedDocument';
 
 export class ParsedContractIs extends ParsedCode {
 	private contractReference: ParsedContract = null;
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	public override initialise(element: any, document: ParsedDocument, contract: ParsedContract, isGlobal: boolean) {
 		super.initialise(element, document, contract, isGlobal);
 		this.name = element.name;

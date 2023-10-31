@@ -8,12 +8,11 @@ import { Element } from './types';
 
 export class ParsedError extends ParsedCode {
 	public input: ParsedParameter[] = [];
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	public id: any;
 	private completionItem: CompletionItem = null;
-	public element: Element;
+	public declare element: Element;
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public override initialise(element: any, document: ParsedDocument, contract: ParsedContract, isGlobal: boolean) {
 		super.initialise(element, document, contract, isGlobal);
 		this.name = element.name;

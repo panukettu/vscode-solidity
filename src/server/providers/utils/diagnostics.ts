@@ -1,5 +1,6 @@
+import type { SolcError } from '@shared/compiler/solc-types';
+import type { CompilerError } from '@shared/types';
 import { DiagnosticSeverity } from 'vscode-languageserver';
-import { CompilerError } from '../../types';
 
 export function getDiagnosticSeverity(severity: string): DiagnosticSeverity {
 	switch (severity) {
@@ -14,8 +15,8 @@ export function getDiagnosticSeverity(severity: string): DiagnosticSeverity {
 	}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export function errorToDiagnostic(error: any): CompilerError {
+export function errorToDiagnostic(error: SolcError): CompilerError {
+	console.debug(error);
 	if (error.sourceLocation.file != null) {
 		const fileName = error.sourceLocation.file;
 
@@ -42,7 +43,7 @@ export function errorToDiagnostic(error: any): CompilerError {
 	}
 }
 
-export function splitErrorToDiagnostic(error: any, errorSplit: any, index: number, fileName: any): CompilerError {
+export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index: number, fileName: any): CompilerError {
 	const severity = getDiagnosticSeverity(error.severity);
 	const errorMessage = error.message;
 	// tslint:disable-next-line:radix
@@ -66,13 +67,14 @@ export function splitErrorToDiagnostic(error: any, errorSplit: any, index: numbe
 	let endLine = line - 1;
 	let startLine = line - 1;
 
-	if (error.code === '1878') {
+	if (error.errorCode === '1878') {
 		startLine = 0;
 		endLine = 2;
 		endCharacter = 0;
 		startCharacter = 1;
 	}
-
+	// @todo log error to see if additional info is available
+	console.debug(error);
 	const result = {
 		diagnostic: {
 			message: errorMessage,
@@ -92,23 +94,5 @@ export function splitErrorToDiagnostic(error: any, errorSplit: any, index: numbe
 		fileName: fileName,
 	};
 
-	return result;
-}
-
-export function stdoutToDiagnostics(match: string[], rootPath: string): CompilerError {
-	const [, code, message, fileName, line, character] = match;
-	const position = { line: parseInt(line) - 1, character: parseInt(character) };
-	const result = {
-		diagnostic: {
-			message: message.trim(),
-			code: code.trim(),
-			range: {
-				start: position,
-				end: position,
-			},
-			severity: 1,
-		},
-		fileName: `${rootPath}/${fileName}`,
-	};
 	return result;
 }

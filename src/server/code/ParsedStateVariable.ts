@@ -7,7 +7,7 @@ import { ParsedVariable } from './ParsedVariable';
 export class ParsedStateVariable extends ParsedVariable {
 	private completionItem: CompletionItem = null;
 
-	public element: any;
+	public declare element: any;
 
 	public initialise(element: any, document: ParsedDocument, contract: ParsedContract) {
 		super.initialise(element, document, contract);

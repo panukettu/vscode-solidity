@@ -2,13 +2,13 @@ import * as vscode from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 
 import * as fs from 'fs';
+import { documentMap } from '@server/providers/utils/caches';
+import { Project } from '@shared/model/project';
+import { SourceDocument } from '@shared/model/sourceDocument';
+import { SourceDocumentCollection } from '@shared/model/sourceDocuments';
+import { initialiseProject } from '@shared/project';
+import { SolidityConfig } from '@shared/types';
 import * as solparse from 'solparse-exp-jb';
-import { Project } from '../../../common/model/project';
-import { SourceDocument } from '../../../common/model/sourceDocument';
-import { SourceDocumentCollection } from '../../../common/model/sourceDocumentCollection';
-import { initialiseProject } from '../../../common/projectService';
-import { documentMap } from '../../providers/utils/caches';
-import { SolidityConfig } from '../../types';
 import { ParsedContract } from '../ParsedContract';
 import { ParsedDocument } from '../ParsedDocument';
 import { Element } from '../types';
@@ -277,7 +277,6 @@ export class CodeWalkerService {
 		return contracts;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private findElementByOffset(elements: Array<{ start: number; end: number }>, offset: number): any {
 		return elements.find((element) => element.start <= offset && offset <= element.end);
 	}

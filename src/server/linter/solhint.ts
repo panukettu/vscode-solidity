@@ -7,7 +7,6 @@ import { Linter } from '../types';
 export default class SolhintService implements Linter {
 	private config: ValidationConfig;
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	constructor(rootPath: string, rules: any) {
 		this.config = new ValidationConfig(rootPath, rules);
 	}
@@ -16,7 +15,6 @@ export default class SolhintService implements Linter {
 		this.config.loadFileConfig(rootPath);
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public setIdeRules(rules: any) {
 		this.config.setIdeRules(rules);
 	}
@@ -33,12 +31,10 @@ export default class SolhintService implements Linter {
 		};
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private severity(error: any): Severity {
 		return error.severity === 3 ? Severity.Warning : Severity.Error;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private rangeOf(error: any): Range {
 		const line = error.line - 1;
 		const character = error.column - 1;
@@ -55,20 +51,17 @@ class ValidationConfig {
 	public static readonly DEFAULT_RULES = { 'func-visibility': false };
 	public static readonly EMPTY_CONFIG = { rules: {} };
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private ideRules: any;
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	private fileConfig: any;
 	private ignoreFiles: string[] = [];
 	private currentWatchFile: string;
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	constructor(rootPath: string, ideRules: any) {
 		this.setIdeRules(ideRules);
 		this.loadFileConfig(rootPath);
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public setIdeRules(rules: any) {
 		this.ideRules = rules || {};
 	}

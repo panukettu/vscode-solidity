@@ -38,13 +38,13 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 	public constructorFunction: ParsedFunction = null;
 	public fallbackFunction: ParsedFunction = null;
 	public receiveFunction: ParsedFunction = null;
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	public id: any;
 
 	public contractType: ContractType = ContractType.contract;
 	public isAbstract: boolean;
 	private completionItem: CompletionItem = null;
-	public element: Element;
+	public declare element: Element;
 
 	public override getAllReferencesToSelected(offset: number, documents: ParsedDocument[]): TypeReference[] {
 		let results: TypeReference[] = [];
@@ -113,6 +113,20 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 		if (this.isTheSame(parsedCode)) {
 			results.push(this.createFoundReferenceLocationResult());
 		}
+
+		// biome-ignore lint/complexity/noForEach: <explanation>
+		this.contractIsStatements.forEach((x) => {
+			results = results.concat(x.getAllReferencesToObject(parsedCode));
+		});
+
+		results = results.concat(
+			this.structs.flatMap((s) => s.getInnerMembers().flatMap((s) => s.getAllReferencesToObject(parsedCode)))
+		);
+
+		results = results.concat(
+			this.functions.flatMap((f) => f.getAllItems().flatMap((s) => s.getAllReferencesToObject(parsedCode)))
+		);
+
 		// biome-ignore lint/complexity/noForEach: <explanation>
 		this.expressions.forEach((x) => {
 			results = results.concat(x.getAllReferencesToObject(parsedCode));
@@ -152,18 +166,6 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 		this.events.forEach((x) => {
 			results = results.concat(x.getAllReferencesToObject(parsedCode));
 		});
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		this.contractIsStatements.forEach((x) => {
-			results = results.concat(x.getAllReferencesToObject(parsedCode));
-		});
-
-		results = results.concat(
-			this.structs.flatMap((s) => s.getInnerMembers().flatMap((s) => s.getAllReferencesToObject(parsedCode)))
-		);
-
-		results = results.concat(
-			this.functions.flatMap((f) => f.getAllItems().flatMap((s) => s.getAllReferencesToObject(parsedCode)))
-		);
 
 		return results;
 	}
@@ -263,6 +265,29 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 			let results: TypeReference[] = [];
 
 			// biome-ignore lint/complexity/noForEach: <explanation>
+			this.using.forEach((x) => {
+				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
+			});
+
+			results = results.concat(
+				this.structs.flatMap((s) => s.getInnerMembers().flatMap((s) => s.getSelectedTypeReferenceLocation(offset)))
+			);
+
+			results = results.concat(
+				this.functions.flatMap((f) => f.getAllItems().flatMap((s) => s.getSelectedTypeReferenceLocation(offset)))
+			);
+
+			// biome-ignore lint/complexity/noForEach: <explanation>
+			this.contractIsStatements.forEach((x) => {
+				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
+			});
+
+			// biome-ignore lint/complexity/noForEach: <explanation>
+			this.structs.forEach((x) => {
+				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
+			});
+
+			// biome-ignore lint/complexity/noForEach: <explanation>
 			this.functions.forEach((x) => {
 				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
 			});
@@ -278,34 +303,16 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 			this.stateVariables.forEach((x) => {
 				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
 			});
-			// biome-ignore lint/complexity/noForEach: <explanation>
-			this.structs.forEach((x) => {
-				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
-			});
-			// biome-ignore lint/complexity/noForEach: <explanation>
-			this.using.forEach((x) => {
-				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
-			});
+
 			// biome-ignore lint/complexity/noForEach: <explanation>
 			this.customTypes.forEach((x) => {
 				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
 			});
-			// biome-ignore lint/complexity/noForEach: <explanation>
-			this.contractIsStatements.forEach((x) => {
-				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
-			});
+
 			// biome-ignore lint/complexity/noForEach: <explanation>
 			this.expressions.forEach((x) => {
 				results = this.mergeArrays(results, x.getSelectedTypeReferenceLocation(offset));
 			});
-
-			results = results.concat(
-				this.structs.flatMap((s) => s.getInnerMembers().flatMap((s) => s.getSelectedTypeReferenceLocation(offset)))
-			);
-
-			results = results.concat(
-				this.functions.flatMap((f) => f.getAllItems().flatMap((s) => s.getSelectedTypeReferenceLocation(offset)))
-			);
 
 			if (this.constructorFunction) {
 				results = this.mergeArrays(results, this.constructorFunction.getSelectedTypeReferenceLocation(offset));
@@ -328,16 +335,16 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 	}
 	public getAllItems(): ParsedCode[] {
 		return []
-			.concat(this.functions)
-			.concat(this.functions.flatMap((f) => f.getAllItems()))
-			.concat(this.errors)
-			.concat(this.events)
-			.concat(this.structs)
-			.concat(this.structs.flatMap((s) => s.getInnerMembers()))
-			.concat(this.stateVariables)
-			.concat(this.customTypes)
 			.concat(this.using)
 			.concat(this.contractIsStatements)
+			.concat(this.structs)
+			.concat(this.structs.flatMap((s) => s.getInnerMembers()))
+			.concat(this.functions.flatMap((f) => f.getAllItems()))
+			.concat(this.functions)
+			.concat(this.errors)
+			.concat(this.events)
+			.concat(this.stateVariables)
+			.concat(this.customTypes)
 			.concat(this.expressions)
 			.concat(this.constructorFunction)
 			.concat(this.fallbackFunction)
@@ -346,9 +353,7 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 	public override getSelectedItem(offset: number): ParsedCode {
 		let selectedItem: ParsedCode = null;
 		if (this.isCurrentElementedSelected(offset)) {
-			const allItems = this.getAllItems();
-
-			for (const item of allItems) {
+			for (const item of this.getAllItems()) {
 				if (item == null) continue;
 				selectedItem = item.getSelectedItem(offset);
 				if (selectedItem) {
@@ -791,7 +796,6 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 		}
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public initialiseVariablesMembersEtc(statement: any, parentStatement: any, child: ParsedExpression) {
 		if (!statement) return;
 		try {

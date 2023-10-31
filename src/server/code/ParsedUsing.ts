@@ -24,7 +24,6 @@ export class ParsedUsing extends ParsedCode {
 		return this.isGlobal ? 'using global' : 'using';
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public initialise(element: any, document: ParsedDocument, contract: ParsedContract, isGlobal: boolean) {
 		this.contract = contract;
 		this.element = element;

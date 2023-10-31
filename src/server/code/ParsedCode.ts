@@ -246,12 +246,10 @@ export class ParsedCode {
 		return [];
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public findElementByOffset(elements: Array<any>, offset: number): any {
 		return elements.find((element) => element.start <= offset && offset <= element.end);
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public isElementedSelected(element: any, offset: number): boolean {
 		if (!element) return false;
 

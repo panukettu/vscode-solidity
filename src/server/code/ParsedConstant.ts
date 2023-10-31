@@ -8,7 +8,7 @@ import { BodyElement } from './types';
 export class ParsedConstant extends ParsedVariable {
 	public from: string;
 	private completionItem: CompletionItem = null;
-	public element: BodyElement;
+	public declare element: BodyElement;
 	public override initialise(element: BodyElement, document: ParsedDocument) {
 		super.initialise(element, document);
 		this.name = element.name;
@@ -54,7 +54,6 @@ export class ParsedConstant extends ParsedVariable {
 	}
 
 	public getSignature(): string {
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		return ParsedParameter.getParamInfo(this.element as any);
 	}
 }

@@ -64,14 +64,13 @@ export class ParsedDeclarationType extends ParsedCode {
 		}
 		return this.name + this.getArraySignature();
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	public static create(literal: any, contract: ParsedContract, document: ParsedDocument): ParsedDeclarationType {
 		const declarationType = new ParsedDeclarationType();
 		declarationType.initialise(literal, document, contract);
 		return declarationType;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public override initialise(element: any, document: ParsedDocument, contract: ParsedContract, isGlobal = false) {
 		super.initialise(element, document, contract, isGlobal);
 		if (element.members !== undefined && element.members.length > 0) {

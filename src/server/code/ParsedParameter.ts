@@ -33,9 +33,9 @@ function pluralize(word: string) {
 export class ParsedParameter extends ParsedVariable {
 	public parent: ParsedCode;
 	private completionItem: CompletionItem = null;
-	public element: ElementParams;
+	public declare element: ElementParams;
 
-	public type: ParsedDeclarationType;
+	public declare type: ParsedDeclarationType;
 	public isInput: boolean;
 	public isOutput: boolean;
 
@@ -83,7 +83,6 @@ export class ParsedParameter extends ParsedVariable {
 		return parameters;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public static createParamsInfo(params: any): string {
 		if (!params || !params.length) return '';
 		// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
@@ -100,7 +99,7 @@ export class ParsedParameter extends ParsedVariable {
 
 		return paramsInfo;
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	public static createParamsInfoForSig(params: any): string {
 		if (!params || !params.length) return '';
 		// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
@@ -129,7 +128,7 @@ export class ParsedParameter extends ParsedVariable {
 		}
 		return currentParamInfo;
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	public static getParamInfoSig(parameterElement: any) {
 		return getTypeString(parameterElement.literal);
 	}

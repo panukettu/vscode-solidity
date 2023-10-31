@@ -1,10 +1,10 @@
+import { ClientState } from '@client/client-state';
 import * as vscode from 'vscode';
-type DecorationScope = {
+export type DecorationScope = {
 	pending: vscode.TextEditorDecorationType;
 	fail: vscode.TextEditorDecorationType;
 	success: vscode.TextEditorDecorationType;
 };
-export const decorationMap = new Map<string, DecorationScope>();
 
 const decorationTypes = ['pending', 'fail', 'success'] as const;
 
@@ -38,16 +38,22 @@ const failDecoration = (context: vscode.ExtensionContext) =>
 		},
 	});
 
-export const initDecorations = (scope: string, context: vscode.ExtensionContext) => {
-	if (decorationMap.has(scope)) return;
-	decorationMap.set(scope, {
-		pending: pendingDecoration(context),
-		fail: failDecoration(context),
-		success: successDecoration(context),
+export const initDecorations = (state: ClientState, scope: string) => {
+	if (state.decorations.has(scope)) return;
+	state.decorations.set(scope, {
+		pending: pendingDecoration(state.context),
+		fail: failDecoration(state.context),
+		success: successDecoration(state.context),
 	});
 };
-
-export const lineDecoration = (scope: string, text: string, line: number, type: 'pending' | 'fail' | 'success') => {
+export type DecorArgs = {
+	scope: string;
+	text: string;
+	line: number;
+	type: 'pending' | 'fail' | 'success';
+};
+export const lineDecoration = (state: ClientState, args: DecorArgs) => {
+	const { scope, text, line, type } = args;
 	const items = [
 		{
 			range: new vscode.Range(line, 0, line, 9999),
@@ -55,11 +61,11 @@ export const lineDecoration = (scope: string, text: string, line: number, type: 
 		},
 	];
 
-	return vscode.window.activeTextEditor.setDecorations(decorationMap.get(scope)[type], items);
+	return vscode.window.activeTextEditor.setDecorations(state.decorations.get(scope)[type], items);
 };
 
-export const resetDecorations = (scope: string, types?: ('pending' | 'fail' | 'success')[]) => {
-	const decorations = decorationMap.get(scope);
+export const resetDecorations = (state: ClientState, scope: string, types?: ('pending' | 'fail' | 'success')[]) => {
+	const decorations = state.decorations.get(scope);
 	if (types) {
 		for (const type of types) vscode.window.activeTextEditor.setDecorations(decorations[type], []);
 		return;
@@ -70,20 +76,25 @@ export const resetDecorations = (scope: string, types?: ('pending' | 'fail' | 's
 	}
 };
 
-export const removeAll = () => {
-	for (const value of decorationMap.values()) {
+export const removeAll = (state: ClientState) => {
+	for (const value of state.decorations.values()) {
 		for (const type of decorationTypes) vscode.window.activeTextEditor.setDecorations(value[type], []);
 	}
 };
-
-export const runDecorated = async <T>(promise: Promise<T>, scope: string, line: number, text = 'Running..') => {
-	lineDecoration(scope, text, line, 'pending');
+type RunArgs<T> = {
+	promise: Promise<T>;
+	scope: string;
+	line: number;
+};
+export const runDecorated = async <T>(state: ClientState, args: RunArgs<T>, text = 'Executing..') => {
+	const { promise, scope, line } = args;
+	lineDecoration(state, { scope, text, line, type: 'pending' });
 	try {
 		const result = await promise;
-		resetDecorations(scope, ['pending']);
+		resetDecorations(state, scope, ['pending']);
 		return result;
 	} catch (err) {
-		resetDecorations(scope, ['pending']);
-		lineDecoration(scope, err, line, 'fail');
+		resetDecorations(state, scope, ['pending']);
+		// lineDecoration(state, { scope, text: err.message, line, type: 'fail' });
 	}
 };

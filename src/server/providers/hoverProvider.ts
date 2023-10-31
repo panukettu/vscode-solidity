@@ -1,9 +1,10 @@
 import { keccak256, toBytes } from 'viem';
 import * as vscode from 'vscode-languageserver';
-import { ParsedExpressionIdentifier } from '../code/ParsedExpression';
+import { ParsedExpression, ParsedExpressionIdentifier } from '../code/ParsedExpression';
 import { CodeWalkerService } from '../code/walker/codeWalkerService';
 import { useProviderHelper } from './utils/common';
 import { isComment, keccak256Regexp } from './utils/matchers';
+import { handleParsedExpression } from './definition';
 
 export class SolidityHoverProvider {
 	public static provideHover(
@@ -28,30 +29,41 @@ export class SolidityHoverProvider {
 				return null;
 			} else if (documentContractSelected != null) {
 				const selectedFunction = documentContractSelected.getSelectedFunction(offset);
-				const item = documentContractSelected.getSelectedItem(offset) as ParsedExpressionIdentifier;
+				let item = documentContractSelected.getSelectedItem(offset);
+				if (!item) {
+					reset();
+					return null;
+				}
 
-				if (item.name === 'length') {
+				if (item instanceof ParsedExpression) {
+					const results = handleParsedExpression(documentContractSelected, item);
+					if (results?.length && results[0].getHover) {
+						reset();
+						console.debug(results);
+						console.debug(results[0].getHover());
+						return results[0].getHover();
+					}
+				}
+
+				const itemExp = item as ParsedExpressionIdentifier;
+				if (itemExp.name === 'length') {
 					return {
 						contents: {
 							kind: vscode.MarkupKind.Markdown,
 							value: [
 								'```solidity',
-								'(array property) ' + (item.parent?.name ? item.parent.name + '.' : '') + 'length: uint256',
+								'(array property) ' + (itemExp.parent?.name ? itemExp.parent.name + '.' : '') + 'length: uint256',
 								'```',
 							].join('\n'),
 						},
 					};
 				}
-				if (!item) {
-					reset();
-					return null;
-				}
-				const res = item.getHover();
+				const res = itemExp.getHover();
 				// @ts-expect-error
-				if (!!res.contents?.value) {
+				if (res.contents?.value) {
 					reset();
 					return res;
-				} else if (item.parent) {
+				} else if (itemExp.parent) {
 					const parentMapping =
 						// @ts-expect-error
 						item.parent?.reference?.element?.literal?.literal?.to?.literal;
@@ -84,10 +96,11 @@ export class SolidityHoverProvider {
 					}
 				}
 			}
+
 			reset();
 			return null;
 		} catch (e) {
-			// console.debug("hover", e);
+			console.debug('hover', e);
 		}
 	}
 }

@@ -9,7 +9,7 @@ import { BodyElement } from './types';
 export class ParsedFunctionVariable extends ParsedVariable {
 	public function: ParsedFunction;
 	private completionItem: CompletionItem = null;
-	public element: BodyElement;
+	public declare element: BodyElement;
 
 	public override createCompletionItem(select?: boolean): CompletionItem {
 		if (!this.completionItem) {

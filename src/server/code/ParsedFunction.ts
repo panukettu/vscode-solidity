@@ -51,7 +51,7 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 	public storageAccess: 'view' | 'pure' | 'write' | 'modifier';
 	public visibility: 'external' | 'public' | 'private' | 'internal' | 'modifier';
 	public payable: boolean;
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	public id: any;
 	public element: InnerElement = null;
 	private completionItem: CompletionItem = null;
@@ -203,7 +203,6 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 		return `${this.name}(${selectors.join(',')})`;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public override initialise(element: any, document: ParsedDocument, contract: ParsedContract, isGlobal: boolean) {
 		super.initialise(element, document, contract, isGlobal);
 		this.supportsNatSpec = true;
@@ -354,7 +353,6 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 		return this.getInnerMembers().filter((x) => x.name === name);
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public findVariableDeclarationsInInnerScope(offset: number, block: any): ParsedFunctionVariable[] {
 		if (!block.body?.length) return [];
 		if (!this.isElementedSelected(block, offset)) return [];
@@ -546,7 +544,6 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 		return [TypeReference.create(false)];
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public initialiseVariablesMembersEtc(statement: any, parentStatement: any, child: ParsedExpression) {
 		try {
 			if (statement?.type) {
@@ -619,7 +616,6 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 		}
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private createVariableInScopeFromExpression(expression: any): ParsedFunctionVariable {
 		let declarationStatement = null;
 		if (expression.type === 'AssignmentExpression') {

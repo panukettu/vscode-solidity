@@ -24,7 +24,6 @@ export class ParsedImport extends ParsedCode {
 		return 'import';
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public initialise(element: any, document: ParsedDocument) {
 		this.document = document;
 		this.element = element;

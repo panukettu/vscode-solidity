@@ -19,14 +19,13 @@ export enum ExpressionType {
 export class ParsedExpression extends ParsedCode {
 	public parent: ParsedExpression = null;
 	public child: ParsedExpression = null;
-	public element: Element;
+	public declare element: Element;
 	public expressionObjectType: ExpressionType;
 	public reference: ParsedCode = null;
 	public expressionType: ParsedDeclarationType = null;
 	public expressionContainer: IParsedExpressionContainer = null;
 
 	public static createFromMemberExpression(
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		element: any,
 		document: ParsedDocument,
 		contract: ParsedContract,
@@ -80,7 +79,6 @@ export class ParsedExpression extends ParsedCode {
 	}
 
 	public static createFromElement(
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		element: any,
 		document: ParsedDocument,
 		contract: ParsedContract,
@@ -114,7 +112,6 @@ export class ParsedExpression extends ParsedCode {
 
 	// tslint:disable-next-line:member-ordering
 	public initialiseExpression(
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		element: any,
 		document: ParsedDocument,
 		contract: ParsedContract,
@@ -127,7 +124,6 @@ export class ParsedExpression extends ParsedCode {
 		this.expressionContainer = expressionContainer;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	protected initialiseVariablesMembersEtc(statement: any, parentStatement: any) {
 		if (statement.type !== undefined && statement.type != null) {
 			switch (statement.type) {
@@ -168,7 +164,6 @@ export class ParsedExpressionCall extends ParsedExpression {
 	public arguments: ParsedExpression[];
 	// tslint:disable-next-line:member-ordering
 	public override initialiseExpression(
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		element: any,
 		document: ParsedDocument,
 		contract: ParsedContract,
@@ -375,7 +370,6 @@ export class ParsedExpressionCall extends ParsedExpression {
 export class ParsedExpressionIdentifier extends ParsedExpression {
 	// tslint:disable-next-line:member-ordering
 	public override initialiseExpression(
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		element: any,
 		document: ParsedDocument,
 		contract: ParsedContract,

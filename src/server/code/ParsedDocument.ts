@@ -1,6 +1,6 @@
 import { CompletionItem, Hover, Location, Range, TextDocument } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { SourceDocument } from '../../common/model/sourceDocument';
+import { SourceDocument } from '../../shared/model/sourceDocument';
 import { documentMap } from '../providers/utils/caches';
 import { TypeReference } from '../search/TypeReference';
 import { IParsedExpressionContainer } from './IParsedExpressionContainer';
@@ -50,7 +50,7 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 
 	public sourceDocument: SourceDocument;
 	public fixedSource: string;
-	public element: Element;
+	public declare element: Element;
 
 	public getDocumentsThatReference(document?: ParsedDocument): ParsedDocument[] {
 		let returnItems: ParsedDocument[] = [];
@@ -423,12 +423,24 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		let results: TypeReference[] = [];
 
 		if (this.isCurrentElementedSelected(offset)) {
-			for (const func of this.functions) {
-				results = results.concat(func.getAllReferencesToSelected(offset, documents));
+			for (const importItem of this.imports) {
+				results = results.concat(importItem.getAllReferencesToSelected(offset, documents));
 			}
 
 			for (const item of this.innerContracts) {
 				results = results.concat(item.getAllReferencesToSelected(offset, documents));
+			}
+
+			for (const using of this.usings) {
+				results = results.concat(using.getAllReferencesToSelected(offset, documents));
+			}
+
+			for (const func of this.functions) {
+				results = results.concat(func.getAllReferencesToSelected(offset, documents));
+			}
+
+			for (const struct of this.structs) {
+				results = results.concat(struct.getAllReferencesToSelected(offset, documents));
 			}
 
 			for (const error of this.errors) {
@@ -439,24 +451,12 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 				results = results.concat(event.getAllReferencesToSelected(offset, documents));
 			}
 
-			for (const struct of this.structs) {
-				results = results.concat(struct.getAllReferencesToSelected(offset, documents));
-			}
-
-			for (const using of this.usings) {
-				results = results.concat(using.getAllReferencesToSelected(offset, documents));
-			}
-
 			for (const customType of this.customTypes) {
 				results = results.concat(customType.getAllReferencesToSelected(offset, documents));
 			}
 
 			for (const constant of this.constants) {
 				results = results.concat(constant.getAllReferencesToSelected(offset, documents));
-			}
-
-			for (const importItem of this.imports) {
-				results = results.concat(importItem.getAllReferencesToSelected(offset, documents));
 			}
 
 			for (const expression of this.expressions) {
@@ -668,20 +668,16 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 	public override getAllReferencesToObject(parsedCode: ParsedCode): TypeReference[] {
 		let results: TypeReference[] = [];
 
-		for (const func of this.functions) {
-			results = results.concat(func.getAllReferencesToObject(parsedCode));
+		for (const importItem of this.imports) {
+			results = results.concat(importItem.getAllReferencesToObject(parsedCode));
 		}
 
 		for (const item of this.innerContracts) {
 			results = results.concat(item.getAllReferencesToObject(parsedCode));
 		}
 
-		for (const error of this.errors) {
-			results = results.concat(error.getAllReferencesToObject(parsedCode));
-		}
-
-		for (const event of this.events) {
-			results = results.concat(event.getAllReferencesToObject(parsedCode));
+		for (const func of this.functions) {
+			results = results.concat(func.getAllReferencesToObject(parsedCode));
 		}
 
 		for (const struct of this.structs) {
@@ -691,6 +687,13 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		for (const using of this.usings) {
 			results = results.concat(using.getAllReferencesToObject(parsedCode));
 		}
+		for (const error of this.errors) {
+			results = results.concat(error.getAllReferencesToObject(parsedCode));
+		}
+
+		for (const event of this.events) {
+			results = results.concat(event.getAllReferencesToObject(parsedCode));
+		}
 
 		for (const customType of this.customTypes) {
 			results = results.concat(customType.getAllReferencesToObject(parsedCode));
@@ -698,10 +701,6 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 
 		for (const constant of this.constants) {
 			results = results.concat(constant.getAllReferencesToObject(parsedCode));
-		}
-
-		for (const importItem of this.imports) {
-			results = results.concat(importItem.getAllReferencesToObject(parsedCode));
 		}
 
 		for (const expression of this.expressions) {
@@ -758,12 +757,24 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 	public getSelectedTypeReferenceLocation(offset: number): TypeReference[] {
 		let results: TypeReference[] = [];
 
-		for (const func of this.functions) {
-			results = results.concat(func.getSelectedTypeReferenceLocation(offset));
+		for (const importItem of this.imports) {
+			results = results.concat(importItem.getSelectedTypeReferenceLocation(offset));
 		}
 
 		for (const item of this.innerContracts) {
 			results = results.concat(item.getSelectedTypeReferenceLocation(offset));
+		}
+
+		for (const using of this.usings) {
+			results = results.concat(using.getSelectedTypeReferenceLocation(offset));
+		}
+
+		for (const func of this.functions) {
+			results = results.concat(func.getSelectedTypeReferenceLocation(offset));
+		}
+
+		for (const struct of this.structs) {
+			results = results.concat(struct.getSelectedTypeReferenceLocation(offset));
 		}
 
 		for (const error of this.errors) {
@@ -774,24 +785,12 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 			results = results.concat(event.getSelectedTypeReferenceLocation(offset));
 		}
 
-		for (const struct of this.structs) {
-			results = results.concat(struct.getSelectedTypeReferenceLocation(offset));
-		}
-
-		for (const using of this.usings) {
-			results = results.concat(using.getSelectedTypeReferenceLocation(offset));
-		}
-
 		for (const customType of this.customTypes) {
 			results = results.concat(customType.getSelectedTypeReferenceLocation(offset));
 		}
 
 		for (const constant of this.constants) {
 			results = results.concat(constant.getSelectedTypeReferenceLocation(offset));
-		}
-
-		for (const importItem of this.imports) {
-			results = results.concat(importItem.getSelectedTypeReferenceLocation(offset));
 		}
 
 		for (const expression of this.expressions) {
@@ -989,7 +988,6 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		return completionItems;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public initialiseVariablesMembersEtc(statement: any, _parentStatement: any, child: ParsedExpression) {
 		if (!statement) return;
 		try {
@@ -1046,7 +1044,6 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		} catch (error) {}
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private matchesElement(selectedElement: any, element: any) {
 		return selectedElement != null && selectedElement === element;
 	}

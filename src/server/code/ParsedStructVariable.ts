@@ -21,10 +21,7 @@ export class ParsedStructVariable extends ParsedVariable {
 	public properties: ParsedStructVariable[];
 	public items: string[];
 
-	public element: Element;
-
 	public initialiseStructVariable(
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		element: any,
 		contract: ParsedContract,
 		document: ParsedDocument,
@@ -120,7 +117,8 @@ export class ParsedStructVariable extends ParsedVariable {
 		//     }
 		//   }
 		// }
-		return getTypeString(this.element.literal) + (storageType ? ` ${storageType}` : '');
+		// @ts-expect-error
+		return getTypeString(this.element?.literal) + (storageType ? ` ${storageType}` : '');
 	}
 
 	public getSelectedFunction(offset: number): ParsedFunction {
@@ -141,7 +139,7 @@ export class ParsedStructVariable extends ParsedVariable {
 					.map((f) => [...f.input, ...f.output, ...f.variables])
 					.flatMap((f) => f)
 					.filter((i) => i.element.literal.literal === this.struct.name);
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 				if (inputs.length > 0) paramArray = paramArray.concat(inputs as any);
 			}
 			for (const param of paramArray) {

@@ -15,18 +15,17 @@ import { valueTypeReg } from './utils/ParsedCodeTypeHelper';
 
 export class ParsedStruct extends ParsedCode {
 	public properties: ParsedStructVariable[] = [];
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+
 	public id: any;
 	private completionItem: CompletionItem = null;
 	public abiType: string;
 	public hasMapping: boolean;
-	public element: Element;
+	public declare element: Element;
 
 	public usings: ParsedUsing[];
 
 	public type: ParsedDeclarationType;
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	public initialise(element: any, document: ParsedDocument, contract: ParsedContract, isGlobal: boolean) {
 		this.contract = contract;
 		this.element = element;
@@ -51,11 +50,9 @@ export class ParsedStruct extends ParsedCode {
 					const hasContract = !!contract?.findType;
 					if (!isValueType && !isMapping) {
 						if (hasContract) {
-							// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 							typeRef = contract.findType(literalType as any) as typeof typeRef;
 						}
 						if (!typeRef?.name && document?.findType) {
-							// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 							typeRef = document.findType(literalType as any) as typeof typeRef;
 						}
 					} else if (isMapping) {
