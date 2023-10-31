@@ -162,7 +162,7 @@
 				"solidity.npmSolcPackage": {
 					"type": "string",
 					"default": "solc",
-					"description": "The node modules package to find the solcjs compiler"
+					"description": "npm package to look for a solc compiler"
 				},
 				"solidity.outDir": {
 					"type": "string",
@@ -172,16 +172,16 @@
 				"solidity.remoteSolcVersion": {
 					"type": "string",
 					"default": "latest",
-					"description": "Version of remote solc, downloaded from 'https://binaries.soliditylang.org/'. 'latest', 'v0.4.3+commit.2353da71'. See: 'Get solidity releases'"
+					"description": "Remote solc version used, downloaded from 'https://binaries.soliditylang.org/'. 'latest', 'v0.4.3+commit.2353da71'. See: 'Get solidity releases'"
 				},
 				"solidity.localSolcVersion": {
 					"type": "string",
 					"default": "",
-					"description": "Compile using a local solc (js) binary file, please include the path of the file if wanted eg. 'C://v0.4.3+commit.2353da71.js'"
+					"description": "Local solc path, eg. 'C://v0.4.3+commit.2353da71.js'"
 				},
 				"solidity.compilerType": {
 					"type": "string",
-					"description": "Solc used. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `compileUsingLocalVersion`. `NPM` looks from node_modules folder or configured 'npmSolcPackage'",
+					"description": "Solc location used by default. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `localSolcVersion`. `NPM` looks from node_modules folder or configured 'npmSolcPackage'",
 					"enum": [
 						"Remote",
 						"File",

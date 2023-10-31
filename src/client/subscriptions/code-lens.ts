@@ -61,7 +61,7 @@ const registerCodeLensCommands = (state: ClientState) => [
 			const statusBar = vscode.window.createStatusBarItem(functionName, vscode.StatusBarAlignment.Left, -1);
 			statusBar.show();
 			statusBar.name = 'Solidity Test';
-			statusBar.text = `${functionName} 🟡`;
+			statusBar.text = `${functionName}  🟡`;
 			initDecorations(state, functionName);
 
 			const runArgs = {
@@ -76,7 +76,7 @@ const registerCodeLensCommands = (state: ClientState) => [
 
 			if (results.isError && results.info) {
 				if (results.info.includes('restart')) {
-					statusBar.text = `${functionName} 🟨`;
+					statusBar.text = `${functionName}  🟨`;
 					lineDecoration(state, {
 						scope: functionName,
 						text: 'Executing..',

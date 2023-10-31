@@ -1,9 +1,9 @@
+import { ParsedDocument } from '@server/code/ParsedDocument';
+import { ParsedExpression } from '@server/code/ParsedExpression';
 import * as vscode from 'vscode-languageserver/node';
 import { ParsedCode } from '../code/ParsedCode';
 import { CodeWalkerService } from '../code/walker/codeWalkerService';
 import { clearCaches } from './utils/caches';
-import { ParsedExpression } from '@server/code/ParsedExpression';
-import { ParsedDocument } from '@server/code/ParsedDocument';
 
 let currentOffset = 0;
 let currentItem: ParsedCode | undefined;
@@ -59,7 +59,7 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 		clearCaches();
 		currentOffset = 0;
 		currentItem = undefined;
-		console.debug('definition', e);
+		// console.debug('definition', e);
 		return [];
 	}
 };

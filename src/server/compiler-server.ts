@@ -93,12 +93,15 @@ export function validate(document: vscode.TextDocument) {
 			// console.debug("linter:", e);
 		}
 		if (configImport.validateOnChange || configImport.validateOnOpen || configImport.validateOnSave) {
-			try {
+			const isFSol = filePath.endsWith('.t.sol') || filePath.endsWith('.s.sol');
+			if (isFSol) {
 				if (!forgeInfoShown) {
-					connection.console.info('Validation support for .t.sol or .s.sol files is incomplete.');
+					connection.console.error('Validation not supported for .t.sol or .s.sol yet.');
 					forgeInfoShown = true;
 				}
-
+				return;
+			}
+			try {
 				const errors = ServerCompilers.compileWithDiagnostic(
 					filePath,
 					documentText,

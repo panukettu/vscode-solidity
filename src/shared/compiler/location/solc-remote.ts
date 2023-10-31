@@ -54,11 +54,9 @@ export class RemoteSolc extends SolcLoader {
 
 	private async loadRemoteWithRetries(versionString: string, retryNumber: number, maxRetries: number): Promise<any> {
 		try {
-			console.debug('loadRemoteWithRetries', versionString, retryNumber, maxRetries);
 			return this.loadRemoteVersion(versionString);
 		} catch (error) {
 			if (retryNumber <= maxRetries) {
-				console.debug('loadRemoteWithRetries', versionString, retryNumber, maxRetries);
 				return this.loadRemoteWithRetries(versionString, retryNumber + 1, maxRetries);
 			} else {
 				throw error;

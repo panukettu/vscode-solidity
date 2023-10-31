@@ -108,7 +108,6 @@ export class Multisolc {
 				`Compiler type: ${CompilerType[CompilerType.Remote]} solc version: ${this.remote.getVersion()}`
 			);
 		}
-
 		if (this.extension.isSolcInitialized()) {
 			channel.appendLine(
 				`Compiler type: ${CompilerType[CompilerType.Extension]} solc version: ${this.extension.getVersion()}`
@@ -123,7 +122,6 @@ export class Multisolc {
 		selectedType: CompilerType = null
 	) {
 		if (!this.isRootPathSet()) {
-			console.debug('No root path');
 			const output = this.compileInputWith({
 				sources: {
 					[filePath]: {

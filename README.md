@@ -12,7 +12,9 @@
 
 - .solhintignore works
 - Less verbose menus
-- No auto-validating of all documents. Validation is configured to triggers: onSave, onChange or onOpen.
+- Validation is configured to triggers: onSave, onChange or onOpen.
+  - Does not validate all documents on open.
+  - Validation is currently disabled in t.sol or s.sol files.
 - Can configure location for compilation output
 - Bundles all js dependencies.
 - Removes Nethereum, Solium and dApproject related things.

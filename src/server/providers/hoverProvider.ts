@@ -2,10 +2,11 @@ import { keccak256, toBytes } from 'viem';
 import * as vscode from 'vscode-languageserver';
 import { ParsedExpression, ParsedExpressionIdentifier } from '../code/ParsedExpression';
 import { CodeWalkerService } from '../code/walker/codeWalkerService';
+import { handleParsedExpression } from './definition';
 import { useProviderHelper } from './utils/common';
 import { isComment, keccak256Regexp } from './utils/matchers';
-import { handleParsedExpression } from './definition';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export class SolidityHoverProvider {
 	public static provideHover(
 		document: vscode.TextDocument,
@@ -29,7 +30,7 @@ export class SolidityHoverProvider {
 				return null;
 			} else if (documentContractSelected != null) {
 				const selectedFunction = documentContractSelected.getSelectedFunction(offset);
-				let item = documentContractSelected.getSelectedItem(offset);
+				const item = documentContractSelected.getSelectedItem(offset);
 				if (!item) {
 					reset();
 					return null;
@@ -39,8 +40,6 @@ export class SolidityHoverProvider {
 					const results = handleParsedExpression(documentContractSelected, item);
 					if (results?.length && results[0].getHover) {
 						reset();
-						console.debug(results);
-						console.debug(results[0].getHover());
 						return results[0].getHover();
 					}
 				}
@@ -52,7 +51,7 @@ export class SolidityHoverProvider {
 							kind: vscode.MarkupKind.Markdown,
 							value: [
 								'```solidity',
-								'(array property) ' + (itemExp.parent?.name ? itemExp.parent.name + '.' : '') + 'length: uint256',
+								`(array property) ${itemExp.parent?.name ? `${itemExp.parent.name}.` : ''}length: uint256`,
 								'```',
 							].join('\n'),
 						},
@@ -79,7 +78,7 @@ export class SolidityHoverProvider {
 						if (found.struct && found.struct?.name === parentMapping) {
 							const res = found.getHover();
 							// @ts-expect-error
-							if (!!res.contents?.value) {
+							if (res.contents?.value) {
 								reset();
 								return res;
 							}
@@ -100,7 +99,7 @@ export class SolidityHoverProvider {
 			reset();
 			return null;
 		} catch (e) {
-			console.debug('hover', e);
+			// console.debug('hover', e);
 		}
 	}
 }

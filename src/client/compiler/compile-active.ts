@@ -50,12 +50,9 @@ export function compileActiveFile(
 			editor.document.getText(),
 			project
 		);
-		// console.debug({
-		// 	contractDeps: contractsCollection.
-		// })
+
 		const packagesPath = project.libs.map((lib) => formatPath(lib));
 		const options = Config.getCompilerOptions(packagesPath, null, overrideDefaultCompiler);
-		console.debug('active', options);
 		const compileArgs = {
 			solcInput: contractsCollection.getSolcInput(options),
 			state,
