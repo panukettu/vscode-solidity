@@ -1,6 +1,6 @@
 {
 	"name": "vsc-solidity",
-	"description": "Solidity extension with improved support for file level patterns, forked from juanfranblanco/vscode-solidity",
+	"description": "Solidity language support and tools, forked from juanfranblanco/vscode-solidity.",
 	"keywords": [
 		"solidity",
 		"ethereum",
@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.1",
+	"version": "0.8.2",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
