@@ -11,7 +11,7 @@ import { ExtendedSettings } from './types';
 function defaultConfig(): SolidityConfig {
 	const result = {} as SolidityConfig;
 
-	let defaultCompiler = CompilerType.Default;
+	let defaultCompiler = CompilerType.Extension;
 	for (const key in packageJson.contributes.configuration.properties) {
 		const keys = key.split('.');
 		if (keys.length === 2 && keys[0] === 'solidity') {
@@ -105,7 +105,7 @@ export async function handleInitialized() {
 export function updateConfig(soliditySettings: SolidityConfig) {
 	config = {
 		...soliditySettings,
-		compilerType: soliditySettings.compilerType || CompilerType.Default,
+		compilerType: soliditySettings.compilerType || CompilerType.Extension,
 		remappings: replaceRemappings(
 			soliditySettings.remappings,
 			process.platform === 'win32' ? soliditySettings.remappingsWindows : soliditySettings.remappingsUnix
@@ -142,7 +142,7 @@ export function getCurrentMultisolcSettings(_config?: SolidityConfig): Multisolc
 		sourceDir: config.sources,
 		localSolcVersion: config.localSolcVersion,
 		remoteSolcVersion: config.remoteSolcVersion,
-		compilerPackage: config.compilerPackage,
+		npmSolcPackage: config.npmSolcPackage,
 		selectedType: config.compilerType,
 	};
 }
@@ -157,7 +157,7 @@ async function requestConfig() {
 		];
 		return {
 			...configuration,
-			compilerType: CompilerType[configuration.compilerType] || CompilerType.Default,
+			compilerType: CompilerType[configuration.compilerType] || CompilerType.Extension,
 		} as SolidityConfig;
 	} catch (e) {
 		console.debug('Config not received:', e.message);

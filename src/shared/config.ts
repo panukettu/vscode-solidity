@@ -39,7 +39,11 @@ export class Config {
 		return vscode.workspace.getConfiguration('solidity').get<string[]>('remappingsWindows');
 	}
 
-	public static getCompilerOptions(exclusions?: string[], sourceDir?: string | null): MultisolcSettings {
+	public static getCompilerOptions(
+		exclusions?: string[],
+		sourceDir?: string | null,
+		overrideType?: CompilerType
+	): MultisolcSettings {
 		const compilerSettings = vscode.workspace
 			.getConfiguration('solidity')
 			.get<Partial<SolcInput['settings']>>('compilerSettings');
@@ -60,8 +64,8 @@ export class Config {
 			},
 			remoteSolcVersion: vscode.workspace.getConfiguration('solidity').get<string>('remoteSolcVersion'),
 			localSolcVersion: vscode.workspace.getConfiguration('solidity').get<string>('localSolcVersion'),
-			compilerPackage: vscode.workspace.getConfiguration('solidity').get<string>('compilerPackage'),
-			selectedType: Config.getCompilerType(),
+			npmSolcPackage: vscode.workspace.getConfiguration('solidity').get<string>('npmSolcPackage'),
+			selectedType: overrideType || Config.getCompilerType(),
 		};
 	}
 

@@ -57,7 +57,6 @@ export class RemoteSolc extends SolcLoader {
 			console.debug('loadRemoteWithRetries', versionString, retryNumber, maxRetries);
 			return this.loadRemoteVersion(versionString);
 		} catch (error) {
-			console.debug(error);
 			if (retryNumber <= maxRetries) {
 				console.debug('loadRemoteWithRetries', versionString, retryNumber, maxRetries);
 				return this.loadRemoteWithRetries(versionString, retryNumber + 1, maxRetries);

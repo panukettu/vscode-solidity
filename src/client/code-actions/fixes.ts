@@ -16,7 +16,7 @@ export class AddressChecksumCodeActionProvider implements vscode.CodeActionProvi
 					`Convert address to checksummed address: 0x${fixedAddress}`,
 					vscode.CodeActionKind.QuickFix
 				);
-
+				const line = document.lineAt(diagnostic.range.start.line);
 				fix.edit = new vscode.WorkspaceEdit();
 				fix.edit.replace(
 					document.uri,
@@ -25,6 +25,7 @@ export class AddressChecksumCodeActionProvider implements vscode.CodeActionProvi
 				);
 				fix.isPreferred = true;
 				fix.diagnostics = [diagnostic];
+				fix.diagnostics[0].range = line.range;
 				return fix;
 			}
 		}
@@ -51,6 +52,7 @@ export class ChangeCompilerVersionActionProvider implements vscode.CodeActionPro
 
 	public static createFix(document: vscode.TextDocument, diagnostic: vscode.Diagnostic): vscode.CodeAction {
 		const fix = new vscode.CodeAction('Change workspace compiler version', vscode.CodeActionKind.QuickFix);
+
 		fix.command = {
 			command: 'solidity.selectWorkspaceRemoteSolcVersion',
 			title: 'Change the workspace remote compiler version',
@@ -98,9 +100,13 @@ export class SPDXCodeActionProvider implements vscode.CodeActionProvider {
 		isPreferred = false
 	): vscode.CodeAction {
 		const fix = new vscode.CodeAction(`Add SPDX License ${license}`, vscode.CodeActionKind.QuickFix);
-		const licenseText = `// SPDX-License-Identifier: ${license}\n`;
+		const licenseText = `// SPDX-License-Identifier: ${license}`;
 		fix.edit = new vscode.WorkspaceEdit();
-		fix.edit.insert(document.uri, diagnostic.range.start, licenseText);
+		const line = document.lineAt(diagnostic.range.start.line);
+		const shouldReplace = line.text.trim().includes('//');
+		shouldReplace
+			? fix.edit.replace(document.uri, line.range, licenseText)
+			: fix.edit.insert(document.uri, line.range.start, `${licenseText}\n`);
 		fix.isPreferred = isPreferred;
 		fix.diagnostics = [diagnostic];
 		return fix;

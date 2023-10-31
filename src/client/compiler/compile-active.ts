@@ -54,7 +54,7 @@ export function compileActiveFile(
 		// 	contractDeps: contractsCollection.
 		// })
 		const packagesPath = project.libs.map((lib) => formatPath(lib));
-		const options = Config.getCompilerOptions(packagesPath, null);
+		const options = Config.getCompilerOptions(packagesPath, null, overrideDefaultCompiler);
 		console.debug('active', options);
 		const compileArgs = {
 			solcInput: contractsCollection.getSolcInput(options),
@@ -63,9 +63,7 @@ export function compileActiveFile(
 			contractPath: contract.absolutePath,
 			solcType: overrideDefaultCompiler || Config.getCompilerType(),
 		};
-		state.clientCompilers.outputChannel.appendLine(
-			`Compiling ${Object.keys(compileArgs.solcInput.sources).length} source files..`
-		);
+
 		state.clientCompilers.compile(compileArgs);
 	} catch (e) {
 		console.debug('Unhandled:', e.message);

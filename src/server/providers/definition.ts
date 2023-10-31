@@ -29,6 +29,7 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 		currentOffset = document.offsetAt(position);
 		const documentContractSelected = walker.getSelectedDocument(document, position);
 		currentItem = documentContractSelected.getSelectedItem(currentOffset);
+		if (!currentItem) return [];
 
 		if (currentItem instanceof ParsedExpression) {
 			const result = handleParsedExpression(documentContractSelected, currentItem);

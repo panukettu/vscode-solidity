@@ -16,7 +16,6 @@ export function getDiagnosticSeverity(severity: string): DiagnosticSeverity {
 }
 
 export function errorToDiagnostic(error: SolcError): CompilerError {
-	console.debug(error);
 	if (error.sourceLocation.file != null) {
 		const fileName = error.sourceLocation.file;
 
@@ -74,7 +73,6 @@ export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index:
 		startCharacter = 1;
 	}
 	// @todo log error to see if additional info is available
-	console.debug(error);
 	const result = {
 		diagnostic: {
 			message: errorMessage,

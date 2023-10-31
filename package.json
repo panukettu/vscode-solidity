@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -159,7 +159,7 @@
 					"default": [],
 					"description": "Folders to exclude from sources, i.e: ['temp', 'test']"
 				},
-				"solidity.compilerPackage": {
+				"solidity.npmSolcPackage": {
 					"type": "string",
 					"default": "solc",
 					"description": "The node modules package to find the solcjs compiler"
@@ -181,14 +181,14 @@
 				},
 				"solidity.compilerType": {
 					"type": "string",
-					"description": "Solc location used. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `compileUsingLocalVersion`. `NPM` looks from node_modules folder or configured 'compilerPackage'. Default uses solc included with this extension",
+					"description": "Solc used. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `compileUsingLocalVersion`. `NPM` looks from node_modules folder or configured 'npmSolcPackage'",
 					"enum": [
 						"Remote",
 						"File",
 						"NPM",
-						"Default"
+						"Extension"
 					],
-					"default": "Default"
+					"default": "Extension"
 				},
 				"solidity.linter": {
 					"type": "string",

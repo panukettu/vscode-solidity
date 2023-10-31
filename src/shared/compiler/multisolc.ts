@@ -4,7 +4,7 @@ import { Project } from '@shared/model/project';
 import { SourceDocumentCollection } from '@shared/model/sourceDocuments';
 import { initialiseProject } from '@shared/project';
 import { MultisolcSettings, SolidityConfig } from '@shared/types';
-import { DefaultSolc } from './location/solc-default';
+import { ExtensionSolc } from './location/solc-default';
 import { LocalSolc } from './location/solc-local';
 import { NPMSolc } from './location/solc-npm';
 import { RemoteSolc } from './location/solc-remote';
@@ -15,7 +15,7 @@ export class Multisolc {
 	public npm: NPMSolc;
 	public local: LocalSolc;
 	public remote: RemoteSolc;
-	public default: DefaultSolc;
+	public extension: ExtensionSolc;
 	public type: CompilerType;
 	public settings: MultisolcSettings;
 	public outputChannel: any;
@@ -25,7 +25,7 @@ export class Multisolc {
 		this.npm = new NPMSolc();
 		this.local = new LocalSolc();
 		this.remote = new RemoteSolc(cachePath);
-		this.default = new DefaultSolc();
+		this.extension = new ExtensionSolc();
 		this.type = typeOverride || settings.selectedType;
 		this.settings = settings;
 		this.initExternalCompilers(settings, typeOverride);
@@ -39,30 +39,28 @@ export class Multisolc {
 		return this.rootPath != null;
 	}
 
-	public isSolcInitialized(selectedType = CompilerType.Default): boolean {
+	public isSolcInitialized(selectedType = CompilerType.Extension): boolean {
 		let result = false;
 		switch (selectedType) {
-			case CompilerType.Default:
-				result = this.default.isSolcInitialized();
+			case CompilerType.Extension:
+				result = this.extension.isSolcInitialized();
+				break;
 			case CompilerType.NPM:
-				result = this.npm.isSolcInitialized(this.settings.compilerPackage);
+				result = this.npm.isSolcInitialized(this.settings.npmSolcPackage);
+				break;
 			case CompilerType.File:
 				result = this.local.isSolcInitialized(this.settings.localSolcVersion);
+				break;
 			case CompilerType.Remote:
 				result = this.remote.isSolcInitialized(this.settings.remoteSolcVersion);
+				break;
 		}
-
-		console.debug({
-			selectedType: CompilerType[selectedType],
-			result,
-			settings: this.settings,
-		});
 
 		return result;
 	}
 
 	public initExternalCompilers(settings: MultisolcSettings, typeOverride?: CompilerType) {
-		this.npm.initializeConfig(this.rootPath, settings.compilerPackage);
+		this.npm.initializeConfig(this.rootPath, settings.npmSolcPackage);
 		this.remote.initializeConfig(settings.remoteSolcVersion);
 		this.local.initializeConfig(settings.localSolcVersion);
 		this.type = typeOverride || settings.selectedType;
@@ -74,10 +72,10 @@ export class Multisolc {
 		await compiler.initializeSolc();
 	}
 
-	public compileInputWith(input: SolcInput, type: CompilerType = null, project?: Project) {
+	public compileInputWith(input: SolcInput, type: CompilerType = null) {
 		try {
-			console.debug('Compiling input');
-			return JSON.parse(this.getCompiler(type).solc.compile(JSON.stringify(input))) as SolcOutput;
+			const compiler = this.getCompiler(type);
+			return JSON.parse(compiler.solc.compile(JSON.stringify(input))) as SolcOutput;
 		} catch (e) {
 			console.debug('Unhandled (compile):', e);
 		}
@@ -85,8 +83,8 @@ export class Multisolc {
 
 	public getCompiler(type: CompilerType = this.type) {
 		switch (type) {
-			case CompilerType.Default:
-				return this.default;
+			case CompilerType.Extension:
+				return this.extension;
 			case CompilerType.NPM:
 				return this.npm;
 			case CompilerType.File:
@@ -94,12 +92,12 @@ export class Multisolc {
 			case CompilerType.Remote:
 				return this.remote;
 			default:
-				return this.default;
+				return this.extension;
 		}
 	}
 
 	public printInitializedCompilers(channel: any) {
-		if (this.npm.isSolcInitialized(this.settings.compilerPackage)) {
+		if (this.npm.isSolcInitialized(this.settings.npmSolcPackage)) {
 			channel.appendLine(`Compiler type: ${CompilerType[CompilerType.NPM]} solc version: ${this.npm.getVersion()}`);
 		}
 		if (this.local.isSolcInitialized(this.settings.localSolcVersion)) {
@@ -111,9 +109,9 @@ export class Multisolc {
 			);
 		}
 
-		if (this.default.isSolcInitialized()) {
+		if (this.extension.isSolcInitialized()) {
 			channel.appendLine(
-				`Compiler type: ${CompilerType[CompilerType.Default]} solc version: ${this.default.getVersion()}`
+				`Compiler type: ${CompilerType[CompilerType.Extension]} solc version: ${this.extension.getVersion()}`
 			);
 		}
 	}
@@ -124,30 +122,31 @@ export class Multisolc {
 		config: SolidityConfig,
 		selectedType: CompilerType = null
 	) {
-		try {
-			if (!this.isRootPathSet()) {
-				console.debug('No root path');
-				const output = this.compileInputWith({
-					sources: {
-						[filePath]: {
-							content: documentText,
-						},
+		if (!this.isRootPathSet()) {
+			console.debug('No root path');
+			const output = this.compileInputWith({
+				sources: {
+					[filePath]: {
+						content: documentText,
 					},
-				});
-				return output.errors?.map(errorToDiagnostic) ?? [];
-			}
-			const contracts = new SourceDocumentCollection();
-			const project = initialiseProject(this.rootPath, config).project;
-			contracts.addSourceDocumentAndResolveImports(filePath, documentText, project);
+				},
+			});
+			return output.errors?.map(errorToDiagnostic) ?? [];
+		}
+		const contracts = new SourceDocumentCollection();
+		const project = initialiseProject(this.rootPath, config).project;
+		contracts.addSourceDocumentAndResolveImports(filePath, documentText, project);
 
-			console.debug('Compiling input');
-			const output = this.compileInputWith(contracts.getMinimalSolcInput(), selectedType, project);
-			console.debug('Compiled');
+		try {
+			const output = this.compileInputWith(contracts.getMinimalSolcInput(), selectedType);
 
 			return output.errors?.map(errorToDiagnostic) ?? [];
 		} catch (error) {
 			console.debug('Unhandled (compileWithDiagnostic):', error);
-			return [];
+			this.initializeSolc(selectedType).then(() => {
+				const output = this.compileInputWith(contracts.getMinimalSolcInput(), selectedType);
+				return output.errors?.map(errorToDiagnostic) ?? [];
+			});
 		}
 	}
 }

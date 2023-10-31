@@ -22,7 +22,6 @@ const versionMap = new Map<string, number>();
 
 export async function createServerMultisolc(settings: MultisolcSettings) {
 	if (!solcCachePath) throw new Error('solcCachePath not set');
-	console.debug('CreateServerMultiSolc', settings);
 	ServerCompilers = new Multisolc(settings, solcCachePath);
 	await ServerCompilers.initializeSolc(settings.selectedType);
 	compilerInitialized = true;
@@ -61,13 +60,13 @@ export async function initializeSolc(type: CompilerType) {
 		await ServerCompilers.initializeSolc(type);
 		connection.console.info(`${id} solc ready (${ServerCompilers.getCompiler().getVersion()})`);
 	} catch (reason) {
-		console.debug(`Failed to initialize ${id} solc:`, reason);
-		connection.console.error(`${id} solc initialization fail: ${reason}. Falling back to default..`);
+		connection.console.error(`${id} solc initialization fail: ${reason}. Falling back to embedded..`);
 		try {
-			ServerCompilers.initExternalCompilers(getCurrentMultisolcSettings(config), CompilerType.Default);
-			await ServerCompilers.initializeSolc(CompilerType.Default);
+			ServerCompilers.initExternalCompilers(getCurrentMultisolcSettings(config), CompilerType.Extension);
+			await ServerCompilers.initializeSolc(CompilerType.Extension);
 		} catch (e) {
-			console.debug('Unhandled initialize solc:', e);
+			connection.console.error(`Unhandled: ${e}`);
+			return;
 		}
 	}
 
@@ -85,7 +84,7 @@ export function validate(document: vscode.TextDocument) {
 		const documentText = document.getText();
 		let linterDiagnostics: vscode.Diagnostic[] = [];
 		const compileErrorDiagnostics: vscode.Diagnostic[] = [];
-		console.debug('Validation call');
+
 		try {
 			if (settings.linter != null) {
 				linterDiagnostics = settings.linter.validate(filePath, documentText);
@@ -100,13 +99,14 @@ export function validate(document: vscode.TextDocument) {
 					forgeInfoShown = true;
 				}
 
-				console.debug('compileWithDiagnostics');
 				const errors = ServerCompilers.compileWithDiagnostic(
 					filePath,
 					documentText,
 					configImport,
 					configImport.compilerType
 				);
+
+				connection.sendNotification('hello');
 
 				for (const errorItem of errors) {
 					const uriCompileError = URI.file(errorItem.fileName);

@@ -1,8 +1,8 @@
 import { CompilerType } from '@shared/enums';
 import { SolcLoader } from './loader';
 
-export class DefaultSolc extends SolcLoader {
-	public type: CompilerType = CompilerType.Default;
+export class ExtensionSolc extends SolcLoader {
+	public type: CompilerType = CompilerType.Extension;
 	public matchesConfiguration(): boolean {
 		return true;
 	}

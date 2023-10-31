@@ -141,7 +141,7 @@ export const handleTestResult = (
 			scope: functionName,
 			type: isFail ? 'fail' : 'success',
 		},
-		info: isFail ? 'Test failed.' : 'Test passed.',
+		info: isFail ? '  🛑' : '  🟢',
 		isFail,
 		isError: false,
 		err: err,

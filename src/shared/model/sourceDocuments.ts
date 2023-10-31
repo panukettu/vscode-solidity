@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import { ContractLevelSolcOutput, SolcInput } from '@shared/compiler/solc-types';
+import { MultisolcSettings } from '@shared/types';
 import { formatPath } from '../util';
 import { Project } from './project';
 import { SourceDocument } from './sourceDocument';
-import { MultisolcSettings } from '@shared/types';
 
 export class SourceDocumentCollection {
 	public documents: Array<SourceDocument>;
@@ -43,7 +43,7 @@ export class SourceDocumentCollection {
 		return {
 			language: 'Solidity',
 			settings: {
-				viaIR: false,
+				viaIR: true,
 				optimizer: {
 					enabled: false,
 					runs: 200,
@@ -51,7 +51,7 @@ export class SourceDocumentCollection {
 				outputSelection: {
 					'*': {
 						'': [],
-						'*': ['abi'],
+						'*': [],
 					},
 				},
 			},

@@ -11,10 +11,4 @@ export function registerDocumentProviders(state: ClientState) {
 			},
 		})
 	);
-	// context.subscriptions
-	// 	.push
-	// 	// vscode.commands.registerCommand('solidity.fixDocument', () => {
-	// 	// 	// lintAndfixCurrentDocument();
-	// 	// })
-	// 	();
 }

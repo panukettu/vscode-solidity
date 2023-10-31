@@ -58,8 +58,10 @@ const registerCodeLensCommands = (state: ClientState) => [
 		async (...args: [string, vscode.TextDocument, vscode.Range]) => {
 			const functionName = args[0];
 			const line = args[2].start.line;
-
-			vscode.window.showInformationMessage(`Executing ${functionName}()`);
+			const statusBar = vscode.window.createStatusBarItem(functionName, vscode.StatusBarAlignment.Left, -1);
+			statusBar.show();
+			statusBar.name = 'Solidity Test';
+			statusBar.text = `${functionName} 🟡`;
 			initDecorations(state, functionName);
 
 			const runArgs = {
@@ -68,24 +70,30 @@ const registerCodeLensCommands = (state: ClientState) => [
 				line,
 			};
 
-			const results = await runDecorated(state, runArgs, 'Executing..');
+			const results = await runDecorated(state, runArgs, 'Test running');
 
 			resetDecorations(state, functionName, ['success', 'fail']);
 
 			if (results.isError && results.info) {
-				vscode.window.showErrorMessage(results.info);
 				if (results.info.includes('restart')) {
+					statusBar.text = `${functionName} 🟨`;
 					lineDecoration(state, {
 						scope: functionName,
 						text: 'Executing..',
 						line,
 						type: 'pending',
 					});
+				} else {
+					vscode.window.showErrorMessage(results.info);
+					statusBar.dispose();
 				}
 				return;
 			}
 
-			vscode.window.showInformationMessage(results.info);
+			statusBar.text = `${functionName} ${results.info}`;
+			setTimeout(() => {
+				statusBar.dispose();
+			}, 5000);
 
 			// const decorArgs = {
 			// 	scope: functionName,

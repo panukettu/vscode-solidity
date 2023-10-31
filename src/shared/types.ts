@@ -60,7 +60,7 @@ export type MultisolcSettings = {
 	localSolcVersion: string;
 	remoteSolcVersion: string;
 	compilerConfig?: Partial<SolcInput>;
-	compilerPackage: string;
+	npmSolcPackage: string;
 	rootPath: string;
 	selectedType: CompilerType;
 };
@@ -80,7 +80,7 @@ export interface SolidityConfig {
 	validateOnOpen: boolean;
 	localSolcVersion: string;
 	remoteSolcVersion: string;
-	compilerPackage: string;
+	npmSolcPackage: string;
 	compilerType: CompilerType;
 	solhintRules: object;
 	initExclude: string[];

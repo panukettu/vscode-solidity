@@ -35,7 +35,7 @@
 
 - solidity.defaultCompiler -> solidity.compilerType
   - Default: "Default"
-- solidity.nodemodulespackage -> solidity.compilerPackage
+- solidity.nodemodulespackage -> solidity.npmSolcPackage
   - Default: "solc"
 - solidity.packageDefaultDependenciesDirectory -> solidity.libs
   - Default: ["node_modules", "lib"]

@@ -1,7 +1,7 @@
-import type { CompileArgs } from '@shared/types';
 import * as fs from 'fs';
-import * as fsex from 'fs-extra';
 import * as path from 'path';
+import type { CompileArgs } from '@shared/types';
+import * as fsex from 'fs-extra';
 import * as vscode from 'vscode';
 
 import { Multisolc } from '@shared/compiler/multisolc';
@@ -32,10 +32,10 @@ export class ClientCompilers {
 				CompilerType[CompilerType.Remote],
 				CompilerType[CompilerType.File],
 				CompilerType[CompilerType.NPM],
-				CompilerType[CompilerType.Default],
+				CompilerType[CompilerType.Extension],
 			];
 			const selectedCompiler: string = await vscode.window.showQuickPick(compilers);
-			vscode.workspace.getConfiguration('solidity').update('defaultCompiler', selectedCompiler, target);
+			vscode.workspace.getConfiguration('solidity').update('compilerType', selectedCompiler, target);
 			vscode.window.showInformationMessage(`Compiler changed to: ${selectedCompiler}`);
 		} catch (e) {
 			vscode.window.showErrorMessage(`Error changing default compiler: ${e}`);
@@ -114,18 +114,21 @@ export class ClientCompilers {
 		}
 	}
 
-	public compile(args: CompileArgs): Promise<Array<string>> | string[] {
-		if (!this.outputChannel) {
-			console.debug('No output channel');
-		} else {
-			this.outputChannel.clear();
-		}
+	public async compile(args: CompileArgs): Promise<Array<string>> {
 		if (!args.solcInput?.sources) {
 			vscode.window.showWarningMessage('No solidity files (*.sol) found');
 			return;
+		} else {
+			vscode.window.showInformationMessage(`Compiling ${Object.keys(args.solcInput.sources).length} files`);
 		}
 
-		if (!this.multisolc?.isSolcInitialized(args.solcType)) {
+		try {
+			return this.processCompilationOutput(
+				this.multisolc.compileInputWith(args.solcInput, args.solcType),
+				this.outputChannel,
+				args
+			);
+		} catch (e) {
 			this.initializeSolcs(args.solcType).then(() => {
 				return this.processCompilationOutput(
 					this.multisolc.compileInputWith(args.solcInput, args.solcType),
@@ -134,24 +137,17 @@ export class ClientCompilers {
 				);
 			});
 		}
-		try {
-			const output = this.multisolc.compileInputWith(args.solcInput, args.solcType);
-			return this.processCompilationOutput(output, this.outputChannel, args);
-		} catch (e) {
-			vscode.window.showWarningMessage(`Unhandled (compile): ${e}`);
-			throw new Error(`Unhandled (compile): ${e}`);
-		}
 	}
 
 	private outputErrorsToChannel(outputChannel: vscode.OutputChannel, errors: any[]) {
 		for (const error of errors) {
 			outputChannel.appendLine(error.formattedMessage);
 		}
-		outputChannel.show();
+		outputChannel.show(true);
 	}
 
 	private outputCompilerInfo(overrideDefaultCompiler: CompilerType = null) {
-		this.outputChannel.appendLine('Retrieving compiler information:');
+		this.outputChannel.show(true);
 		const compiler = this.multisolc.getCompiler(overrideDefaultCompiler);
 		if (compiler.type === CompilerType.File) {
 			this.outputChannel.appendLine(
@@ -166,47 +162,38 @@ export class ClientCompilers {
 		}
 
 		if (compiler.type === CompilerType.Remote) {
-			this.outputChannel.appendLine(
-				`Using solc from remote: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`
-			);
+			this.outputChannel.appendLine(`Using solc from remote, version: ${compiler.getVersion()}`);
 		}
 
-		if (compiler.type === CompilerType.Default) {
+		if (compiler.type === CompilerType.Extension) {
 			this.outputChannel.appendLine(`Using embedded solc: ${compiler.getVersion()}`);
 		}
 	}
 
 	public async initializeSolcs(typeOverride: CompilerType = null): Promise<void> {
-		this.outputChannel.show();
-		const multisolcConfig = Config.getCompilerOptions();
-		console.debug('CreateClientMultiSolc', multisolcConfig);
+		this.outputChannel.show(true);
+		const multisolcConfig = Config.getCompilerOptions(undefined, undefined, typeOverride);
 		const selectedType = typeOverride != null ? typeOverride : multisolcConfig.selectedType;
 
 		if (!this.multisolc) {
-			this.outputChannel.appendLine('no solc initialized, creating.. ' + this.solcCachePath);
 			this.multisolc = new Multisolc(multisolcConfig, this.solcCachePath, selectedType);
 		} else {
 			if (this.multisolc.isSolcInitialized(selectedType)) {
+				this.outputCompilerInfo(selectedType);
 				return;
 			}
 		}
-		this.outputChannel.appendLine('initializing solc..');
-
-		if (selectedType === CompilerType.Remote) {
-			this.outputChannel.appendLine('A few seconds may be needed to download the solc binaries..');
-		}
-		this.outputChannel.show();
 
 		try {
-			this.outputChannel.appendLine(`Initializing solc: ${CompilerType[multisolcConfig.selectedType]}`);
 			await this.multisolc.initializeSolc(selectedType);
+			this.outputCompilerInfo(selectedType);
 		} catch (error) {
-			this.outputChannel.appendLine(`Error: ${error}`);
-			await this.multisolc.initializeSolc(CompilerType.Default);
-			vscode.window.showWarningMessage(error.message);
+			this.outputChannel.appendLine(
+				`Error initializing ${CompilerType[multisolcConfig.selectedType]} solc: ${error} - trying fallback..`
+			);
+			await this.multisolc.initializeSolc(CompilerType.Extension);
+			this.outputCompilerInfo(selectedType);
 		}
-
-		this.outputCompilerInfo(typeOverride);
 	}
 
 	private processCompilationOutput(
