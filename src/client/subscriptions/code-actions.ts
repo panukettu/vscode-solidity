@@ -31,9 +31,4 @@ export function registerCodeActions(state: ClientState): void {
 			providedCodeActionKinds: ChangeCompilerVersionActionProvider.providedCodeActionKinds,
 		})
 	);
-
-	// state.context.subscriptions.push;
-	// vscode.commands.registerCommand('solidity.fixDocument', () => {
-	// 	fix();
-	// });
 }

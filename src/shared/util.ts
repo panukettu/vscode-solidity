@@ -1,6 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-
+import type { MinimalURI, ScopedURI } from './types';
+// import { URI } from 'vscode-uri';
+export const toScopedURI = (scope: string, uri: MinimalURI): ScopedURI => `${scope}-${uri.toString()}`;
+// export const fromScopedURI = (scopedURI: ScopedURI): { scope: string; uri: vscode.Uri } => {
+// 	const [scope, uri] = scopedURI.split('-');
+// 	return { scope, uri: vscode.Uri.parse(uri) };
+// };
 export function formatPath(contractPath: string) {
 	if (contractPath != null) {
 		return contractPath.replace(/\\/g, '/');

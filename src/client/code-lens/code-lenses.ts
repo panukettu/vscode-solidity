@@ -1,9 +1,5 @@
+import { functionRegexp, testFunctionRegexp } from '@shared/regexp';
 import * as vscode from 'vscode';
-
-// const functionRegexp = () => new RegExp(/(function.*?\()/g);
-const functionRegexp = () => new RegExp(/function (\w+).*?\n(.+?)\}/gs);
-const testFunctionRegexp = () => /function (test.*?)\(/g;
-const keccak256Regexp = () => new RegExp(/(?<=keccak256\(")(.*?)(?="\))/g);
 
 /**
  * CodelensProvider
@@ -18,9 +14,9 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 			this._onDidChangeCodeLenses.fire();
 		});
 	}
-	public getCodeLensFromPosition(position: vscode.Position) {
+	public getCodeLensFromPosition(command: string, position: vscode.Position) {
 		return this.codeLenses.find((codeLens) => {
-			if (codeLens.range.contains(position)) {
+			if (codeLens.command.command === command && codeLens.range.contains(position)) {
 				return true;
 			}
 			return false;

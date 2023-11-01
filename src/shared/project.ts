@@ -24,11 +24,6 @@ const projectFilesAtRoot = [
 	packageConfigFileName,
 ];
 
-// These are set using user configuration settings
-// const libLocations = 'lib';
-// const defaultSourceLocation = 'src';
-// const sourceLocationsLibs = ['', 'src', 'contracts'];
-
 export function findFirstRootProjectFile(rootPath: string, currentDocument: string) {
 	return util.findDirUpwardsToCurrentDocumentThatContainsAtLeastFileNameSync(
 		projectFilesAtRoot,
@@ -50,8 +45,6 @@ export function initialiseProject(
 	sources: string;
 	remappings: string[];
 } {
-	// adding defaults to packages
-
 	let sources = config.sources;
 	const foundrySources = getSourcesLocationFromFoundryConfig(rootPath);
 	const hardhatSource = getSourcesLocationFromHardhatConfig(rootPath);
@@ -75,7 +68,6 @@ export function initialiseProject(
 
 function loadAllPackageDependencies(libs: string[], rootPath: string, projectPackage: Package, sources: string[]) {
 	let dependencies: Package[] = [];
-	// biome-ignore lint/complexity/noForEach: <explanation>
 	libs.forEach((libDirectory) => {
 		dependencies = dependencies.concat(loadDependencies(rootPath, projectPackage, libDirectory, sources));
 	});
@@ -95,7 +87,6 @@ function getSourcesLocationFromHardhatConfig(rootPath: string): string | null {
 		}
 		return null;
 	} catch (e) {
-		// console.debug("sol.hardhat.sources", e.message);
 		return null;
 	}
 }
@@ -119,9 +110,7 @@ function getSourcesLocationFromFoundryConfig(rootPath: string): { src: string; t
 				script: scriptLocation,
 				test: testLocation,
 			};
-		} catch (error) {
-			// console.debug("sol.foundry.sources", error.message);
-		}
+		} catch (error) {}
 		return null;
 	}
 	return null;

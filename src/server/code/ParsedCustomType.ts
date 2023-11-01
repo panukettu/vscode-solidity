@@ -23,7 +23,7 @@ export class ParsedCustomType extends ParsedCode {
 			} else {
 				contractName = this.document.getGlobalPathInfo();
 			}
-			const typeString = this.isType;
+			// const typeString = this.isType;
 			completionItem.insertText = this.name;
 			completionItem.documentation = this.getMarkupInfo();
 			this.completionItem = completionItem;
@@ -36,17 +36,6 @@ export class ParsedCustomType extends ParsedCode {
 	}
 
 	public override getInfo(): string {
-		return (
-			'### ' +
-			this.getParsedObjectType() +
-			': ' +
-			this.name +
-			'\n' +
-			'#### ' +
-			this.getContractNameOrGlobal() +
-			'\n' +
-			this.isType +
-			'\n'
-		);
+		return `${this.getParsedObjectType()}: ${this.name}\n${this.getContractNameOrGlobal()}\n${this.isType}\n`;
 	}
 }

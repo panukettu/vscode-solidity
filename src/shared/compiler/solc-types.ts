@@ -1,4 +1,4 @@
-import { ABI, AST } from '@shared/abi-ast-types';
+import type { ABI, AST } from '@shared/abi-ast-types';
 
 /**
  * A mapping between libraries and the addresses to which they were deployed.
@@ -677,12 +677,8 @@ export interface SolcOutput {
 				irOptimizedAst?: AST;
 				// the Storage Layout documentation.
 				storageLayout: {
-					storage: [
-						/* ... */
-					];
-					types: {
-						/* ... */
-					};
+					storage: any;
+					types: any;
 				};
 				// EVM-related outputs
 				evm: {

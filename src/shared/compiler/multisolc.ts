@@ -1,6 +1,5 @@
 import { errorToDiagnostic } from '@server/providers/utils/diagnostics';
 import { CompilerType } from '@shared/enums';
-import { Project } from '@shared/model/project';
 import { SourceDocumentCollection } from '@shared/model/sourceDocuments';
 import { initialiseProject } from '@shared/project';
 import { MultisolcSettings, SolidityConfig } from '@shared/types';

@@ -60,13 +60,12 @@ export function compileAllContracts(state: ClientState) {
 			packagesPath.push(formatPath(lib));
 		}
 	}
-	const options = Config.getCompilerOptions(packagesPath, sourceDirPath);
-	const compileArgs = {
-		solcInput: contractsCollection.getSolcInput(options),
-		state,
-		options,
-		solcType: Config.getCompilerType(),
-	};
+	const compilerOpts = Config.getCompilerOptions(packagesPath, sourceDirPath);
 
-	state.clientCompilers.compile(compileArgs);
+	return state.compilers.compile({
+		solcInput: contractsCollection.getSolcInput(compilerOpts),
+		state,
+		options: compilerOpts,
+		solcType: Config.getCompilerType(),
+	});
 }

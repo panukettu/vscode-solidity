@@ -1,3 +1,4 @@
+import { commentFormatRegexp } from '@shared/regexp';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import {
 	CompletionItem,
@@ -9,12 +10,10 @@ import {
 	Range,
 } from 'vscode-languageserver/node';
 import { URI } from 'vscode-uri';
+import { TypeReference } from '../search/TypeReference';
 import { ParsedContract } from './ParsedContract';
 import { ParsedDocument } from './ParsedDocument';
 import { ParsedFunction } from './ParsedFunction';
-
-import { commentFormatRegexp } from '../providers/utils/matchers';
-import { TypeReference } from '../search/TypeReference';
 import { BodyElement, Element, ElementParams, InnerElement } from './types';
 
 export class ParsedCode {

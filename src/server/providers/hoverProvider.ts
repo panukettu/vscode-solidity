@@ -1,10 +1,11 @@
+import { keccak256Regexp } from '@shared/regexp';
 import { keccak256, toBytes } from 'viem';
 import * as vscode from 'vscode-languageserver';
 import { ParsedExpression, ParsedExpressionIdentifier } from '../code/ParsedExpression';
 import { CodeWalkerService } from '../code/walker/codeWalkerService';
 import { handleParsedExpression } from './definition';
 import { useProviderHelper } from './utils/common';
-import { isComment, keccak256Regexp } from './utils/matchers';
+import { isComment } from './utils/matchers';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export class SolidityHoverProvider {

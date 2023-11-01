@@ -1,12 +1,12 @@
 import { CompilerType } from '@shared/enums';
 import type { MultisolcSettings, SolidityConfig } from '@shared/types';
 import packageJson from 'package.json';
-import * as vscode from 'vscode-languageserver';
+import * as vscode from 'vscode-languageserver/node';
 import { connection } from '../server';
 import { replaceRemappings } from '../shared/util';
 import { createServerMultisolc } from './compiler-server';
 import SolhintService from './linter/solhint';
-import { SERVER_COMMANDS_LIST } from './providers/command';
+import { SERVER_COMMANDS_LIST } from './providers/commands-server';
 import { ExtendedSettings } from './types';
 function defaultConfig(): SolidityConfig {
 	const result = {} as SolidityConfig;
@@ -160,7 +160,7 @@ async function requestConfig() {
 			compilerType: CompilerType[configuration.compilerType] || CompilerType.Extension,
 		} as SolidityConfig;
 	} catch (e) {
-		console.debug('Config not received:', e.message);
+		console.debug('No config received:', e.message);
 		return defaultConfig();
 	}
 }

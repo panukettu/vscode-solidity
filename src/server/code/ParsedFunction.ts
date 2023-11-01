@@ -612,7 +612,7 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 				}
 			}
 		} catch (error) {
-			// console.debug(JSON.stringify(error));
+			console.log('Unhandled', error.message);
 		}
 	}
 

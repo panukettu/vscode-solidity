@@ -1,48 +1,18 @@
+import {
+	emitRegexp,
+	fromRegexp,
+	importRegexp,
+	innerImportRegexp,
+	isReplacingCallRegexp,
+	itemIdRegexp,
+	mappingIdRegexp,
+	symbolIdRegexp,
+} from '@shared/regexp';
 import * as vscode from 'vscode-languageserver/node';
 import { valueTypeReg, valueTypes } from '../../../code/utils/ParsedCodeTypeHelper';
 import { DotCompletionService } from '../../../code/utils/dotCompletionService';
 import { isControl, isInnerExpression } from '../matchers';
 
-const existingFuncRegexp = new RegExp(/(.*?\(.*?\))/s);
-const innerImportRegexp = new RegExp(/(import\s\{)/s);
-const emitRegexp = new RegExp(/(emit\s)/s);
-const importRegexp = new RegExp(/(import\s)(?!\{)/s);
-const fromRegexp = new RegExp(/(import\s\{.*?\}\sfrom)/s);
-const symbolIdRegexp = new RegExp(/import\s\{(.*?)\W/s);
-export const emitDotRegexp = /emit\s(\w+)\./g;
-
-const mappingIdRegexp = /(\w+)(?=\[)/g;
-const itemIdRegexp = /(\w+)(?=\()/g;
-const isReplacingCallRegexp = new RegExp(/(.*?\(.*?\))/s);
-const mappingIdsRegexpOld = /([a-zA-Z0-9_()]+)\[([^\]]*)\](?:\[([^\]]*)\])*(?!\.)(?=\;?$)/s;
-
-const dotStartWordsRegexp = /(\w+)(?=\()/g;
-const mappingStartWordsREgexp = /(\w+)(?=\[)/g;
-const mappingWordsRegexp = /([a-zA-Z0-9_()]+)\[([^\]]*)\](?:\[([^\]]*)\])*(?!\.)(?=\;?$)/s;
-// (\w+)(?<!function|modifier)\(?\)?\W(\w+)(?=\()
-
-// const dotStartWordsRegexp = /(\w+)(?<![funcionmodier])\(?\)?\W(\w+)(?=\()/gm;
-
-// line = lines[position.line];
-
-// // const dotStartEz = textFromStart.lastIndexOf(".");
-// triggeredByDotStart = DotCompletionService.getTriggeredByDotStart(
-//   lines,
-//   position
-// );
-// // triggered by emit is only possible with ctrl space
-// const autoCompleteVariable = getAutocompleteVariableNameTrimmingSpaces(
-//   line,
-//   position.character - 1
-// );
-
-// triggeredByEmit =
-//   autoCompleteVariable === "emit" || emitRegexp.test(line);
-// triggeredByRevert = autoCompleteVariable === "revert";
-// triggeredByInnerImport = innerImportRegexp.test(line);
-// triggeredByFrom = fromRegexp.test(line);
-// triggeredByInnerFrom =
-//   autoCompleteVariable === "importInner" && triggeredByInnerImport;
 export const parsePosition = (document: vscode.TextDocument, position: vscode.Position) => {
 	const triggers = {
 		dotStart: 0,
@@ -260,3 +230,28 @@ export function isTriggeredByVariableName(variableName: string, lineText: string
 	}
 	return false;
 }
+
+// (\w+)(?<!function|modifier)\(?\)?\W(\w+)(?=\()
+
+// const dotStartWordsRegexp = /(\w+)(?<![funcionmodier])\(?\)?\W(\w+)(?=\()/gm;
+
+// line = lines[position.line];
+
+// // const dotStartEz = textFromStart.lastIndexOf(".");
+// triggeredByDotStart = DotCompletionService.getTriggeredByDotStart(
+//   lines,
+//   position
+// );
+// // triggered by emit is only possible with ctrl space
+// const autoCompleteVariable = getAutocompleteVariableNameTrimmingSpaces(
+//   line,
+//   position.character - 1
+// );
+
+// triggeredByEmit =
+//   autoCompleteVariable === "emit" || emitRegexp.test(line);
+// triggeredByRevert = autoCompleteVariable === "revert";
+// triggeredByInnerImport = innerImportRegexp.test(line);
+// triggeredByFrom = fromRegexp.test(line);
+// triggeredByInnerFrom =
+//   autoCompleteVariable === "importInner" && triggeredByInnerImport;

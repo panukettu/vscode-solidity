@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { ContractLevelSolcOutput, SolcInput } from '@shared/compiler/solc-types';
+import { SolcInput } from '@shared/compiler/solc-types';
 import { MultisolcSettings } from '@shared/types';
 import { formatPath } from '../util';
 import { Project } from './project';
@@ -10,7 +10,6 @@ export class SourceDocumentCollection {
 
 	public static getAllLibraryImports(codeFiles: string[]): string[] {
 		let imports: string[] = [];
-		// biome-ignore lint/complexity/noForEach: <explanation>
 		codeFiles.forEach((x) => {
 			imports = imports.concat(SourceDocument.getAllLibraryImports(x));
 		});
@@ -60,21 +59,6 @@ export class SourceDocumentCollection {
 	}
 
 	public getSolcInput(args: MultisolcSettings) {
-		// const outputs: ContractLevelSolcOutput[] = [
-		// 	'abi',
-		// 	'devdoc',
-		// 	'userdoc',
-		// 	'evm.methodIdentifiers',
-		// 	'evm.gasEstimates',
-		// 	'evm.bytecode.object',
-		// 	'evm.deployedBytecode.object',
-		// ];
-		// const outputSelection = {
-		// 	'*': {
-		// 		'': [],
-		// 		'*': outputs,
-		// 	},
-		// };
 		return {
 			...args.compilerConfig,
 			sources: this.getSourceCodes(),

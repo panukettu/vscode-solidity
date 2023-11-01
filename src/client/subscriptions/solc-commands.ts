@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 export function registerSolcCommands(state: ClientState) {
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.changeSolcType', async () => {
-			state.clientCompilers.changeSolcType(vscode.ConfigurationTarget.Workspace);
+			state.compilers.changeSolcType(vscode.ConfigurationTarget.Workspace);
 		})
 	);
 
@@ -36,41 +36,38 @@ export function registerSolcCommands(state: ClientState) {
 	);
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.selectGlobalRemoteSolcVersion', async () => {
-			state.clientCompilers.selectRemoteVersion(vscode.ConfigurationTarget.Global);
+			state.compilers.selectRemoteVersion(vscode.ConfigurationTarget.Global);
 		})
 	);
 
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.downloadSolcAndSetAsLocal', async () => {
-			state.clientCompilers.downloadSolcAndSetAsLocal(
-				vscode.ConfigurationTarget.Workspace,
-				getCurrentWorkspaceRootFolder()
-			);
+			state.compilers.downloadSolcAndSetAsLocal(vscode.ConfigurationTarget.Workspace, getCurrentWorkspaceRootFolder());
 		})
 	);
 
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.peekActiveCompilers', async () => {
-			state.clientCompilers.printInitializedCompilers();
+			state.compilers.printInitializedCompilers();
 		})
 	);
 
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.peekSolcReleases', async () => {
-			state.clientCompilers.printSolcReleases();
+			state.compilers.printSolcReleases();
 		})
 	);
 
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.selectWorkspaceRemoteSolcVersion', async () => {
-			state.clientCompilers.selectRemoteVersion(vscode.ConfigurationTarget.Workspace);
+			state.compilers.selectRemoteVersion(vscode.ConfigurationTarget.Workspace);
 		})
 	);
 
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand('solidity.downloadRemoteSolcVersion', async () => {
 			const root = getCurrentWorkspaceRootFolder();
-			state.clientCompilers.downloadRemoteVersion(root);
+			state.compilers.downloadRemoteVersion(root);
 		})
 	);
 

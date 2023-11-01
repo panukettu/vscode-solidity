@@ -1,6 +1,14 @@
+// import { settings } from '@server/settings';
 import type { SolcError } from '@shared/compiler/solc-types';
-import type { CompilerError } from '@shared/types';
-import { DiagnosticSeverity } from 'vscode-languageserver';
+import { solcOutputRegexp } from '@shared/regexp';
+import { DiagnosticWithFileName } from '@shared/types';
+import {
+	Diagnostic,
+	DiagnosticRelatedInformation,
+	DiagnosticSeverity,
+	Position,
+	Range,
+} from 'vscode-languageserver/node';
 
 export function getDiagnosticSeverity(severity: string): DiagnosticSeverity {
 	switch (severity) {
@@ -15,7 +23,7 @@ export function getDiagnosticSeverity(severity: string): DiagnosticSeverity {
 	}
 }
 
-export function errorToDiagnostic(error: SolcError): CompilerError {
+export function errorToDiagnostic(error: SolcError) {
 	if (error.sourceLocation.file != null) {
 		const fileName = error.sourceLocation.file;
 
@@ -42,7 +50,7 @@ export function errorToDiagnostic(error: SolcError): CompilerError {
 	}
 }
 
-export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index: number, fileName: any): CompilerError {
+export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index: number, fileName: any) {
 	const severity = getDiagnosticSeverity(error.severity);
 	const errorMessage = error.message;
 	// tslint:disable-next-line:radix
@@ -72,25 +80,122 @@ export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index:
 		endCharacter = 0;
 		startCharacter = 1;
 	}
-	// @todo log error to see if additional info is available
-	const result = {
-		diagnostic: {
-			message: errorMessage,
-			code: error.errorCode,
-			range: {
-				end: {
-					character: endCharacter,
-					line: endLine,
-				},
-				start: {
-					character: startCharacter,
-					line: startLine,
-				},
+
+	const diagnostic: Diagnostic = {
+		message: errorMessage,
+		source: 'vsc-solidity',
+		code: error.errorCode,
+		range: {
+			end: {
+				character: endCharacter,
+				line: endLine,
 			},
-			severity: severity,
+			start: {
+				character: startCharacter,
+				line: startLine,
+			},
 		},
-		fileName: fileName,
+		severity: severity,
 	};
 
-	return result;
+	if (error.secondarySourceLocations.length) {
+		const [relatedInfos, extraDiagnostics] = mapSecondarySourceToVscode(error, { diagnostic, fileName });
+		diagnostic.relatedInformation = relatedInfos;
+		return {
+			diagnostic,
+			fileName,
+			extraDiagnostics,
+		};
+	}
+	return {
+		diagnostic,
+		fileName,
+	};
 }
+
+export function forgeOutputErrorToDiagnostic(match: string[], rootPath: string): DiagnosticWithFileName {
+	let [, type, , errorCode, message, fileName, matchLine, character, code] = match;
+	if (!message && !fileName) {
+		type = match[9];
+		errorCode = match[10];
+		message = match[11];
+		fileName = match[12];
+		matchLine = match[13];
+		character = match[14];
+	}
+
+	const start = Position.create(parseInt(matchLine) - 1, parseInt(character));
+	const end = Position.create(start.line, start.character + 9999);
+
+	const typeLower = type.toLowerCase().trim();
+
+	const diagnostic: Diagnostic = {
+		message: message.trim(),
+		code: errorCode ? (Number.isNaN(Number(errorCode)) ? 'stack-too-deep' : errorCode.trim()) : undefined,
+		range: Range.create(start, end),
+		source: 'vsc-solidity',
+		severity: typeLower === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
+	};
+
+	if (message.toLowerCase().includes('missing implementation')) {
+		diagnostic.message = diagnostic.message + (code ? code.trim() : '');
+	}
+	return {
+		diagnostic,
+		fileName: `${rootPath}/${fileName}`,
+	};
+}
+
+const mapSecondarySourceToVscode = (error: SolcError, parent?: DiagnosticWithFileName) => {
+	const regexp = solcOutputRegexp();
+	const results: DiagnosticRelatedInformation[] = [];
+	const diagnostics: DiagnosticWithFileName[] = [];
+
+	let match: string[] | null = null;
+
+	// biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
+	while ((match = regexp.exec(error.formattedMessage)) !== null) {
+		let [, type, , errorCode, message, fileName, matchLine, character, code] = match;
+		if (!message && !fileName) {
+			type = match[9];
+			errorCode = match[10];
+			message = match[11];
+			fileName = match[12];
+			matchLine = match[13];
+			character = match[14];
+		}
+		const trimmed = code ? code.trim() : '';
+		const range = Range.create(
+			Position.create(parseInt(matchLine) - 1, parseInt(character)),
+			Position.create(parseInt(matchLine) - 1, parseInt(character) + (trimmed?.length || 9999))
+		);
+		results.push({
+			location: {
+				range: range,
+				uri: fileName,
+			},
+			message: message + trimmed,
+		});
+		const diagnostic: Diagnostic = {
+			message: message + trimmed,
+			source: 'vsc-solidity',
+			code: error.errorCode ?? errorCode,
+			range: range,
+			severity: DiagnosticSeverity.Error,
+		};
+		if (parent) {
+			diagnostic.relatedInformation = [
+				{
+					location: {
+						range: parent.diagnostic.range,
+						uri: parent.fileName,
+					},
+					message: message + trimmed,
+				},
+			];
+		}
+		diagnostics.push({ diagnostic, fileName });
+	}
+
+	return [results, diagnostics] as const;
+};

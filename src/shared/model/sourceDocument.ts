@@ -10,7 +10,6 @@ type Import = {
 export class SourceDocument {
 	public code: string;
 	public unformattedCode: string;
-	// TODO: Import needs to be a class including if is local, absolutePath, module etc
 	public imports: Array<Import>;
 	public absolutePath: string;
 	public packagePath: string;

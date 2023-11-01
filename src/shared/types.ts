@@ -1,46 +1,14 @@
-import { DecorArgs } from '@client/decorations';
-import * as vscode from 'vscode';
-import { CompilerType } from './enums';
-import { SolcInput } from './compiler/solc-types';
-import { ClientState } from '@client/client-state';
+import type { ClientState } from '@client/client-state';
+import type { Diagnostic } from 'vscode-languageclient/node';
+import type { SolcInput } from './compiler/solc-types';
+import type { CompilerType } from './enums';
 
-export type TestFunctionName<T extends string> = `${T}()`;
+export type MinimalURI = { toString(skipEncoding?: boolean): string };
+export type FunctionName<N extends string = string, A extends string = string> = `${N}(${A})`;
 
-export type ForgeTestJson<T extends string = ''> = {
-	duration: {
-		secs: number;
-		nanos: number;
-	};
-	test_results: {
-		[key in TestFunctionName<T>]: {
-			status: 'Failure' | 'Success';
-			logs: any[];
-			decoded_logs: string[];
-			kind: {
-				Standard: number;
-				traces: any[];
-				labeled_addresses: object;
-				debug: any;
-				breakpoints: any;
-				warnings: any[];
-			};
-		};
-	};
-};
-
-export interface CompilerError {
-	diagnostic: any;
-	fileName: string;
-}
-
-export type TestFunctionResult = {
-	result?: string;
-	resultDecor?: DecorArgs;
-	info: string;
-	isFail: boolean;
-	isError: boolean;
-	err: any;
-};
+type URI = string;
+type Scope = string;
+export type ScopedURI = `${Scope}-${URI}`;
 
 export type CompileArgs = {
 	solcInput: SolcInput;
@@ -64,8 +32,6 @@ export type MultisolcSettings = {
 	rootPath: string;
 	selectedType: CompilerType;
 };
-export type FunctionLensArgs = [vscode.TextDocument, vscode.Range];
-export type TestFunctionLensArgs = [string, vscode.TextDocument, vscode.Range];
 
 export interface ErrorWarningCounts {
 	errors: number;
@@ -93,4 +59,9 @@ export interface SolidityConfig {
 	remappingsWindows: string[];
 	remappingsUnix: string[];
 	monoRepoSupport: boolean;
+}
+
+export interface DiagnosticWithFileName {
+	diagnostic: Diagnostic;
+	fileName: string;
 }

@@ -1,6 +1,6 @@
 import { Multisolc } from '@shared/compiler/multisolc';
 import { CompilerType } from '@shared/enums';
-import type { MultisolcSettings, SolidityConfig } from '@shared/types';
+import type { MultisolcSettings } from '@shared/types';
 import debounce from 'lodash.debounce';
 import * as vscode from 'vscode-languageserver/node';
 import { URI } from 'vscode-uri';
@@ -73,10 +73,17 @@ export async function initializeSolc(type: CompilerType) {
 	compilerInitialized = true;
 }
 let forgeInfoShown = false;
+export const extraDiagnostics = new Map<string, vscode.Diagnostic[]>();
+
 export function validate(document: vscode.TextDocument) {
 	try {
 		initCommon(document);
 		validatingDocument = true;
+
+		extraDiagnostics.forEach((diagnostics, uri) => {
+			connection.sendDiagnostics({ uri, diagnostics: [] });
+		});
+		extraDiagnostics.clear();
 
 		const uri = document.uri;
 		const filePath = URI.parse(uri).fsPath;
@@ -89,9 +96,7 @@ export function validate(document: vscode.TextDocument) {
 			if (settings.linter != null) {
 				linterDiagnostics = settings.linter.validate(filePath, documentText);
 			}
-		} catch (e) {
-			// console.debug("linter:", e);
-		}
+		} catch (e) {}
 		if (configImport.validateOnChange || configImport.validateOnOpen || configImport.validateOnSave) {
 			const isFSol = filePath.endsWith('.t.sol') || filePath.endsWith('.s.sol');
 			if (isFSol) {
@@ -109,12 +114,21 @@ export function validate(document: vscode.TextDocument) {
 					configImport.compilerType
 				);
 
-				connection.sendNotification('hello');
-
 				for (const errorItem of errors) {
 					const uriCompileError = URI.file(errorItem.fileName);
 					if (uriCompileError.toString() === uri) {
 						compileErrorDiagnostics.push(errorItem.diagnostic);
+					}
+					if (errorItem.extraDiagnostics) {
+						for (const extra of errorItem.extraDiagnostics) {
+							const extraURI = URI.file(extra.fileName);
+							if (extraURI.toString() === uri) {
+								compileErrorDiagnostics.push(extra.diagnostic);
+							} else {
+								const diagnostics = extraDiagnostics.get(extraURI.toString()) ?? [];
+								extraDiagnostics.set(extraURI.toString(), [...diagnostics, extra.diagnostic]);
+							}
+						}
 					}
 				}
 			} catch (e) {
@@ -124,6 +138,10 @@ export function validate(document: vscode.TextDocument) {
 
 		const diagnostics = linterDiagnostics.concat(compileErrorDiagnostics);
 		connection.sendDiagnostics({ uri: document.uri, diagnostics });
+
+		extraDiagnostics.forEach((diagnostics, uri) => {
+			connection.sendDiagnostics({ uri, diagnostics });
+		});
 	} finally {
 		validatingDocument = false;
 	}

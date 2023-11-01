@@ -14,7 +14,7 @@ export default defineConfig(async (opts) => {
 		format: 'cjs',
 		outDir: './out/src',
 		platform: 'node',
-		sourcemap: false,
+		sourcemap: true,
 		bundle: true,
 		noExternal: [
 			// /(?:[^vscode]).*?([\w\-]+)/,
@@ -39,7 +39,8 @@ export default defineConfig(async (opts) => {
 		treeshake: true,
 		splitting: true,
 		tsconfig: './tsconfig.json',
-		minify: true,
+		minify: false,
+
 		clean: true,
 		async onSuccess() {
 			if (opts.watch) return;
@@ -54,8 +55,9 @@ export default defineConfig(async (opts) => {
 				...glob.sync('./out/src/postcss-*.js'),
 				...glob.sync('./out/src/angular-*.js'),
 				...glob.sync('./out/src/flow-*.js'),
-				// ...glob.sync('./out/src/typescript-*.js'),
+				...glob.sync('./out/src/typescript-*.js'),
 				...glob.sync('./out/src/babel-*.js'),
+				...glob.sync('./out/src/yaml-*.js'),
 			];
 
 			console.debug('deleted', files);

@@ -1,3 +1,4 @@
+import { regex2, regexNamed, regexUnnamed } from '@shared/regexp';
 import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import { TypeReference } from '../search/TypeReference';
 import { ParsedCode } from './ParsedCode';
@@ -236,19 +237,16 @@ export class ParsedParameter extends ParsedVariable {
 			return '';
 		}
 		if (this.isInput) {
-			const regex2 = new RegExp(`@param\\s${this.name}\\s(\.*\\w)`, 'g');
-			const matches = regex2.exec(comment);
+			const matches = regex2(this.name).exec(comment);
 			if (matches?.length > 1) {
 				return matches[1];
 			}
 		} else if (this.isOutput) {
-			const regexNamed = new RegExp(`@return\\s${this.name}\\s(\.*\\w)`, 'g');
-			const matchesNamed = regexNamed.exec(comment);
+			const matchesNamed = regexNamed(this.name).exec(comment);
 			if (matchesNamed?.length > 1) {
 				return matchesNamed[1];
 			}
-			const regexUnnamed = new RegExp('@return\\s+(.+\\w)', 'g');
-			const matches = regexUnnamed.exec(comment);
+			const matches = regexUnnamed(this.name).exec(comment);
 			if (matches?.length > 1) {
 				return matches[1];
 			}

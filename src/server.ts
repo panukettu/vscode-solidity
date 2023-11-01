@@ -1,3 +1,4 @@
+import { provideSignatureHelp } from '@server/providers/signatures';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as vscode from 'vscode-languageserver/node';
 import {
@@ -6,12 +7,11 @@ import {
 	validateAllDocuments,
 	validateDocument,
 } from './server/compiler-server';
-import { ExecuteCommandProvider } from './server/providers/command';
+import { ExecuteCommandProvider } from './server/providers/commands-server';
 import { getCompletionItems } from './server/providers/completions';
 import { getDefinition } from './server/providers/definition';
 import { SolidityHoverProvider } from './server/providers/hoverProvider';
 import { getAllReferencesToItem } from './server/providers/references';
-import { SignatureHelpProvider } from './server/providers/signatures';
 import { providerParams } from './server/providers/utils/common';
 import { config, handleConfigChange, handleInitialize, handleInitialized, settings } from './server/settings';
 import { CommandParamsBase } from './server/types';
@@ -35,7 +35,9 @@ connection.onInitialize((params) => {
 connection.onInitialized((params) => {
 	handleInitialized();
 });
-
+connection.onRequest('CompilerError', (params) => {
+	console.debug('CompilerError', params);
+});
 /* -------------------------------------------------------------------------- */
 /*                                   Actions                                  */
 /* -------------------------------------------------------------------------- */
@@ -63,7 +65,7 @@ connection.onHover((handler) => {
 
 connection.onSignatureHelp((handler) => {
 	initCommon(handler.textDocument);
-	return SignatureHelpProvider.provideSignatureHelp(...providerParams(handler));
+	return provideSignatureHelp(...providerParams(handler));
 });
 
 connection.onExecuteCommand((args) => {

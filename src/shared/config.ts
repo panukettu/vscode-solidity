@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
-import { findFirstRootProjectFile } from './project';
+import type { ContractLevelSolcOutput, SolcInput } from './compiler/solc-types';
 import { CompilerType } from './enums';
+import { findFirstRootProjectFile } from './project';
+import type { MultisolcSettings } from './types';
 import { replaceRemappings } from './util';
-import { MultisolcSettings } from './types';
-import { ContractLevelSolcOutput, SolcInput } from './compiler/solc-types';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export class Config {
 	public static getConfig(): string[] {
 		return vscode.workspace.getConfiguration().get<string[]>('solidity');
@@ -52,7 +53,8 @@ export class Config {
 			.get<ContractLevelSolcOutput[]>('compilerOutputSelection');
 		compilerSettings.outputSelection
 			? compilerSettings.outputSelection
-			: (compilerSettings.outputSelection = { ['*']: { ['*']: outputSelection, '': [] } });
+			: // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
+			  (compilerSettings.outputSelection = { '*': { '*': outputSelection, '': [] } });
 		return {
 			excludePaths: exclusions || vscode.workspace.getConfiguration('solidity').get<string[]>('initExclude'),
 			rootPath: getCurrentWorkspaceRootFsPath(),

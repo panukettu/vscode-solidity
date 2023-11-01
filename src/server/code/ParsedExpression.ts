@@ -11,10 +11,7 @@ import { ParsedFunction } from './ParsedFunction';
 import { ParsedStruct } from './ParsedStruct';
 import { ParsedVariable } from './ParsedVariable';
 import { Element } from './types';
-export enum ExpressionType {
-	Call = 0,
-	Identifier = 1,
-}
+import { ExpressionType } from '@shared/enums';
 
 export class ParsedExpression extends ParsedCode {
 	public parent: ParsedExpression = null;

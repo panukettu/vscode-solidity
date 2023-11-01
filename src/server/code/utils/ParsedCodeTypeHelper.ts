@@ -126,7 +126,6 @@ export const typeHelp = {
 				relevantParams,
 			};
 		} catch (e) {
-			// console.debug("mapping", e.message);
 			return {
 				relevantVars: [],
 				relevantParams: [],

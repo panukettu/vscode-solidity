@@ -52,16 +52,15 @@ export function compileActiveFile(
 		);
 
 		const packagesPath = project.libs.map((lib) => formatPath(lib));
-		const options = Config.getCompilerOptions(packagesPath, null, overrideDefaultCompiler);
-		const compileArgs = {
-			solcInput: contractsCollection.getSolcInput(options),
+		const compilerOpts = Config.getCompilerOptions(packagesPath, null, overrideDefaultCompiler);
+
+		return state.compilers.compile({
+			solcInput: contractsCollection.getSolcInput(compilerOpts),
 			state,
-			options,
+			options: compilerOpts,
 			contractPath: contract.absolutePath,
 			solcType: overrideDefaultCompiler || Config.getCompilerType(),
-		};
-
-		state.clientCompilers.compile(compileArgs);
+		});
 	} catch (e) {
 		console.debug('Unhandled:', e.message);
 	}

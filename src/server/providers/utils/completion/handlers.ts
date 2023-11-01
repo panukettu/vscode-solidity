@@ -1,6 +1,7 @@
 import { relative } from 'path';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { emitDotRegexp } from '@shared/regexp';
 import glob from 'glob';
 import * as vscode from 'vscode-languageserver/node';
 import { ParsedContract } from '../../../code/ParsedContract';
@@ -19,7 +20,7 @@ import {
 	GetGlobalVariables,
 } from './globals';
 import { getImportPath, textEdit } from './misc';
-import { dotStartMatchers, emitDotRegexp, parsePosition } from './textMatchers';
+import { dotStartMatchers, parsePosition } from './textMatchers';
 
 const getLastDot = (
 	document: ParsedDocument,
@@ -255,7 +256,6 @@ export const handleInnerImportCompletion = (
 	position: vscode.Position,
 	triggers: ReturnType<typeof parsePosition>['triggers']
 ) => {
-	// biome-ignore lint/style/noParameterAssign: <explanation>
 	completionItems = completionItems.concat(
 		...walker.parsedDocumentsCache.map((d) => [
 			...d.getAllGlobalContractsCompletionItems(),
@@ -266,7 +266,6 @@ export const handleInnerImportCompletion = (
 	);
 
 	// filter out duplicates
-	// biome-ignore lint/style/noParameterAssign: <explanation>
 	completionItems = completionItems.filter(
 		(item, index, self) => index === self.findIndex((t) => t.label === item.label)
 	);

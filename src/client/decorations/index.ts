@@ -1,10 +1,6 @@
 import { ClientState } from '@client/client-state';
+import type { DecorArgs } from '@client/types';
 import * as vscode from 'vscode';
-export type DecorationScope = {
-	pending: vscode.TextEditorDecorationType;
-	fail: vscode.TextEditorDecorationType;
-	success: vscode.TextEditorDecorationType;
-};
 
 const decorationTypes = ['pending', 'fail', 'success'] as const;
 
@@ -46,12 +42,7 @@ export const initDecorations = (state: ClientState, scope: string) => {
 		success: successDecoration(state.context),
 	});
 };
-export type DecorArgs = {
-	scope: string;
-	text: string;
-	line: number;
-	type: 'pending' | 'fail' | 'success';
-};
+
 export const lineDecoration = (state: ClientState, args: DecorArgs) => {
 	const { scope, text, line, type } = args;
 	const items = [
@@ -76,7 +67,7 @@ export const resetDecorations = (state: ClientState, scope: string, types?: ('pe
 	}
 };
 
-export const removeAll = (state: ClientState) => {
+export const removeAllDecorations = (state: ClientState) => {
 	for (const value of state.decorations.values()) {
 		for (const type of decorationTypes) vscode.window.activeTextEditor.setDecorations(value[type], []);
 	}

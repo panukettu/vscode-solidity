@@ -310,7 +310,7 @@
 				"category": "Solidity"
 			},
 			{
-				"title": "Clear test diagnostics",
+				"title": "Clear All Diagnostics",
 				"command": "solidity.lens.diagnostics.clear",
 				"category": "Solidity"
 			},
@@ -588,6 +588,11 @@
 			"editor/context": [
 				{
 					"when": "editorLangId == 'solidity'",
+					"submenu": "solidity.actions",
+					"group": "0_solidity"
+				},
+				{
+					"when": "editorLangId == 'solidity'",
 					"command": "solidity.compile.active",
 					"group": "0_solidity"
 				},
@@ -613,7 +618,7 @@
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"submenu": "solidity.actions",
+					"command": "solidity.lens.diagnostics.clear",
 					"group": "0_solidity"
 				}
 			],

@@ -119,22 +119,20 @@ export class ClientCompilers {
 			vscode.window.showWarningMessage('No solidity files (*.sol) found');
 			return;
 		} else {
-			vscode.window.showInformationMessage(`Compiling ${Object.keys(args.solcInput.sources).length} files`);
+			const message = `Compiling ${Object.keys(args.solcInput.sources).length} files`;
+			vscode.window.showInformationMessage(message);
+			vscode.window.setStatusBarMessage(message);
 		}
 
 		try {
-			return this.processCompilationOutput(
-				this.multisolc.compileInputWith(args.solcInput, args.solcType),
-				this.outputChannel,
-				args
-			);
+			const output = this.multisolc.compileInputWith(args.solcInput, args.solcType);
+			vscode.window.setStatusBarMessage('Compilation success!', 15000);
+			return this.processCompilationOutput(output, this.outputChannel, args);
 		} catch (e) {
 			this.initializeSolcs(args.solcType).then(() => {
-				return this.processCompilationOutput(
-					this.multisolc.compileInputWith(args.solcInput, args.solcType),
-					this.outputChannel,
-					args
-				);
+				const output = this.multisolc.compileInputWith(args.solcInput, args.solcType);
+				vscode.window.setStatusBarMessage('Compilation success!', 15000);
+				return this.processCompilationOutput(output, this.outputChannel, args);
 			});
 		}
 	}
@@ -211,7 +209,7 @@ export class ClientCompilers {
 
 		args.state.diagnostics.clear();
 		if (output.errors) {
-			const errorWarningCounts = errorsToDiagnostics(args.state.diagnostics, output.errors);
+			const errorWarningCounts = errorsToDiagnostics(args.state.diagnostics.default, output.errors);
 			this.outputErrorsToChannel(outputChannel, output.errors);
 
 			if (errorWarningCounts.errors > 0) {

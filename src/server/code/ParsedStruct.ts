@@ -91,8 +91,6 @@ export class ParsedStruct extends ParsedCode {
 			}
 
 			this.abiType = this.hasMapping ? 'invalid' : `(${this.properties.map((p) => p.abiType)})`;
-		} else {
-			// console.debug("No body for struct", element);
 		}
 	}
 

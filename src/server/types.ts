@@ -1,5 +1,5 @@
 import * as vscode from 'vscode-languageserver/node';
-import { ParsedDocument } from './code/ParsedDocument';
+import type { ParsedDocument } from './code/ParsedDocument';
 
 //DocumentExecuteCommand
 
@@ -27,3 +27,8 @@ export type ProviderRequestHelp = {
 	selectedDocument?: ParsedDocument;
 	action?: 'definition' | 'references' | 'hover';
 };
+
+export interface ServerCompilerDiagnostic {
+	diagnostic: vscode.Diagnostic;
+	fileName: string;
+}

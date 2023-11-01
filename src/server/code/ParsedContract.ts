@@ -16,12 +16,7 @@ import { ParsedStateVariable } from './ParsedStateVariable';
 import { ParsedStruct } from './ParsedStruct';
 import { ParsedUsing } from './ParsedUsing';
 import { Element } from './types';
-
-export enum ContractType {
-	contract = 0,
-	interface = 1,
-	library = 2,
-}
+import { ContractType } from '@shared/enums';
 
 export class ParsedContract extends ParsedCode implements IParsedExpressionContainer {
 	public functions: ParsedFunction[] = [];
@@ -41,7 +36,7 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 
 	public id: any;
 
-	public contractType: ContractType = ContractType.contract;
+	public contractType = ContractType.Contract;
 	public isAbstract: boolean;
 	private completionItem: CompletionItem = null;
 	public declare element: Element;
@@ -183,15 +178,15 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 		}
 
 		if (element.type === 'ContractStatement') {
-			this.contractType = ContractType.contract;
+			this.contractType = ContractType.Contract;
 		}
 
 		if (element.type === 'LibraryStatement') {
-			this.contractType = ContractType.library;
+			this.contractType = ContractType.Library;
 		}
 
 		if (element.type === 'InterfaceStatement') {
-			this.contractType = ContractType.interface;
+			this.contractType = ContractType.Interface;
 		}
 		this.contract = this;
 		this.initialiseChildren();
@@ -674,7 +669,7 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 	public createCompletionItem(): CompletionItem {
 		if (!this.completionItem) {
 			const completionItem = this.initCompletionItem();
-			if (this.contractType === ContractType.interface) {
+			if (this.contractType === ContractType.Interface) {
 				completionItem.kind = CompletionItemKind.Interface;
 			} else {
 				completionItem.kind = CompletionItemKind.Class;
@@ -785,11 +780,11 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 
 	public getContractTypeName(contractType: ContractType) {
 		switch (contractType) {
-			case ContractType.contract:
+			case ContractType.Contract:
 				return 'Contract';
-			case ContractType.interface:
+			case ContractType.Interface:
 				return 'Interface';
-			case ContractType.library:
+			case ContractType.Library:
 				return 'Library';
 			default:
 				break;

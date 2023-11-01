@@ -61,7 +61,6 @@ export class CodeWalkerService {
 
 			this.parseDocument(existing.unformattedCode, true, existing);
 		}
-		// biome-ignore lint/complexity/noForEach: <explanation>
 		this.parsedDocumentsCache.forEach((element) => {
 			element.initialiseDocumentReferences(this.parsedDocumentsCache);
 		});
@@ -70,7 +69,6 @@ export class CodeWalkerService {
 
 	public initialiseChangedDocuments() {
 		const sourceDocuments = new SourceDocumentCollection();
-		// biome-ignore lint/complexity/noForEach: <explanation>
 		this.project.getProjectSolFiles().forEach((contractPath) => {
 			if (!sourceDocuments.containsSourceDocument(contractPath)) {
 				sourceDocuments.addSourceDocumentAndResolveImports(
@@ -80,17 +78,12 @@ export class CodeWalkerService {
 				);
 			}
 		});
-		// biome-ignore lint/complexity/noForEach: <explanation>
 		sourceDocuments.documents.forEach((sourceDocumentItem) => {
 			this.parseDocumentChanged(sourceDocumentItem.unformattedCode, false, sourceDocumentItem);
 		});
 	}
 
 	public getSelectedDocumentProfiler(document: vscode.TextDocument, position: vscode.Position): ParsedDocument {
-		// const start = Date.now();
-		// const result = this.getSelectedDocument(document, position);
-		// const end = Date.now();
-
 		return this.getSelectedDocument(document, position);
 	}
 	public getSelectedDocument(document: vscode.TextDocument, position: vscode.Position): ParsedDocument {
@@ -135,12 +128,9 @@ export class CodeWalkerService {
 			newDocument.initialiseDocument(result, selectedElement, sourceDocument, fixedSource ? documentText : null);
 			this.updateCache(newDocument, sourceDocument);
 		} catch (error) {
-			// console.debug("parseSelectedDocument", error.message);
-
 			const lines = documentText.split(/\r?\n/g);
 			if (lines[line].trim() !== '') {
-				// have we done it already?
-				lines[line] = ''.padStart(lines[line].length, ' '); // adding the same number of characters so the position matches where we are at the moment
+				lines[line] = ''.padStart(lines[line].length, ' ');
 				const code = lines.join('\r\n');
 				return this.parseSelectedDocument(code, offset, line, false, sourceDocument);
 			}
@@ -157,7 +147,6 @@ export class CodeWalkerService {
 		if (!foundDocument) {
 			this.parsedDocumentsCache.push(newDocument);
 
-			// biome-ignore lint/complexity/noForEach: <explanation>
 			this.parsedDocumentsCache.forEach((element) => {
 				element.initialiseDocumentReferences(this.parsedDocumentsCache);
 			});
@@ -173,7 +162,7 @@ export class CodeWalkerService {
 		this.parsedDocumentsCache.push(newDocument);
 
 		newDocument.initialiseDocumentReferences(this.parsedDocumentsCache);
-		// biome-ignore lint/complexity/noForEach: <explanation>
+
 		affectedDocuments.concat(newDocument.importedDocuments).forEach((ref) => {
 			ref.initialiseDocumentReferences(this.parsedDocumentsCache);
 		});
@@ -257,7 +246,7 @@ export class CodeWalkerService {
 		const contracts: ParsedContract[] = [];
 		try {
 			const result: Element = solparse.parse(documentText);
-			// biome-ignore lint/complexity/noForEach: <explanation>
+
 			result.body.forEach((element) => {
 				if (
 					element.type === 'ContractStatement' ||
@@ -270,9 +259,7 @@ export class CodeWalkerService {
 				}
 			});
 		} catch (error) {
-			// console.log(JSON.stringify(error));
-			// gracefule catch
-			// console.log(error.message);
+			console.log(error.message);
 		}
 		return contracts;
 	}
