@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, unlinkSync } from 'fs';
 
 // @ts-expect-error
 import pkg from 'glob';
+import { defineConfig } from 'tsup';
 const { glob } = pkg;
-import { type Options, defineConfig } from 'tsup';
 // const { glob } = pkg;
 
 export default defineConfig(async (opts) => {
@@ -39,7 +39,7 @@ export default defineConfig(async (opts) => {
 		treeshake: true,
 		splitting: true,
 		tsconfig: './tsconfig.json',
-		minify: false,
+		minify: true,
 
 		clean: true,
 		async onSuccess() {

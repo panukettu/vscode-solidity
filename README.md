@@ -10,6 +10,7 @@ _Disclaimer_: bugs likely
 - compiler configuration added to settings
 - can configure location for compilation output
 - set background sol validation to trigger onChange/onSave/onOpen
+- toggle this validation from context menus etc.
 - go to definition, find all references and auto completions "fixed_tm" for library based things.
 - signature help for function calls.
 - peek 4byte selectors from codelens above func
@@ -20,6 +21,14 @@ _Disclaimer_: bugs likely
   - validation is currently disabled in t.sol or s.sol files.
 - .solhintignore works (atleast at one point it did)
 - removes Nethereum, Solium and dApproject related things.
+
+## ISSUES
+
+- base extension compilation most likely crashes if you have huuuuge source files
+- t.sol and s.sol files have validation mechanism disabled for now (too unstable on big repos)
+- use "solidity.lens.diagnostics.clear" command if things get too heavy on UI.
+- go to definition will probably at times show eg. "click to show 3 definitions" - it will rather force definitions than not have one.
+- no idea how this runs on other hardware than apple silicon setup
 
 _for feature ideas just https://github.com/panukettu/vscode-solidity_
 _probably moving this extension to some more comfy fork later buuut this works for now_
