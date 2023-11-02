@@ -7,7 +7,7 @@ import { replaceRemappings } from './util';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export class Config {
-	public static getConfig(): string[] {
+	public static getConfig() {
 		return vscode.workspace.getConfiguration().get<string[]>('solidity');
 	}
 	public static getLibs(): { libs: string[]; libSources: string[] } {
@@ -17,14 +17,17 @@ export class Config {
 		};
 	}
 
-	public static getSources(): string {
+	public static getSources() {
 		return vscode.workspace.getConfiguration('solidity').get<string>('sources');
 	}
-	public static getOutDir(): string {
+	public static getTestVerbosity() {
+		return vscode.workspace.getConfiguration('solidity').get<number>('test.verbosity');
+	}
+	public static getOutDir() {
 		return vscode.workspace.getConfiguration('solidity').get<string>('outDir');
 	}
 
-	public static getCompilerOptimisation(): number {
+	public static getCompilerOptimisation() {
 		return vscode.workspace.getConfiguration('solidity').get<number>('compilerOptimization');
 	}
 
@@ -32,11 +35,11 @@ export class Config {
 		return CompilerType[vscode.workspace.getConfiguration('solidity').get<string>('compilerType')];
 	}
 
-	public static getRemappings(): string[] {
+	public static getRemappings() {
 		return vscode.workspace.getConfiguration('solidity').get<string[]>('remappings');
 	}
 
-	public static getRemappingsWindows(): string[] {
+	public static getRemappingsWindows() {
 		return vscode.workspace.getConfiguration('solidity').get<string[]>('remappingsWindows');
 	}
 

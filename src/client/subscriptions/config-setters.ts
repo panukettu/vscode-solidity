@@ -9,11 +9,17 @@ export function registerConfigSetters(state: ClientState): void {
 		vscode.commands.registerCommand('solidity.disableCodeLens', () => {
 			vscode.workspace.getConfiguration('solidity').update('enableCodeLens', false, true);
 		}),
-		vscode.commands.registerCommand('solidity.disableExecuteTestFunctionOnSave', () => {
-			vscode.workspace.getConfiguration('solidity').update('executeTestFunctionOnSave', false, false);
+		vscode.commands.registerCommand('solidity.test.disableExecuteOnSave', () => {
+			vscode.workspace.getConfiguration('solidity').update('test.executeOnSave', false, false);
 		}),
-		vscode.commands.registerCommand('solidity.enableExecuteTestFunctionOnSave', () => {
-			vscode.workspace.getConfiguration('solidity').update('executeTestFunctionOnSave', true, false);
+		vscode.commands.registerCommand('solidity.test.enableExecuteOnsave', () => {
+			vscode.workspace.getConfiguration('solidity').update('test.executeOnSave', true, false);
+		}),
+		vscode.commands.registerCommand('solidity.test.enableTracing', () => {
+			vscode.workspace.getConfiguration('solidity').update('test.verbosity', 4, false);
+		}),
+		vscode.commands.registerCommand('solidity.test.disableTracing', () => {
+			vscode.workspace.getConfiguration('solidity').update('test.verbosity', 2, false);
 		}),
 		vscode.commands.registerCommand('solidity.enableValidateOnChange', () => {
 			vscode.workspace.getConfiguration('solidity').update('validateOnChange', true, false);

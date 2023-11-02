@@ -27,8 +27,8 @@ export const keywords = {
 		traces: ['Traces:'],
 		start: ['Logs:'],
 		lastIndexBeforeUser: ['Logs:', 'Error:', 'Right:'],
-		lastIndexBeforeTestLogs: ['Logs:', 'Error:'],
-		end: ['Test result:'],
+		lastIndexBeforeTestLogs: ['Logs:', 'Error:', 'Traces:'],
+		end: ['Traces:', 'Test result:'],
 	},
 	duration: {
 		tests: ['; finished in'],

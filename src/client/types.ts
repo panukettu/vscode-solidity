@@ -94,11 +94,9 @@ export type TestOutputs = {
 		warnings: string[];
 	};
 	traces?: {
-		contracts: string[];
+		contracts?: { address: string; size: string; name: string }[];
 		calls: string[];
 		events: string[];
-		sizes: string[];
-		reverts: string[];
 	};
 };
 

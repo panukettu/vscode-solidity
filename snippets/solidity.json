@@ -1,129 +1,249 @@
 {
-  ".source.solidity": {
-    "pragma solidity example": {
-      "prefix": "pragm-ex",
-      "body": "pragma solidity >=0.5.0 <0.9.0;"
-    },
-    "pragma abicoder": {
-      "prefix": "pragm-abicoder",
-      "body": "pragma abicoder v2;"
-    },
-    "import contract": {
-      "prefix": "import",
-      "body": "import ",
-      "description": "Press Ctrl+Space to autocomplete imports"
-    },
-    "contract declaration": {
-      "prefix": "con",
-      "body": "contract ${1:Name} {\n\t$0\n}"
-    },
-    "library declaration": {
-      "prefix": "lib",
-      "body": "library ${1:Name} {\n\t$0\n}"
-    },
-    "interface declaration": {
-      "prefix": "interf",
-      "body": "interface ${1:Name} {\n\t$0\n}"
-    },
-    "enum declaration": {
-      "prefix": "enum",
-      "body": "enum ${1:Name} {${2:item1}, ${3:item2} }"
-    },
-    "mapping declaration": {
-      "prefix": "mapp",
-      "body": "mapping (${1:type1}=>${2:type2}) ${3:name};"
-    },
-    "constructor declaration": {
-      "prefix": "const",
-      "body": "constructor (${1:type} ${2:name}) public {\n\t$0\n}"
-    },
-    "function declaration": {
-      "prefix": "func",
-      "body": "function ${1:name}(${2:type} ${3:name}) {\n\t$0\n}"
-    },
-    "function return declaration": {
-      "prefix": "funcr",
-      "body": "function ${1:name}(${2:type} ${3:name}) returns (${4:type} ${5:name}) {\n\t$0\n}"
-    },
-    "function view declaration": {
-      "prefix": "funcrview",
-      "body": "function ${1:name}(${2:type} ${3:name}) view public returns (${4:type} ${5:name}) {\n\t$0\n}"
-    },
-    "event declaration": {
-      "prefix": "ev",
-      "body": "event ${1:name}(${2:type} ${3:name} $0);"
-    },
-    "error declaration": {
-      "prefix": "error",
-      "body": "error ${1:name}(${2:type} ${3:name} $0);"
-    },
-    "uint256 variable": {
-      "prefix": "uint256var",
-      "body": "uint256 ${1:name} = ${2:type};"
-    },
-    "uint256 arr variable": {
-      "prefix": "uint256arr",
-      "body": "uint256[] memory ${1:name} = ${2:type};"
-    },
-    "modifier declaration": {
-      "prefix": "mod",
-      "body": "modifier ${1:name}($2) {\n\t$0_\n}"
-    },
-    "if else statement": {
-      "prefix": "ife",
-      "body": "if (${1:condition}) {\n\t$2\n} else {\n\t$0\n}"
-    },
-    "for statement": {
-      "prefix": "for",
-      "body": "for (uint256 ${1:index}; $1 < ${2:array}.length; $1${3:++}) {\n\t$0\n}"
-    },
-    "unchecked": {
-      "prefix": "unchecked",
-      "body": "unchecked {\n\t$0\n}"
-    },
-    "spdx and pragma": {
-      "prefix": "spdxpragma",
-      "description": "spdxpragma",
-      "scope": "solidity",
-      "body": [
-        "// SPDX-License-Identifier: MIT",
-        "pragma solidity ${1:version};\n"
-      ]
-    },
-    "hardhat console import": {
-      "prefix": "hhc",
-      "description": "hhc",
-      "scope": "solidity",
-      "body": ["import \"hardhat/console.sol\";"]
-    },
-    "natspec function": {
-      "prefix": "natfunc",
-      "description": "natfunc",
-      "scope": "solidity",
-      "body": ["/**", "* @notice $1", "* @dev $2", "* @param $3", "*/"]
-    },
-    "natspec contract": {
-      "prefix": "natcontract",
-      "description": "natspec contract",
-      "scope": "solidity",
-      "body": [
-        "/** ",
-        "* @title $1",
-        "* @author $2",
-        "* @notice $3",
-        "* @dev $4",
-        "*/"
-      ]
-    },
-    "natspec variable": {
-      "prefix": "natvariablee",
-      "body": ["/** ", "* @notice $1", "* @dev $2", "*/"],
-      "description": "natspec for state variable"
-    },
-    "solidityTips": {
-      "prefix": "solidityTips",
-      "body": "//Paul Razvan Berg tips (@PaulRBerg)\r\n1\uFE0F\u20E3 Use \"type(uint256).max\" instead of \"uint256(-1)\"\r\n2\uFE0F\u20E3 Surround code with {} to avoid \"stack too deep\"\r\n3\uFE0F\u20E3 Skip tuple vars with commas: \"uint a, , ,\"\r\n4\uFE0F\u20E3 Swap vars in one line: \"(a,b)=(b,a)\"\r\n5\uFE0F\u20E3 Use \"assert\" and get built-in formal verification with SMTChecker\r\n\r\n-----------------------------------------------\r\n\r\n// Daniel Luca tips (CleanUnicorn.eth)\r\n1\uFE0F\u20E3  You can format numbers in Solidity using underscores.\r\ni.e.,\r\n1_000 is a thousand\r\n1_0_0_0 is a thousand\r\n1_000e0_3 is a million\r\n\r\nPython spec https://www.python.org/dev/peps/pep-0515/\r\n\r\n------------------------------\r\nContribute tips here: https://github.com/juanfranblanco/vscode-solidity/blob/master/snippets/solidity.json#L197-L201 \r\nEscape the text using: https://www.freeformatter.com/json-escape.html\r\n------------------------------\r\n",
-      "description": "solidity tips"
-    }
-  }
+	".source.solidity": {
+		"pragma solidity example": {
+			"prefix": "pragm-ex",
+			"scope": "solidity",
+			"body": "pragma solidity >=0.5.0 <0.9.0;"
+		},
+		"pragma abicoder": {
+			"prefix": "pragm-abicoder",
+			"scope": "solidity",
+			"body": "pragma abicoder v2;"
+		},
+		"import contract": {
+			"prefix": "import",
+			"body": "import ",
+			"scope": "solidity",
+			"description": "Press Ctrl+Space to autocomplete imports"
+		},
+		"contract declaration": {
+			"prefix": "con",
+			"scope": "solidity",
+			"body": "contract ${1:Name} {\n\t$0\n}"
+		},
+		"library declaration": {
+			"prefix": "lib",
+			"scope": "solidity",
+			"body": "library ${1:Name} {\n\t$0\n}"
+		},
+		"interface declaration": {
+			"prefix": "interf",
+			"scope": "solidity",
+			"body": "interface ${1:Name} {\n\t$0\n}"
+		},
+		"enum declaration": {
+			"prefix": "enum",
+			"scope": "solidity",
+			"body": "enum ${1:Name} {${2:item1}, ${3:item2} }"
+		},
+		"mapping declaration": {
+			"prefix": "mapp",
+			"scope": "solidity",
+			"body": "mapping (${1:type1}=>${2:type2}) ${3:name};"
+		},
+		"constructor declaration": {
+			"prefix": "const",
+			"scope": "solidity",
+			"body": "constructor (${1:type} ${2:name}) public {\n\t$0\n}"
+		},
+		"function declaration": {
+			"prefix": "func",
+			"scope": "solidity",
+			"body": "function ${1:name}(${2:type} ${3:name}) {\n\t$0\n}"
+		},
+		"function return declaration": {
+			"prefix": "funcr",
+			"scope": "solidity",
+			"body": "function ${1:name}(${2:type} ${3:name}) returns (${4:type} ${5:name}) {\n\t$0\n}"
+		},
+		"function view declaration": {
+			"prefix": "funcrview",
+			"scope": "solidity",
+			"body": "function ${1:name}(${2:type} ${3:name}) view public returns (${4:type} ${5:name}) {\n\t$0\n}"
+		},
+		"event declaration": {
+			"prefix": "ev",
+			"scope": "solidity",
+			"body": "event ${1:name}(${2:type} ${3:name} $0);"
+		},
+		"error declaration": {
+			"prefix": "error",
+			"scope": "solidity",
+			"body": "error ${1:name}(${2:type} ${3:name} $0);"
+		},
+		"uint256 variable": {
+			"prefix": "uint256var",
+			"scope": "solidity",
+			"body": "uint256 ${1:name} = ${2:type};"
+		},
+		"uint256 arr variable": {
+			"prefix": "uint256arr",
+			"scope": "solidity",
+			"body": "uint256[] memory ${1:name} = ${2:type};"
+		},
+		"modifier declaration": {
+			"prefix": "mod",
+			"scope": "solidity",
+			"body": "modifier ${1:name}($2) {\n\t$0_\n}"
+		},
+		"if else statement": {
+			"prefix": "ife",
+			"scope": "solidity",
+			"body": "if (${1:condition}) {\n\t$2\n} else {\n\t$0\n}"
+		},
+		"for statement": {
+			"prefix": "for",
+			"scope": "solidity",
+			"body": "for (uint256 ${1:index}; $1 < ${2:array}.length; $1${3:++}) {\n\t$0\n}"
+		},
+		"unchecked": {
+			"prefix": "unchecked",
+			"scope": "solidity",
+			"body": "unchecked {\n\t$0\n}"
+		},
+		"spdxpragma": {
+			"prefix": "spdx_pragma",
+			"description": "spdxpragma",
+			"scope": "solidity",
+			"body": ["// SPDX-License-Identifier: ${2:MIT}", "pragma solidity ${1:^0.8.19};"]
+		},
+		"hardhat console import": {
+			"prefix": "hhc",
+			"description": "hhc",
+			"scope": "solidity",
+			"body": ["import \"hardhat/console.sol\";"]
+		},
+		"natspec function": {
+			"prefix": "natfunc",
+			"description": "natfunc",
+			"scope": "solidity",
+			"body": ["/**", "* @notice $1", "* @dev $2", "* @param $3", "*/"]
+		},
+		"natspec contract": {
+			"prefix": "natcontract",
+			"description": "natspec contract",
+			"scope": "solidity",
+			"body": ["/** ", "* @title $1", "* @author $2", "* @notice $3", "* @dev $4", "*/"]
+		},
+		"natspec variable": {
+			"prefix": "natvariablee",
+			"body": ["/** ", "* @notice $1", "* @dev $2", "*/"],
+			"description": "natspec for state variable"
+		},
+		"solidityTips": {
+			"prefix": "solidityTips",
+			"body": "//Paul Razvan Berg tips (@PaulRBerg)\r\n1\uFE0F\u20E3 Use \"type(uint256).max\" instead of \"uint256(-1)\"\r\n2\uFE0F\u20E3 Surround code with {} to avoid \"stack too deep\"\r\n3\uFE0F\u20E3 Skip tuple vars with commas: \"uint a, , ,\"\r\n4\uFE0F\u20E3 Swap vars in one line: \"(a,b)=(b,a)\"\r\n5\uFE0F\u20E3 Use \"assert\" and get built-in formal verification with SMTChecker\r\n\r\n-----------------------------------------------\r\n\r\n// Daniel Luca tips (CleanUnicorn.eth)\r\n1\uFE0F\u20E3  You can format numbers in Solidity using underscores.\r\ni.e.,\r\n1_000 is a thousand\r\n1_0_0_0 is a thousand\r\n1_000e0_3 is a million\r\n\r\nPython spec https://www.python.org/dev/peps/pep-0515/\r\n\r\n------------------------------\r\nContribute tips here: https://github.com/juanfranblanco/vscode-solidity/blob/master/snippets/solidity.json#L197-L201 \r\nEscape the text using: https://www.freeformatter.com/json-escape.html\r\n------------------------------\r\n",
+			"description": "solidity tips"
+		},
+		"log: common types": {
+			"prefix": "console_log",
+			"description": "Print uint, string, bool or address values. Max 4.",
+			"scope": "solidity",
+			"body": ["console.log(\"${2:value: %s}\", ${1:\"value\"});"]
+		},
+		"forge: log common types": {
+			"prefix": "console2_log",
+			"description": "Print uint, string, bool or address values. Max 4.",
+			"scope": "solidity",
+			"body": ["console2.log(\"${2:value: %s}\", ${1:\"value\"});"]
+		},
+		"forge: log named decimal value": {
+			"prefix": "log_decimal_uint_emit_forge",
+			"description": "Logs a formatted decimal value with some label.",
+			"scope": "solidity",
+			"body": ["emit log_named_decimal_uint(\"${3:$1}\", ${1:value}, ${2:18});"]
+		},
+		"forge: assert equal": {
+			"prefix": "assert_equals_forge_test",
+			"description": "assertequalsforge",
+			"scope": "solidity",
+			"body": ["assertEq(${1:val}, ${2:val2}, \"${3:$1}\");"]
+		},
+		"forge: test function": {
+			"prefix": "function_forge_test",
+			"description": "funcforgetest",
+			"scope": "solidity",
+			"body": [
+				"function ${1:testSnippet}() public {",
+				"    uint256 val1 = 1 ether;",
+				"    emit log_named_decimal_uint(\"val1\", val1, 18);",
+				"",
+				"    uint256 val2 = 1 ether;",
+				"    emit log_named_decimal_uint(\"val2\", val2, 18);",
+				"",
+				"    assertEq(val1, val2, \"nope\");",
+				"}"
+			]
+		},
+		"forge: fuzzy test function": {
+			"prefix": "function_forge_fuzz_test",
+			"description": "funcforgefuzztest",
+			"scope": "solidity",
+			"body": [
+				"function ${1:testFuzzSnippet}(${2:uint256 arg}) public {",
+				"    vm.assume(arg > 0.1 ether);",
+				"    vm.assume(arg < 1 ether);",
+				"",
+				"    uint256 val1 = 1 ether;",
+				"",
+				"    assertGt(val1, arg, \"val1\");",
+				"}"
+			]
+		},
+		"forge: test file template": {
+			"isFileTemplate": true,
+			"prefix": "forge_minimal_test_template",
+			"scope": "solidity",
+			"body": [
+				"// SPDX-License-Identifier: MIT",
+				"pragma solidity ^0.8.0;",
+				"",
+				"// solhint-disable state-visibility, max-states-count, var-name-mixedcase, no-global-import, const-name-snakecase, no-empty-blocks, no-console",
+				"",
+				"import \"forge-std/Test.sol\";",
+				"",
+				"contract NewTest is Test {",
+				"",
+				"    address internal addr;",
+				"    uint256 internal value;",
+				"",
+				"    function setUp() public {",
+				"        console2.log(\"setup\");",
+				"        addr = address(0x123);",
+				"        value = 1;",
+				"    }",
+				"",
+				"    function testSomething() public {",
+				"        assertEq(value, 1, \"val-not-eq\");",
+				"        assertEq(addr, address(0x123), \"addr-not-eq\");",
+				"    }",
+				"}"
+			],
+			"description": "Quick base for a new forge test file"
+		},
+		"function: external view returns": {
+			"prefix": "function_external_view_returns",
+			"description": "functionexternalviewreturns",
+			"scope": "solidity",
+			"body": [
+				"function ${1:getValue}(${2}) external view returns (${3:uint256}) {",
+				"    $3 ${4:result} = ${5:1 ether};",
+				"",
+				"    return $4;",
+				"}"
+			]
+		},
+		"function: internal view returns": {
+			"prefix": "function_internal_view_returns",
+			"description": "functioninternalviewreturns",
+			"scope": "solidity",
+			"body": [
+				"function ${1:getValue}(${2}) internal view returns (${3:uint256}) {",
+				"    $3 ${4:result} = ${5:1 ether};",
+				"",
+				"    return $4;",
+				"}"
+			]
+		}
+	}
 }

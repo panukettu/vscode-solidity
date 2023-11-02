@@ -2,29 +2,61 @@
 
 [![Version](https://vsmarketplacebadges.dev/version/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity#review-details)
 
-# Fork Features
+# FEATURES
 
-- Configure solc settings directly with `solidity.compilerOutputSelection` or `solidity.compilerSettings`.
+_Disclaimer_: bugs likely
 
-- Execute forge test function on save / from codelens.
+- execute t.sol functions and get log/assertion data inline
+- compiler configuration added to settings
+- can configure location for compilation output
+- set background sol validation to trigger onChange/onSave/onOpen
+- go to definition, find all references and auto completions "fixed_tm" for library based things.
+- signature help for function calls.
+- peek 4byte selectors from codelens above func
+- create natspec stubs from codelens above functions
+- bundles all js dependencies.
+- works bit faster on big projects.
+  - does not validate all documents on open.
+  - validation is currently disabled in t.sol or s.sol files.
+- .solhintignore works (atleast at one point it did)
+- removes Nethereum, Solium and dApproject related things.
 
-  - Diagnostics for assertions and logs WITH identifier: eg. assertEq(a,b, "identifier") or console.log("foo", bar)
+_for feature ideas just https://github.com/panukettu/vscode-solidity_
+_probably moving this extension to some more comfy fork later buuut this works for now_
 
-- .solhintignore works
-- Less verbose menus
-- Validation is configured to triggers: onSave, onChange or onOpen.
-  - Does not validate all documents on open.
-  - Validation is currently disabled in t.sol or s.sol files.
-- Can configure location for compilation output
-- Bundles all js dependencies.
-- Removes Nethereum, Solium and dApproject related things.
-- Works bit faster on big projects.
-- Go To Definition, Find All References and Auto Completions work on global using for injections.
-- Loads all sol files to cache on project open.
-- Auto-complete improved for using for globals, libs (+lib events).
-- Improved hover.
-- Signature help on function calls.
-- Natspec displayed inherits from `@inheritdoc`
+## FORGE
+
+- execute t.sol function with cursor onSave / from codelens and get info about it.
+- you'll see status info next to the function and on the bottom activity bar.
+- had no problems running spamming different functions concurrently, duplicate exec will kill the previous one.
+
+![executor](screenshots/test-execute-lens.png)
+
+![onsave](screenshots/test-function-execute.gif)
+
+- diagnostics/highlights are available on t.sol execution through the extension.
+- works semi stable for assertion results + logs, you need to have an identifier though, eg. assertEq(a,b, "identifier") or console.log("foo", bar)
+
+![test-inline-diagnostic](screenshots/test-inline-diagnostic.png)
+
+- initial tiny tracing data output:
+
+![current-tracing-data](screenshots/test-inline-tracing-data.png)
+
+- peek test runtime data from tracing, contains eg. contract names, addresses sizes, event counts and call counts.
+- will extend further but I guess it has some utility here
+
+![function-runtime-info](screenshots/test-output-info.png)
+
+- Foundry verbosity can be toggled from context menus that are a bit more compact than in the original extension.
+
+![menu](screenshots/menus.png)
+
+### SOLC SETTINGS `solidity.compilerOutputSelection` or `solidity.compilerSettings`.
+
+- Compiler settings will override others.
+
+![Solc Config](screenshots/solc-config.png)
 
 - Adds some CodeLens:
   - Run active test function (t.sol).
@@ -33,45 +65,55 @@
   - Generate natspec for functions with a click.
     <br>
 
-# Fork Config Changes
+## NEW CONFIG
+
+- solidity.test.executeOnSave
+  - run forge test in cursor position on file save.
+  - default: true
+- solidity.test.verbosity
+  - forge verbosity setting
+  - default: 3 (traces on failed tests)
+- solidity.compilerOutputSelection
+  - configure contract output items.
+- solidity.compilerSettings
+  - configure all solcjs supported settings for the compiler.
+- solidity.validateOnSave:
+  - validate file on save.
+  - default: true
+- solidity.validateOnChange
+  - validate file on change (typing)
+  - default: false
+- solidity.validateOnOpen
+  - validate file on open.
+  - default: true
+- solidity.outDir
+  - output for compilation artifacts generated from this extension.
+  - default: 'bin'
+- solidity.sources (string):
+  - your solidity source folder.
+  - tries to get from foundry.toml or hardhat.config.js if not set.
+  - default: ""
+- solidity.initExclude (string[]):
+
+  - exclude some folders from initial parsing. eg. ["temp", "test"]
+  - default: []
+
+## CONFIG CHANGES
 
 - solidity.defaultCompiler -> solidity.compilerType
-  - Default: "Default"
+  - default: "Default"
 - solidity.nodemodulespackage -> solidity.npmSolcPackage
-  - Default: "solc"
+  - default: "solc"
 - solidity.packageDefaultDependenciesDirectory -> solidity.libs
-  - Default: ["node_modules", "lib"]
+  - default: ["node_modules", "lib"]
 - solidity.packageDefaultDependenciesContractsDirectory -> solidity.libSources
-  - Default: ["src", "contracts"]
+  - default: ["src", "contracts"]
+- remote solc -> solidity.remoteSolcVersion
+- local solc -> solidity.localSolcVersion
+- npm solc -> solidity.npmSolcPackage
+- compiler -> solidity.compilerType
 
-# New Config
-
-- solidity.compilerOutputSelection
-  - Configure contract output items.
-- solidity.compilerSettings
-  - Configure all solcjs supported settings for the compiler.
-- solidity.validateOnSave:
-  - Validate file on save.
-  - Default: true
-- solidity.validateOnChange
-  - Validate file on change (typing)
-  - Default: false
-- solidity.validateOnOpen
-  - Validate file on open.
-  - Default: true
-- solidity.executeTestFunctionOnSave
-  - Run forge test in cursor position on file save.
-  - Default: true
-- solidity.outDir
-  - Output for compilation artifacts generated from this extension.
-  - Default: 'bin'
-- solidity.sources (string):
-  - Your solidity source folder.
-  - Tries to get from foundry.toml or hardhat.config.js if not set.
-  - Default: ""
-- solidity.initExclude (string[]):
-  - Exclude some folders from initial parsing. eg. ["temp", "test"]
-  - Default: []
+## _DISCLAIMER_ no idea how many things below are not supported by this version
 
 # Original Features
 
@@ -93,7 +135,7 @@ Solidity is the language used in Ethereum to create smart contracts, this extens
 - Download source code and Abi from Etherscan
 - Linting using [Solhint](https://github.com/protofire/solhint)
 
-# Instructions
+## Instructions
 
 ## Using a different version of the solidity compiler
 

@@ -53,6 +53,12 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 									arguments: [functionName, document, range],
 								}),
 								new vscode.CodeLens(range, {
+									title: 'print',
+									tooltip: 'Print contracts to the output channel',
+									command: 'solidity.lens.test.info',
+									arguments: [functionName, document, range],
+								}),
+								new vscode.CodeLens(range, {
 									title: 'natspec',
 									tooltip: 'Generate natspec comment',
 									command: 'solidity.lens.function.natspec',

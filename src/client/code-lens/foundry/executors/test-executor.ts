@@ -1,6 +1,7 @@
 import * as cp from 'child_process';
 import type { ClientState } from '@client/client-state';
 import { ProcessOut, TestExec } from '@client/types';
+import { Config } from '@shared/config';
 import { ExecStatus } from '@shared/enums';
 import type { Lens } from '../../code-lens-types';
 import {
@@ -12,9 +13,16 @@ import { parseOutput } from '../stdout-parser';
 
 const processMap = new Map<string, cp.ChildProcess>();
 
-export function execForgeTestFunction(state: ClientState, args: Lens.ForgeTestExec, rootPath: string) {
+export function execForgeTestFunction(
+	state: ClientState,
+	args: Lens.ForgeTestExec,
+	rootPath: string,
+	forceTrace = false
+) {
 	return new Promise<TestExec.Result | TestExec.Restart | TestExec.Unhandled>((resolve, reject) => {
 		const functionName = args[0];
+		const tracing = Config.getTestVerbosity() ?? 2;
+		const verbosity = !forceTrace ? `-${'v'.repeat(tracing)}` : '-vvvv';
 
 		const wordBound = `${functionName}\\b`;
 		if (processMap.has(functionName)) {
@@ -24,7 +32,7 @@ export function execForgeTestFunction(state: ClientState, args: Lens.ForgeTestEx
 			functionName,
 			cp.execFile(
 				'forge',
-				['test', '--mt', wordBound, '-vv', '--allow-failure'],
+				['test', '--mt', wordBound, verbosity, '--allow-failure'],
 				{ cwd: rootPath },
 				(error, stdout, stderr) => {
 					const result = handleTestExecuteOutput(state, args, { stdout, error, stderr });

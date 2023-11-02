@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.3",
+	"version": "0.8.4",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -120,6 +120,13 @@
 			"type": "object",
 			"title": "Solidity",
 			"properties": {
+				"solidity.test.verbosity": {
+					"type": [
+						"number"
+					],
+					"default": 3,
+					"description": "Basically just sets matching forge verbosity, eg. default 3 = -vvv so traces on fails. Some experimental tracing overview is available."
+				},
 				"solidity.compilerOutputSelection": {
 					"type": [
 						"string"
@@ -147,7 +154,7 @@
 					},
 					"description": "Compiler settings used. Overrides other configuration values if clashing. (https://docs.soliditylang.org/en/latest/using-the-compiler.html#input-description) "
 				},
-				"solidity.executeTestFunctionOnSave": {
+				"solidity.test.executeOnSave": {
 					"type": [
 						"boolean"
 					],
@@ -310,6 +317,12 @@
 				"category": "Solidity"
 			},
 			{
+				"title": "Print Test Information",
+				"enablement": "resourceExtname == .sol && resourceFilename =~ /.*?\\.t\\.sol/g",
+				"command": "solidity.lens.test.info",
+				"category": "Solidity"
+			},
+			{
 				"title": "Clear All Diagnostics",
 				"command": "solidity.lens.diagnostics.clear",
 				"category": "Solidity"
@@ -337,15 +350,27 @@
 				"category": "Solidity"
 			},
 			{
-				"title": "Disable Exec Test On Save",
-				"command": "solidity.disableExecuteTestFunctionOnSave",
-				"enablement": "config.solidity.executeTestFunctionOnSave",
+				"title": "Disable Test On Save",
+				"command": "solidity.test.disableExecuteOnSave",
+				"enablement": "config.solidity.test.executeOnSave",
 				"category": "Solidity"
 			},
 			{
-				"title": "Enable Exec Test On Save",
-				"command": "solidity.enableExecuteTestFunctionOnSave",
-				"enablement": "!config.solidity.executeTestFunctionOnSave",
+				"title": "Enable Test On Save",
+				"command": "solidity.test.enableExecuteOnSave",
+				"enablement": "!config.solidity.test.executeOnSave",
+				"category": "Solidity"
+			},
+			{
+				"title": "Disable Tracing",
+				"command": "solidity.test.disableTracing",
+				"enablement": "config.solidity.test.verbosity > 2",
+				"category": "Solidity"
+			},
+			{
+				"title": "Enable Tracing",
+				"command": "solidity.test.enableTracing",
+				"enablement": "config.solidity.test.verbosity < 3",
 				"category": "Solidity"
 			},
 			{
@@ -607,13 +632,23 @@
 					"group": "0_solidity"
 				},
 				{
-					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && !config.solidity.executeTestFunctionOnSave",
-					"command": "solidity.enableExecuteTestFunctionOnSave",
+					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && !config.solidity.test.executeOnSave",
+					"command": "solidity.test.enableExecuteOnSave",
 					"group": "0_solidity"
 				},
 				{
-					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.executeTestFunctionOnSave",
-					"command": "solidity.disableExecuteTestFunctionOnSave",
+					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.test.executeOnSave",
+					"command": "solidity.test.disableExecuteOnSave",
+					"group": "0_solidity"
+				},
+				{
+					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.test.verbosity < 3",
+					"command": "solidity.test.enableTracing",
+					"group": "0_solidity"
+				},
+				{
+					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.test.verbosity > 2",
+					"command": "solidity.test.disableTracing",
 					"group": "0_solidity"
 				},
 				{

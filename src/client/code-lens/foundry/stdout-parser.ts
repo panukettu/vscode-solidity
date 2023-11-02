@@ -1,5 +1,6 @@
 import type { ExecFileException } from 'child_process';
 import type { ParseStdOutArgs, TestExec } from '@client/types';
+import { Config } from '@shared/config';
 import { ExecStatus } from '@shared/enums';
 import { formatOutput } from '@shared/regexp';
 import {
@@ -59,9 +60,11 @@ export const getOutcome = (
 	const getIndex = getLineIndexFinder(lines);
 	const getLine = getLineFinder(lines);
 	const getLines = getLinesFinder(lines);
+	const isTracing = Config.getTestVerbosity() > 2;
 
 	const logStartIndex = getIndex(keywords.logs.start);
 	const logEndIndex = getIndex(keywords.logs.end);
+
 	const userLogStartIndex = getIndex(keywords.logs.lastIndexBeforeUser, true, logEndIndex) + 1;
 	const errorLogIndex = getIndex(keywords.logs.lastIndexBeforeTestLogs, false, logStartIndex);
 
@@ -70,6 +73,49 @@ export const getOutcome = (
 
 	const errorLogs = errorLogIndex > logStartIndex ? lines.slice(errorLogIndex, userLogStartIndex) : [];
 	const setupLogs = errorLogIndex > logStartIndex ? lines.slice(logStartIndex + 1, errorLogIndex) : [];
+
+	const traces = {
+		events: [],
+		contracts: [],
+		calls: [],
+	};
+
+	let traceSummary = '';
+	try {
+		if (isTracing) {
+			traces.events = getLines(keywords.traces.events.all);
+			traces.contracts = getLines(keywords.traces.contract).map((line) => {
+				try {
+					const lineIndex = lines.indexOf(line);
+					const sizeSearchStartIndex = lineIndex - 1;
+					const sizesIndex = getIndex(keywords.traces.sizes, false, sizeSearchStartIndex);
+					const sizeText =
+						sizesIndex !== -1
+							? lines[sizesIndex].split(String(keywords.traces.sizes))[0].trim().concat('##bytes')
+							: 'size not found';
+					const addresses = line
+						.split(String(keywords.traces.contract))[1]
+						.trim()
+						.split(String(keywords.traces.contractAddressSplitter));
+					const size = sizeText.split(' ');
+					return {
+						name: addresses[0],
+						address: addresses[1],
+						size: size[size.length - 1].replace('##', ' '),
+					};
+				} catch {
+					return {
+						name: 'failed',
+						address: 'failed',
+						size: 'failed',
+					};
+				}
+			});
+
+			traces.calls = getLines(keywords.traces.call);
+			traceSummary = `\n-- trace\n${traces.contracts.length} contracts created\n${traces.events.length} events emitted\n${traces.calls.length} calls made\n`;
+		}
+	} catch {}
 
 	const logs = {
 		allLogs: allLogs,
@@ -89,16 +135,16 @@ export const getOutcome = (
 		warnings: getLines(keywords.compiler.warnings),
 	};
 
-	const common = { lines, logs, infos };
+	const common = { lines, logs, infos, traces };
 
 	let result = getIndex(keywords.test.passed);
 	if (result !== -1) {
 		return {
 			status: ExecStatus.Pass,
 			out: {
-				summary: [infos.testDuration, lines[result]],
+				summary: [lines[result], infos.testDuration, ' '],
 				details: [' ', '-- logs', ...logs.setupLogs, ...logs.userLogs]
-					.concat([' ', infos.compileInfo, infos.compileDuration])
+					.concat([' ', traceSummary, ' ', infos.compileInfo, infos.compileDuration])
 					.filter(Boolean)
 					.map(toDefaultFormat),
 				...common,
@@ -111,11 +157,11 @@ export const getOutcome = (
 		return {
 			status: ExecStatus.SetupFail,
 			out: {
-				summary: [infos.testDuration, lines[result]],
+				summary: [lines[result], infos.testDuration, ' '],
 				details: [...getLines(keywords.test.details.setupFailed), ' ']
 					.concat([...logs.errorLogs])
 					.concat(['-- logs', ...logs.setupLogs, ...logs.userLogs])
-					.concat([' ', infos.compileInfo, infos.compileDuration])
+					.concat([' ', traceSummary, ' ', infos.compileInfo, infos.compileDuration])
 					.filter(Boolean)
 					.map(toDefaultFormat),
 				...common,
@@ -128,10 +174,10 @@ export const getOutcome = (
 		return {
 			status: ExecStatus.Fail,
 			out: {
-				summary: [infos.testDuration, lines[result]],
+				summary: [lines[result], infos.testDuration, ' '],
 				details: [...logs.errorLogs]
 					.concat(['-- logs', ...logs.setupLogs, ...logs.userLogs])
-					.concat([' ', infos.compileInfo, infos.compileDuration])
+					.concat([' ', traceSummary, ' ', infos.compileInfo, infos.compileDuration])
 					.filter(Boolean)
 					.map(toDefaultFormat),
 				...common,
@@ -145,10 +191,11 @@ export const getOutcome = (
 		return {
 			status: ExecStatus.CompilerError,
 			out: {
-				summary: [lines[result], infos.compileInfo],
+				summary: [lines[result], ' ', infos.compileInfo],
 				details: [
 					`${infos.errors.length} errors`,
 					infos.warnings.length > 0 ? `${infos.warnings.length} warnings` : '',
+					"check 'Problems' tab for more details",
 				],
 				...common,
 			},
