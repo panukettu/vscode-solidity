@@ -98,7 +98,7 @@ export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index:
 		severity: severity,
 	};
 
-	if (error.secondarySourceLocations.length) {
+	if (error.secondarySourceLocations?.length) {
 		const [relatedInfos, extraDiagnostics] = mapSecondarySourceToVscode(error, { diagnostic, fileName });
 		diagnostic.relatedInformation = relatedInfos;
 		return {

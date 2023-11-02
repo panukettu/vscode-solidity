@@ -22,7 +22,7 @@ export function registerCodeLenses(state: ClientState): void {
 		...registerCodeLensCommands(state),
 		vscode.workspace.onDidSaveTextDocument(async (e) => {
 			if (e.languageId === 'solidity' && e.fileName.endsWith('.t.sol')) {
-				const isEnabled = vscode.workspace.getConfiguration('solidity').get('executeTestFunctionOnSave', true);
+				const isEnabled = vscode.workspace.getConfiguration('solidity').get('test.executeOnSave', true);
 				if (!isEnabled) return;
 
 				const position = vscode.window.activeTextEditor?.selection.active;

@@ -14,7 +14,7 @@ export default defineConfig(async (opts) => {
 		format: 'cjs',
 		outDir: './out/src',
 		platform: 'node',
-		sourcemap: true,
+		sourcemap: false,
 		bundle: true,
 		noExternal: [
 			// /(?:[^vscode]).*?([\w\-]+)/,
@@ -39,8 +39,7 @@ export default defineConfig(async (opts) => {
 		treeshake: true,
 		splitting: true,
 		tsconfig: './tsconfig.json',
-		minify: true,
-
+		minify: false,
 		clean: true,
 		async onSuccess() {
 			if (opts.watch) return;

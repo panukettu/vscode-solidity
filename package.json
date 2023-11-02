@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.4",
+	"version": "0.8.5",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -235,12 +235,12 @@
 				},
 				"solidity.validateOnOpen": {
 					"type": "boolean",
-					"default": true,
+					"default": false,
 					"description": "Compile and provide validations on file open. Will not validate on initial project open."
 				},
 				"solidity.validationDelay": {
 					"type": "number",
-					"default": 400,
+					"default": 350,
 					"description": "Delay (debounce) for triggering validation after file changes (in ms)"
 				},
 				"solidity.libs": {

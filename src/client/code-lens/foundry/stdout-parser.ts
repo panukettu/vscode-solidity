@@ -101,7 +101,7 @@ export const getOutcome = (
 					return {
 						name: addresses[0],
 						address: addresses[1],
-						size: size[size.length - 1].replace('##', ' '),
+						size: size[size?.length - 1].replace('##', ' '),
 					};
 				} catch {
 					return {
@@ -113,7 +113,7 @@ export const getOutcome = (
 			});
 
 			traces.calls = getLines(keywords.traces.call);
-			traceSummary = `\n-- trace\n${traces.contracts.length} contracts created\n${traces.events.length} events emitted\n${traces.calls.length} calls made\n`;
+			traceSummary = `\n-- trace\n${traces.contracts?.length} contracts created\n${traces.events?.length} events emitted\n${traces.calls?.length} calls made\n`;
 		}
 	} catch {}
 
@@ -130,7 +130,7 @@ export const getOutcome = (
 		compileDuration:
 			!compileDuration?.includes('Test') && !compileDuration?.includes('passed') ? compileDuration : undefined,
 		compileInfo: getLine(keywords.compiler.files)?.replace('Compiling', 'Compiled'),
-		stackTooDeep: getLine(keywords.compiler.details.stackTooDeep),
+		stackTooDeep: getLine(keywords.compiler.details?.stackTooDeep),
 		errors: getLines(keywords.compiler.error),
 		warnings: getLines(keywords.compiler.warnings),
 	};
