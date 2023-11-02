@@ -1,85 +1,85 @@
-import { CompletionItem } from 'vscode-languageserver';
-import { providerRequest } from '../providers/utils/common';
-import { ParsedContract } from './ParsedContract';
-import { ParsedCustomType } from './ParsedCustomType';
-import { ParsedDeclarationType } from './ParsedDeclarationType';
-import { ParsedDocument } from './ParsedDocument';
-import { ParsedEnum } from './ParsedEnum';
-import { ParsedFunction } from './ParsedFunction';
-import { ParsedParameter } from './ParsedParameter';
-import { ParsedStruct } from './ParsedStruct';
-import { ParsedVariable } from './ParsedVariable';
-import { Element } from './types';
-import { getTypeString } from './utils/ParsedCodeTypeHelper';
+import { CompletionItem } from "vscode-languageserver"
+import { providerRequest } from "../providers/utils/common"
+import { ParsedContract } from "./ParsedContract"
+import { ParsedCustomType } from "./ParsedCustomType"
+import { ParsedDeclarationType } from "./ParsedDeclarationType"
+import { ParsedDocument } from "./ParsedDocument"
+import { ParsedEnum } from "./ParsedEnum"
+import { ParsedFunction } from "./ParsedFunction"
+import { ParsedParameter } from "./ParsedParameter"
+import { ParsedStruct } from "./ParsedStruct"
+import { ParsedVariable } from "./ParsedVariable"
+import { Element } from "./types"
+import { getTypeString } from "./utils/ParsedCodeTypeHelper"
 
 export class ParsedStructVariable extends ParsedVariable {
-	public struct: ParsedStruct;
-	private completionItem: CompletionItem = null;
-	public abiType: string | null;
-	public isContract: boolean;
+	public struct: ParsedStruct
+	private completionItem: CompletionItem = null
+	public abiType: string | null
+	public isContract: boolean
 
-	public properties: ParsedStructVariable[];
-	public items: string[];
+	public properties: ParsedStructVariable[]
+	public items: string[]
 
 	public initialiseStructVariable(
 		element: any,
 		contract: ParsedContract,
 		document: ParsedDocument,
 		struct: ParsedStruct,
-		typeRef?: ParsedStruct | ParsedEnum | ParsedCustomType
+		typeRef?: ParsedStruct | ParsedEnum | ParsedCustomType,
 	) {
-		this.element = element;
-		this.name = element.name;
-		this.document = document;
-		this.type = ParsedDeclarationType.create(element.literal, contract, document);
+		this.element = element
+		this.name = element.name
+		this.document = document
+		this.type = ParsedDeclarationType.create(element.literal, contract, document)
 
-		this.struct = struct;
+		this.struct = struct
 
 		if (typeRef instanceof ParsedStruct) {
-			this.properties = typeRef.properties;
-			this.abiType = `(${this.properties.map((p) => p.abiType).join(',')})`;
+			this.properties = typeRef.properties
+			this.abiType = `(${this.properties.map((p) => p.abiType).join(",")})`
 		} else if (typeRef instanceof ParsedEnum) {
-			this.items = typeRef.items;
-			this.abiType = `uint8${this.type.getArraySignature()}`;
+			this.items = typeRef.items
+			this.abiType = `uint8${this.type.getArraySignature()}`
 		} else if (typeRef instanceof ParsedCustomType) {
-			this.abiType = typeRef.isType + this.type.getArraySignature();
+			this.abiType = typeRef.isType + this.type.getArraySignature()
 		} else {
-			this.abiType = this.type.isValueType ? this.type.getTypeSignature() : null;
+			this.abiType = this.type.isValueType ? this.type.getTypeSignature() : null
 
 			if (!this.abiType) {
-				const imports = this.document.sourceDocument.getAllImportFromPackages();
+				const imports = this.document.sourceDocument.getAllImportFromPackages()
 				if (imports.find((i) => i.indexOf(this.type.name) !== -1)) {
-					this.abiType = `address${this.type.getArraySignature()}`;
-					this.isContract = true;
+					this.abiType = `address${this.type.getArraySignature()}`
+					this.isContract = true
 				}
 			}
 		}
 	}
 	public createCompletionItem(): CompletionItem {
 		if (!this.completionItem) {
-			const item = CompletionItem.create(this.name);
+			const item = CompletionItem.create(this.name)
 			if (this.type.isMapping) {
-				item.insertText = `${this.name + this.type.createMappingSnippet()};`;
-				item.insertTextFormat = 2;
+				item.insertText = `${this.name + this.type.createMappingSnippet()};`
+				item.insertTextFormat = 2
 			}
-			item.detail = `${this.getRootName()}.${this.struct.name}.${this.name}`;
+			item.detail = `${this.getRootName()}.${this.struct.name}.${this.name}`
 			item.documentation = {
-				kind: 'markdown',
-				value: this.createShortInfo('', this.getElementInfo(), true, true, ''),
-			};
-			this.completionItem = item;
+				kind: "markdown",
+				value: this.createShortInfo("", this.getElementInfo(), true, true, ""),
+			}
+			this.completionItem = item
 		}
-		return this.completionItem;
+		return this.completionItem
 	}
 
 	public override getParsedObjectType(): string {
-		return 'Struct Property';
+		return "Struct Property"
 	}
 
 	public getElementInfo(): string {
-		let storageType = undefined;
+		let storageType = undefined
 		if (!this.type.isMapping && this.struct.hasMapping) {
-			storageType = 'storage';
+			storageType = "storage"
 		}
 
 		// else if (providerRequest.selectedDocument) {
@@ -117,37 +117,40 @@ export class ParsedStructVariable extends ParsedVariable {
 		//     }
 		//   }
 		// }
-		// @ts-expect-error
-		return getTypeString(this.element?.literal) + (storageType ? ` ${storageType}` : '');
+
+		return (
+			// @ts-expect-error
+			getTypeString(this.element?.literal) + (storageType ? ` ${storageType}` : "")
+		)
 	}
 
 	public getSelectedFunction(offset: number): ParsedFunction {
-		let result: ParsedFunction | undefined;
+		let result: ParsedFunction | undefined
 		if (!this.contract) {
-			const allFuncs = this.document.getFunctionReference(offset);
-			result = allFuncs.find((f) => f?.reference.isCurrentElementedSelected(offset))?.reference as ParsedFunction;
+			const allFuncs = this.document.getFunctionReference(offset)
+			result = allFuncs.find((f) => f?.reference.isCurrentElementedSelected(offset))?.reference as ParsedFunction
 		} else {
-			result = this.contract.getSelectedFunction(offset);
+			result = this.contract.getSelectedFunction(offset)
 		}
 
 		if (!result) {
-			let paramArray: ParsedParameter[] = [];
+			let paramArray: ParsedParameter[] = []
 
 			for (const inner of providerRequest.selectedDocument.innerContracts) {
 				const inputs = inner
 					.getAllFunctions()
 					.map((f) => [...f.input, ...f.output, ...f.variables])
 					.flatMap((f) => f)
-					.filter((i) => i.element.literal.literal === this.struct.name);
+					.filter((i) => i.element.literal.literal === this.struct.name)
 
-				if (inputs.length > 0) paramArray = paramArray.concat(inputs as any);
+				if (inputs.length > 0) paramArray = paramArray.concat(inputs as any)
 			}
 			for (const param of paramArray) {
-				const foundFunc = param.getSelectedFunction(providerRequest.currentOffset);
-				if (foundFunc?.name) return foundFunc;
+				const foundFunc = param.getSelectedFunction(providerRequest.currentOffset)
+				if (foundFunc?.name) return foundFunc
 			}
 		}
-		return result;
+		return result
 	}
 
 	public override getInfo(): string {
@@ -157,10 +160,10 @@ export class ParsedStructVariable extends ParsedVariable {
 			`.${this.name}: ${this.getElementInfo()}`,
 			undefined,
 			true,
-			true
-		);
+			true,
+		)
 	}
 	public override getShortInfo(): string {
-		return this.createShortInfo(this.struct.name, `.${this.name}: ${this.getElementInfo()}`, true, true, '');
+		return this.createShortInfo(this.struct.name, `.${this.name}: ${this.getElementInfo()}`, true, true, "")
 	}
 }

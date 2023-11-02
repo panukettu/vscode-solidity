@@ -1,23 +1,23 @@
-import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
-import { TypeReference } from '../search/TypeReference';
-import { ParsedCode } from './ParsedCode';
-import { ParsedContract } from './ParsedContract';
-import { ParsedDocument } from './ParsedDocument';
-import { ParsedParameter } from './ParsedParameter';
-import { Element } from './types';
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
+import { TypeReference } from "../search/TypeReference"
+import { ParsedCode } from "./ParsedCode"
+import { ParsedContract } from "./ParsedContract"
+import { ParsedDocument } from "./ParsedDocument"
+import { ParsedParameter } from "./ParsedParameter"
+import { Element } from "./types"
 
 export class ParsedEvent extends ParsedCode {
-	public input: ParsedParameter[] = [];
+	public input: ParsedParameter[] = []
 
-	public id: any;
-	private completionItem: CompletionItem = null;
-	public declare element: Element;
+	public id: any
+	private completionItem: CompletionItem = null
+	public declare element: Element
 
 	public override initialise(element: any, document: ParsedDocument, contract: ParsedContract, isGlobal = false) {
-		super.initialise(element, document, contract, isGlobal);
-		this.name = element.name;
-		this.id = element.id;
-		this.initialiseParamters();
+		super.initialise(element, document, contract, isGlobal)
+		this.name = element.name
+		this.id = element.id
+		this.initialiseParamters()
 	}
 
 	public initialiseParamters() {
@@ -27,61 +27,61 @@ export class ParsedEvent extends ParsedCode {
 			this.document,
 			this,
 			true,
-			false
-		);
+			false,
+		)
 	}
 
 	public override createCompletionItem(skipFirstParamSnipppet = false): CompletionItem {
 		if (!this.completionItem) {
-			const completionItem = CompletionItem.create(this.name);
-			completionItem.kind = CompletionItemKind.Event;
-			const paramsSnippet = ParsedParameter.createFunctionParamsSnippet(this.element.params, skipFirstParamSnipppet);
-			completionItem.insertTextFormat = 2;
-			completionItem.insertText = `${this.name}(${paramsSnippet});`;
-			completionItem.documentation = this.getMarkupInfo();
-			this.completionItem = completionItem;
+			const completionItem = CompletionItem.create(this.name)
+			completionItem.kind = CompletionItemKind.Event
+			const paramsSnippet = ParsedParameter.createFunctionParamsSnippet(this.element.params, skipFirstParamSnipppet)
+			completionItem.insertTextFormat = 2
+			completionItem.insertText = `${this.name}(${paramsSnippet});`
+			completionItem.documentation = this.getMarkupInfo()
+			this.completionItem = completionItem
 		}
-		return this.completionItem;
+		return this.completionItem
 	}
 
 	public override getSelectedTypeReferenceLocation(offset: number): TypeReference[] {
 		if (this.isCurrentElementedSelected(offset)) {
 			const foundResult = TypeReference.filterFoundResults(
-				this.input.flatMap((x) => x.getSelectedTypeReferenceLocation(offset))
-			);
+				this.input.flatMap((x) => x.getSelectedTypeReferenceLocation(offset)),
+			)
 			if (foundResult.length > 0) {
-				return foundResult;
+				return foundResult
 			} else {
-				return [TypeReference.create(true)];
+				return [TypeReference.create(true)]
 			}
 		}
-		return [TypeReference.create(false)];
+		return [TypeReference.create(false)]
 	}
 
 	public override getSelectedItem(offset: number): ParsedCode {
-		let selectedItem: ParsedCode = null;
+		let selectedItem: ParsedCode = null
 		if (this.isCurrentElementedSelected(offset)) {
-			let allItems: ParsedCode[] = [];
-			allItems = allItems.concat(this.input);
-			selectedItem = allItems.find((x) => x.getSelectedItem(offset));
+			let allItems: ParsedCode[] = []
+			allItems = allItems.concat(this.input)
+			selectedItem = allItems.find((x) => x.getSelectedItem(offset))
 			if (selectedItem) {
-				return selectedItem;
+				return selectedItem
 			}
-			return this;
+			return this
 		}
-		return selectedItem;
+		return selectedItem
 	}
 
 	public override getParsedObjectType(): string {
-		return 'Event';
+		return "Event"
 	}
 
 	public getElementInfo(): string {
-		const paramsInfo = ParsedParameter.createParamsInfo(this.element.params);
-		return `${this.name}(${paramsInfo})`;
+		const paramsInfo = ParsedParameter.createParamsInfo(this.element.params)
+		return `${this.name}(${paramsInfo})`
 	}
 	public override getInfo(): string {
-		return this.createInfo(this.getRootName(), '', `${this.getElementInfo()}`, undefined, true, false);
+		return this.createInfo(this.getRootName(), "", `${this.getElementInfo()}`, undefined, true, false)
 		// return (
 		//   "### " +
 		//   elementType +
@@ -99,10 +99,10 @@ export class ParsedEvent extends ParsedCode {
 	}
 
 	public getDeclaration(): string {
-		return 'event';
+		return "event"
 	}
 	public getSignature(): string {
-		const paramsInfo = ParsedParameter.createParamsInfo(this.element.params);
-		return `${this.getDeclaration()} ${this.name}(${paramsInfo}) \n\t\t`;
+		const paramsInfo = ParsedParameter.createParamsInfo(this.element.params)
+		return `${this.getDeclaration()} ${this.name}(${paramsInfo}) \n\t\t`
 	}
 }

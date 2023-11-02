@@ -1,35 +1,42 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-  "files.exclude": {
-    "out": false // set this to true to hide the "out" folder with the compiled JS files
-  },
-  "search.exclude": {
-    "**/node_modules": false,
-    "**/node_modules/**": true,
-    "out": true
-  },
-  // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-  "typescript.tsc.autoDetect": "off",
-  "git.ignoreLimitWarning": true,
-  "workbench.colorCustomizations": {
-    "activityBar.activeBackground": "#9a47ed",
-    "activityBar.background": "#9a47ed",
-    "activityBar.foreground": "#e7e7e7",
-    "activityBar.inactiveForeground": "#e7e7e799",
-    "activityBarBadge.background": "#ee9f51",
-    "activityBarBadge.foreground": "#15202b",
-    "commandCenter.border": "#e7e7e799",
-    "sash.hoverBorder": "#9a47ed",
-    "statusBar.background": "#8018e9",
-    "statusBar.foreground": "#e7e7e7",
-    "statusBarItem.hoverBackground": "#9a47ed",
-    "statusBarItem.remoteBackground": "#8018e9",
-    "statusBarItem.remoteForeground": "#e7e7e7",
-    "titleBar.activeBackground": "#8018e9",
-    "titleBar.activeForeground": "#e7e7e7",
-    "titleBar.inactiveBackground": "#8018e999",
-    "titleBar.inactiveForeground": "#e7e7e799"
-  },
-  "peacock.color": "#8018e9",
-  "search.useIgnoreFiles": true
+	"files.exclude": {
+		"out": false // set this to true to hide the "out" folder with the compiled JS files
+	},
+	"search.exclude": {
+		"**/node_modules": false,
+		"**/node_modules/**": true,
+		"out": true
+	},
+	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+	"typescript.tsc.autoDetect": "off",
+	"git.ignoreLimitWarning": true,
+
+	"workbench.colorCustomizations": {
+		"activityBar.activeBackground": "#9a47ed",
+		"activityBar.background": "#9a47ed",
+		"activityBar.foreground": "#e7e7e7",
+		"activityBar.inactiveForeground": "#e7e7e799",
+		"activityBarBadge.background": "#ee9f51",
+		"activityBarBadge.foreground": "#15202b",
+		"commandCenter.border": "#e7e7e799",
+		"sash.hoverBorder": "#9a47ed",
+		"statusBar.background": "#8018e9",
+		"statusBar.foreground": "#e7e7e7",
+		"statusBarItem.hoverBackground": "#9a47ed",
+		"statusBarItem.remoteBackground": "#8018e9",
+		"statusBarItem.remoteForeground": "#e7e7e7",
+		"titleBar.activeBackground": "#8018e9",
+		"titleBar.activeForeground": "#e7e7e7",
+		"titleBar.inactiveBackground": "#8018e999",
+		"titleBar.inactiveForeground": "#e7e7e799"
+	},
+	"peacock.color": "#8018e9",
+	"search.useIgnoreFiles": true,
+	"[typescript]": {
+		"editor.codeActionsOnSave": {
+			"source.organizeImports.biome": true
+		},
+		"editor.defaultFormatter": "biomejs.biome"
+	}
 }

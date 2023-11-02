@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.5",
+	"version": "0.8.6",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -43,6 +43,7 @@
 		"package": "vsce package",
 		"prepublishOnly": "npm run compile",
 		"build:cli": "tsup src/server.ts -d dist/cli && sh scripts/add_shebang.sh dist/cli/server.js",
+		"format": "npx @biomejs/biome format --write ./src",
 		"compile": "tsup",
 		"compile:es": "npm run esbuild",
 		"compile:tsc": "tsc -p ./",

@@ -1,88 +1,88 @@
-import { provideSignatureHelp } from '@server/providers/signatures';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import * as vscode from 'vscode-languageserver/node';
+import { provideSignatureHelp } from "@server/providers/signatures"
+import { TextDocument } from "vscode-languageserver-textdocument"
+import * as vscode from "vscode-languageserver/node"
+import { getCompletionItems } from "./server/providers/completions"
+import { getDefinition } from "./server/providers/definition"
+import { SolidityHoverProvider } from "./server/providers/hover"
+import { getAllReferencesToItem } from "./server/providers/references"
+import { providerParams } from "./server/providers/utils/common"
+import { executeCommand } from "./server/server-commands"
 import {
 	compilerInitialized,
 	configureServerCachePath,
 	validateAllDocuments,
 	validateDocument,
-} from './server/compiler-server';
-import { ExecuteCommandProvider } from './server/providers/commands-server';
-import { getCompletionItems } from './server/providers/completions';
-import { getDefinition } from './server/providers/definition';
-import { SolidityHoverProvider } from './server/providers/hoverProvider';
-import { getAllReferencesToItem } from './server/providers/references';
-import { providerParams } from './server/providers/utils/common';
-import { config, handleConfigChange, handleInitialize, handleInitialized, settings } from './server/settings';
-import { CommandParamsBase } from './server/types';
-import { getCodeWalkerService, initCommon } from './server/utils';
+} from "./server/server-compiler"
+import { config, handleConfigChange, handleInitialize, handleInitialized, settings } from "./server/server-settings"
+import { CommandParamsBase } from "./server/server-types"
+import { getCodeWalkerService, initCommon } from "./server/server-utils"
 
-export const documents = new vscode.TextDocuments(TextDocument);
+export const documents = new vscode.TextDocuments(TextDocument)
 
-export const connection = vscode.createConnection(vscode.ProposedFeatures.all);
-console.log = connection.console.log.bind(connection.console);
-console.error = connection.console.error.bind(connection.console);
+export const connection = vscode.createConnection(vscode.ProposedFeatures.all)
+console.log = connection.console.log.bind(connection.console)
+console.error = connection.console.error.bind(connection.console)
 
 /* -------------------------------------------------------------------------- */
 /*                                    Init                                    */
 /* -------------------------------------------------------------------------- */
 connection.onInitialize((params) => {
-	const result = handleInitialize(params);
-	configureServerCachePath(params.initializationOptions.solcCachePath);
-	return result;
-});
+	const result = handleInitialize(params)
+	configureServerCachePath(params.initializationOptions.solcCachePath)
+	return result
+})
 
 connection.onInitialized((params) => {
-	handleInitialized();
-});
-connection.onRequest('CompilerError', (params) => {
-	console.debug('CompilerError', params);
-});
+	handleInitialized()
+})
+connection.onRequest("CompilerError", (params) => {
+	console.debug("CompilerError", params)
+})
 /* -------------------------------------------------------------------------- */
 /*                                   Actions                                  */
 /* -------------------------------------------------------------------------- */
 connection.onCompletion((handler) => {
-	initCommon(handler.textDocument);
-	const result = getCompletionItems(...providerParams(handler));
-	return [...new Set(result)];
-});
+	initCommon(handler.textDocument)
+	const result = getCompletionItems(...providerParams(handler))
+	return [...new Set(result)]
+})
 
 connection.onReferences((handler) => {
-	initCommon(handler.textDocument);
-	const [document, position, walker] = providerParams(handler);
-	return getAllReferencesToItem(walker, walker.getSelectedDocument(document, position), document.offsetAt(position));
-});
+	initCommon(handler.textDocument)
+	const [document, position, walker] = providerParams(handler)
+	return getAllReferencesToItem(walker, walker.getSelectedDocument(document, position), document.offsetAt(position))
+})
 
 connection.onDefinition((handler) => {
-	initCommon(handler.textDocument);
-	return getDefinition(...providerParams(handler));
-});
+	initCommon(handler.textDocument)
+	return getDefinition(...providerParams(handler))
+})
 
 connection.onHover((handler) => {
-	initCommon(handler.textDocument);
-	return SolidityHoverProvider.provideHover(...providerParams(handler));
-});
+	initCommon(handler.textDocument)
+	return SolidityHoverProvider.provideHover(...providerParams(handler))
+})
 
 connection.onSignatureHelp((handler) => {
-	initCommon(handler.textDocument);
-	return provideSignatureHelp(...providerParams(handler));
-});
+	initCommon(handler.textDocument)
+	return provideSignatureHelp(...providerParams(handler))
+})
 
 connection.onExecuteCommand((args) => {
-	const [document, range] = args.arguments as CommandParamsBase;
+	const [document, range] = args.arguments as CommandParamsBase
 
 	try {
-		return ExecuteCommandProvider.executeCommand(
+		return executeCommand(
 			args,
 			documents.get(document.uri.external),
 			vscode.Range.create(range[0], range[1]),
-			getCodeWalkerService()
-		);
+			getCodeWalkerService(),
+		)
 	} catch (e) {
-		console.debug('Unhandled', e.message);
-		return null;
+		console.debug("Unhandled", e.message)
+		return null
 	}
-});
+})
 
 /* -------------------------------------------------------------------------- */
 /*                                    Misc                                    */
@@ -90,17 +90,17 @@ connection.onExecuteCommand((args) => {
 
 connection.onDidChangeWatchedFiles((_change) => {
 	if (settings.linter != null) {
-		settings.linter.loadFileConfig(settings.rootPath);
+		settings.linter.loadFileConfig(settings.rootPath)
 	}
-	validateAllDocuments();
-});
+	validateAllDocuments()
+})
 
-connection.onDidChangeConfiguration((change) => handleConfigChange(change));
+connection.onDidChangeConfiguration((change) => handleConfigChange(change))
 
 documents.onDidChangeContent((event) => {
-	if (!config.validateOnChange || event.document.version < 2 || !compilerInitialized) return;
-	validateDocument(event.document);
-});
+	if (!config.validateOnChange || event.document.version < 2 || !compilerInitialized) return
+	validateDocument(event.document)
+})
 
 /* -------------------------------------------------------------------------- */
 /*                                  Documents                                 */
@@ -111,17 +111,17 @@ documents.onDidClose((event) =>
 	connection.sendDiagnostics({
 		diagnostics: [],
 		uri: event.document.uri,
-	})
-);
+	}),
+)
 documents.onDidOpen(async (event) => {
-	if (!config.validateOnOpen || !compilerInitialized) return;
-	validateDocument(event.document);
-});
+	if (!config.validateOnOpen || !compilerInitialized) return
+	validateDocument(event.document)
+})
 documents.onDidSave(async (event) => {
-	if (!config.validateOnSave || !compilerInitialized) return;
-	validateDocument(event.document);
-});
+	if (!config.validateOnSave || !compilerInitialized) return
+	validateDocument(event.document)
+})
 
-documents.listen(connection);
+documents.listen(connection)
 
-connection.listen();
+connection.listen()

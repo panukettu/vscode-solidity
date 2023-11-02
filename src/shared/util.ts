@@ -1,17 +1,17 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import type { MinimalURI, ScopedURI } from './types';
+import * as fs from "fs"
+import * as path from "path"
+import type { MinimalURI, ScopedURI } from "./types"
 // import { URI } from 'vscode-uri';
-export const toScopedURI = (scope: string, uri: MinimalURI): ScopedURI => `${scope}-${uri.toString()}`;
+export const toScopedURI = (scope: string, uri: MinimalURI): ScopedURI => `${scope}-${uri.toString()}`
 // export const fromScopedURI = (scopedURI: ScopedURI): { scope: string; uri: vscode.Uri } => {
 // 	const [scope, uri] = scopedURI.split('-');
 // 	return { scope, uri: vscode.Uri.parse(uri) };
 // };
 export function formatPath(contractPath: string) {
 	if (contractPath != null) {
-		return contractPath.replace(/\\/g, '/');
+		return contractPath.replace(/\\/g, "/")
 	}
-	return contractPath;
+	return contractPath
 }
 
 /**
@@ -24,49 +24,48 @@ export function formatPath(contractPath: string) {
  * @returns an array containing unique remappings
  */
 export function replaceRemappings(remappings: string[], replacer: string[]): string[] {
-	// biome-ignore lint/complexity/noForEach: <explanation>
 	remappings.forEach(function (remapping, index) {
-		const prefix = remapping.split('=')[0];
+		const prefix = remapping.split("=")[0]
 		for (const replaceRemapping of replacer) {
-			const replacePrefix = replaceRemapping.split('=')[0];
+			const replacePrefix = replaceRemapping.split("=")[0]
 			if (prefix === replacePrefix) {
-				remappings[index] = replaceRemapping;
-				break;
+				remappings[index] = replaceRemapping
+				break
 			}
 		}
-	});
-	return [...new Set([...remappings, ...replacer])];
+	})
+	return [...new Set([...remappings, ...replacer])]
 }
 
 export function findDirUpwardsToCurrentDocumentThatContainsAtLeastFileNameSync(
 	filenames: string[],
 	currentDocument: string,
-	rootPath: string
+	rootPath: string,
 ) {
-	let currentDir = path.dirname(path.resolve(currentDocument));
+	let currentDir = path.dirname(path.resolve(currentDocument))
 
 	while (currentDir !== rootPath) {
 		if (exitsAnyFileSync(filenames, currentDir)) {
-			return currentDir;
+			return currentDir
 		}
 
-		currentDir = path.dirname(currentDir);
+		currentDir = path.dirname(currentDir)
 	}
 
-	return null;
+	return null
 }
 
 export function exitsAnyFileSync(filenames: string[], dir: string) {
 	for (const fileName of filenames) {
-		const file = path.join(dir, fileName);
+		const file = path.join(dir, fileName)
 		if (fs.existsSync(file)) {
-			return true;
+			return true
 		}
 	}
-	return false;
+	return false
 }
 
 export function isPathSubdirectory(parent: string, dir: string) {
-	const relative = path.relative(parent, dir);
-	return relative && !relative.startsWith('..') && !path.isAbsolute(relative);
+	const relative = path.relative(parent, dir)
+	return relative && !relative.startsWith("..") && !path.isAbsolute(relative)
 }
