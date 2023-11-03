@@ -68,15 +68,15 @@ connection.onSignatureHelp((handler) => {
 	return provideSignatureHelp(...providerParams(handler))
 })
 
-connection.onExecuteCommand((args) => {
-	const [document, range] = args.arguments as CommandParamsBase
+connection.onExecuteCommand((params) => {
+	const [document, range] = params.arguments as CommandParamsBase
 
 	try {
 		return executeCommand(
-			args,
-			documents.get(document.uri.external),
-			vscode.Range.create(range[0], range[1]),
 			getCodeWalkerService(),
+			params,
+			document?.uri ? documents.get(document.uri.external) : undefined,
+			range ? vscode.Range.create(range[0], range[1]) : undefined,
 		)
 	} catch (e) {
 		console.debug("Unhandled", e.message)
@@ -107,12 +107,12 @@ documents.onDidChangeContent((event) => {
 /* -------------------------------------------------------------------------- */
 
 // remove diagnostics from the Problems panel when we close the file
-documents.onDidClose((event) =>
-	connection.sendDiagnostics({
+documents.onDidClose((event) => {
+	return connection.sendDiagnostics({
 		diagnostics: [],
 		uri: event.document.uri,
-	}),
-)
+	})
+})
 documents.onDidOpen(async (event) => {
 	if (!config.validateOnOpen || !compilerInitialized) return
 	validateDocument(event.document)

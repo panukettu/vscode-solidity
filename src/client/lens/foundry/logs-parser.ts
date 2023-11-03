@@ -1,17 +1,28 @@
 import { Config } from "@client/client-config"
-
+export type ParsedLogs = {
+	infos: ReturnType<typeof getInfos>
+	traces: ReturnType<typeof getTraces>
+	logs: ReturnType<typeof getLogs>
+}
 /* -------------------------------------------------------------------------- */
 /*                                   general                                  */
 /* -------------------------------------------------------------------------- */
 
-const getInfos = (lines: string[]) => {
+const getInfos = (lines: string[], functionName: string) => {
 	const getLine = getLineFinder(lines)
 	const getLines = getLinesFinder(lines)
 
 	const compileDuration = getLine(keywords.duration.compile)
+	const gasSpent = getKeywordValue(getLine(keywords.gas.test), keywords.gas.test).replace(")", "")
+
+	const summary = getLine(keywords.test.summary)
+	const fullFunctionName = summary?.length ? summary.split("(gas:")[0].split("]")[1].trim() : functionName
 
 	return {
-		gasSpent: getKeywordValue(getLine(keywords.gas.test), keywords.gas.test),
+		summary,
+		fullFunctionName: fullFunctionName,
+		gasSpent: Number.isNaN(+gasSpent) ? 0 : +gasSpent,
+		reason: getKeywordValue(getLine(keywords.test.failed), ["Reason:"])?.trim().split("]")[0],
 		testDuration: getKeywordValue(getLine(keywords.duration.tests), keywords.duration.tests),
 		compileDuration:
 			!compileDuration?.includes("Test") && !compileDuration?.includes("passed") ? compileDuration : undefined,
@@ -93,12 +104,6 @@ const getLogs = (lines: string[]) => {
 
 	const all = lines.slice(logStartIndex, logEndIndex - 1)
 
-	console.debug({
-		lines,
-		all,
-		logStartIndex,
-	})
-
 	return {
 		formatted: ["-- output"].concat(all.slice(1)),
 		all,
@@ -158,6 +163,7 @@ export const keywords = {
 		},
 	},
 	test: {
+		summary: ["[PASS", "[FAIL"],
 		passedCount: ["passed;"],
 		failedCount: ["failed;"],
 		skippedCount: ["skipped;"],

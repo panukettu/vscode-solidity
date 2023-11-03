@@ -4,7 +4,6 @@ import type { Lens, TestExec } from "@client/client-types"
 import { forgeOutputErrorToDiagnostic } from "@server/providers/utils/diagnostics"
 import { solcOutputRegexp } from "@shared/regexp"
 import type { DiagnosticWithFileName } from "@shared/types"
-import { Diagnostic, Position, Range } from "vscode-languageclient/node"
 
 export const parseOutputLabels = (lineTexts: string[] = []) =>
 	lineTexts
@@ -51,7 +50,7 @@ export const parseOutputLabels = (lineTexts: string[] = []) =>
 export function parseOutputCompilerErrors(
 	state: ClientState,
 	args: Lens.ForgeTestExec,
-	parsed: TestExec.Result,
+	result: TestExec.Result,
 	output: string,
 ): DiagnosticWithFileName[] {
 	const regexp = solcOutputRegexp()
@@ -64,45 +63,4 @@ export function parseOutputCompilerErrors(
 	}
 
 	return errors
-}
-
-export const parsedLabelsToDiagnostics = (
-	args: Lens.ForgeTestExec,
-	offset: number,
-	parsedOutput: ReturnType<typeof parseOutputLabels>,
-) => {
-	const [functionName, document, range] = args
-	const docText = document.getText(range)
-	const results = parsedOutput.map((item) => {
-		const id = item.key
-		if (id === "") return null
-
-		const indexSingle = docText.indexOf(`'${id}`)
-		const indexDouble = docText.indexOf(`"${id}`)
-		const exactDouble = docText.indexOf(`"${id}"`)
-		const exactSingle = docText.indexOf(`'${id}'`)
-		const indexLoose = docText.indexOf(id)
-
-		let index = Math.max(indexSingle, indexDouble)
-
-		if (exactDouble !== -1 || exactSingle !== -1) index = Math.max(exactDouble, exactSingle)
-		if (indexLoose !== -1 && index === -1) index = indexLoose
-		if (index === -1) return null
-
-		const position = document.positionAt(offset + index)
-		const line = document.lineAt(position.line)
-		const diagnostic = Diagnostic.create(
-			// document.getWordRangeAtPosition(position),
-			Range.create(Position.create(line.lineNumber, line.firstNonWhitespaceCharacterIndex), line.range.end),
-			`${item.value}`,
-			item.severity as any,
-			item.severity === 0 ? "assert" : "log",
-			"vsc-solidity",
-		)
-		diagnostic.source = `${functionName}: ${id}`
-
-		return diagnostic
-	})
-
-	return results.filter(Boolean)
 }

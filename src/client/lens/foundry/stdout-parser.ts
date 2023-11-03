@@ -4,8 +4,9 @@ import { ExecStatus } from "@shared/enums"
 import { formatOutput } from "@shared/regexp"
 import logUtils, { getLineIndexFinder, getLinesFinder, keywords, toDefaultFormat, toLines } from "./logs-parser"
 
-export const parseOutput = <T, R = T, U = T>({
+export const parseTestOutput = <T, R = T, U = T>({
 	process,
+	args,
 	onUnhandled,
 	onPass,
 	onSetupFail,
@@ -14,12 +15,13 @@ export const parseOutput = <T, R = T, U = T>({
 	onRestart,
 }: ParseStdOutArgs<T, R, U>) => {
 	const { stdout, stderr, error } = process
+	const [id] = args
 
 	const output = error ? (error.killed ? stdout : stderr) : stdout
 
 	const formatted = formatOutput(output)
 	const lines = toLines(formatted)
-	const results = getTestResults(lines, error)
+	const results = getTestResults(lines, id)
 
 	if (results.status === ExecStatus.Pass) {
 		return onPass(results, formatted)
@@ -38,6 +40,7 @@ export const parseOutput = <T, R = T, U = T>({
 
 export const getTestResults = (
 	lines: string[],
+	id: string,
 	error?: ExecFileException,
 ): TestExec.Result | TestExec.Restart | TestExec.Unhandled => {
 	if (error?.killed) {
@@ -50,76 +53,79 @@ export const getTestResults = (
 	}
 	const getIndex = getLineIndexFinder(lines)
 	const getLines = getLinesFinder(lines)
+	try {
+		const infos = logUtils.getInfos(lines, id)
+		const logs = logUtils.getLogs(lines)
+		const traces = logUtils.getTraces(lines)
 
-	const infos = logUtils.getInfos(lines)
-	const logs = logUtils.getLogs(lines)
-	const traces = logUtils.getTraces(lines)
+		const common = { lines, logs, infos, traces }
 
-	const common = { lines, logs, infos, traces }
+		const summary = (idx: number) => [lines[idx], infos.testDuration, " "]
+		const details = (pre: string[] = []) =>
+			pre
+				.concat(logs.formatted)
+				.concat([traces.summaryText, " ", infos.compileInfo, infos.compileDuration])
+				.filter(Boolean)
+				.map(toDefaultFormat)
 
-	const summary = (idx: number) => [lines[idx], infos.testDuration, " "]
-	const details = (pre: string[] = []) =>
-		pre
-			.concat(logs.formatted)
-			.concat([traces.summaryText, " ", infos.compileInfo, infos.compileDuration])
-			.filter(Boolean)
-			.map(toDefaultFormat)
+		let result = getIndex(keywords.test.passed)
+		if (result !== -1) {
+			return {
+				status: ExecStatus.Pass,
+				out: {
+					summary: summary(result),
+					details: details(),
+					...common,
+				},
+			}
+		}
 
-	let result = getIndex(keywords.test.passed)
-	if (result !== -1) {
+		result = getIndex(keywords.test.setupFailed)
+		if (result !== -1) {
+			return {
+				status: ExecStatus.SetupFail,
+				out: {
+					summary: summary(result),
+					details: details([...getLines(keywords.test.details.setupFailed), " "]),
+					...common,
+				},
+			}
+		}
+
+		result = getIndex(keywords.test.failed)
+		if (result !== -1) {
+			return {
+				status: ExecStatus.Fail,
+				out: {
+					summary: summary(result),
+					details: details(),
+					...common,
+				},
+			}
+		}
+
+		result = getIndex(keywords.compiler.error)
+		if (result !== -1) {
+			return {
+				status: ExecStatus.CompilerError,
+				out: {
+					summary: [lines[result], " ", infos.compileInfo],
+					details: [
+						`${infos.errors.length} errors`,
+						infos.warnings.length > 0 ? `${infos.warnings.length} warnings` : "",
+						"check 'Problems' tab for more details",
+					],
+					...common,
+				},
+			}
+		}
 		return {
-			status: ExecStatus.Pass,
+			status: ExecStatus.Error,
 			out: {
-				summary: summary(result),
-				details: details(),
 				...common,
 			},
 		}
-	}
-
-	result = getIndex(keywords.test.setupFailed)
-	if (result !== -1) {
-		return {
-			status: ExecStatus.SetupFail,
-			out: {
-				summary: summary(result),
-				details: details([...getLines(keywords.test.details.setupFailed), " "]),
-				...common,
-			},
-		}
-	}
-
-	result = getIndex(keywords.test.failed)
-	if (result !== -1) {
-		return {
-			status: ExecStatus.Fail,
-			out: {
-				summary: summary(result),
-				details: details(),
-				...common,
-			},
-		}
-	}
-
-	result = getIndex(keywords.compiler.error)
-	if (result !== -1) {
-		return {
-			status: ExecStatus.CompilerError,
-			out: {
-				summary: [lines[result], " ", infos.compileInfo],
-				details: [
-					`${infos.errors.length} errors`,
-					infos.warnings.length > 0 ? `${infos.warnings.length} warnings` : "",
-					"check 'Problems' tab for more details",
-				],
-				...common,
-			},
-		}
-	}
-	return {
-		status: ExecStatus.Error,
-		out: {
-			...common,
-		},
+	} catch (e) {
+		console.debug(e)
 	}
 }

@@ -7,7 +7,7 @@ export type ClientState = {
 	client: LanguageClient | undefined
 	diagnostics: {
 		default: vscode.DiagnosticCollection
-		foundry: vscode.DiagnosticCollection
+		// foundry: vscode.DiagnosticCollection
 		clear(): void
 	}
 	compilers: ClientCompilers
@@ -25,16 +25,16 @@ export function setupClientState(context: vscode.ExtensionContext) {
 		client: undefined,
 		diagnostics: {
 			default: vscode.languages.createDiagnosticCollection("solidity"),
-			foundry: vscode.languages.createDiagnosticCollection("solidity-foundry"),
+			// foundry: vscode.languages.createDiagnosticCollection("solidity"),
 			clear: () => {
 				clientState.diagnostics.default.clear()
-				clientState.diagnostics.foundry.clear()
+				// clientState.diagnostics.foundry.clear()
 			},
 		},
 		decorations: new Map<string, DecorationScope>(),
 	}
 
 	context.subscriptions.push(clientState.diagnostics.default)
-	context.subscriptions.push(clientState.diagnostics.foundry)
+	// context.subscriptions.push(clientState.diagnostics.foundry)
 	return clientState
 }

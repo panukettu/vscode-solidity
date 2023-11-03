@@ -3,6 +3,7 @@ import { commandClearDiagnostics } from "@client/commands/clear"
 import { commandExecTest } from "@client/commands/exec-test"
 import { commandFuncsig } from "@client/commands/funcsig"
 import { commandKeccak256 } from "@client/commands/keccak256"
+import { CLIENT_COMMAND_LIST } from "@client/commands/list"
 import { commandNatspec } from "@client/commands/natspec"
 import { commandTestInfo } from "@client/commands/test-info"
 import { CodelensProvider } from "@client/lens/codelens-provider"
@@ -18,11 +19,37 @@ export function registerCodeLenses(state: ClientState): void {
 	)
 }
 
+const errorWrapper = (fn: (...args: any[]) => any) => (...args: any[]) => {
+	try {
+		return fn(...args)
+	} catch (e) {
+		console.error(e)
+	}
+}
+
 const registerCodeLensCommands = (state: ClientState) => [
-	vscode.commands.registerCommand("solidity.lens.test.info", commandTestInfo(state)),
-	vscode.commands.registerCommand("solidity.lens.function.selector", commandFuncsig(state)),
-	vscode.commands.registerCommand("solidity.lens.function.natspec", commandNatspec(state)),
-	vscode.commands.registerCommand("solidity.lens.diagnostics.clear", commandClearDiagnostics(state)),
-	vscode.commands.registerCommand("solidity.lens.function.test", commandExecTest(state)),
-	vscode.commands.registerCommand("solidity.lens.string.keccak256", commandKeccak256(state)),
+	vscode.commands.registerCommand(
+		CLIENT_COMMAND_LIST["solidity.lens.function.test.info"],
+		errorWrapper(commandTestInfo(state)),
+	),
+	vscode.commands.registerCommand(
+		CLIENT_COMMAND_LIST["solidity.lens.function.selector"],
+		errorWrapper(commandFuncsig(state)),
+	),
+	vscode.commands.registerCommand(
+		CLIENT_COMMAND_LIST["solidity.lens.function.natspec"],
+		errorWrapper(commandNatspec(state)),
+	),
+	vscode.commands.registerCommand(
+		CLIENT_COMMAND_LIST["solidity.diagnostics.clear"],
+		errorWrapper(commandClearDiagnostics(state)),
+	),
+	vscode.commands.registerCommand(
+		CLIENT_COMMAND_LIST["solidity.lens.function.test"],
+		errorWrapper(commandExecTest(state)),
+	),
+	vscode.commands.registerCommand(
+		CLIENT_COMMAND_LIST["solidity.lens.string.keccak256"],
+		errorWrapper(commandKeccak256(state)),
+	),
 ]

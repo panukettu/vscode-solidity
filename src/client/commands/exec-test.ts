@@ -6,15 +6,17 @@ import { initDecorations, lineDecoration, resetDecorations, runDecorated } from 
 import { createStatusBarTest } from "@client/ui/statusbar"
 import { ExecStatus } from "@shared/enums"
 import * as vscode from "vscode"
+import { CLIENT_COMMAND_LIST } from "./list"
 
 export const commandExecTest = (state: ClientState) => async (...args: Lens.ForgeTestExec) => {
 	const isTracing = Config.getTestVerbosity() > 2
 	const functionName = args[0]
+	if (!args.length) return
 	const line = args[2].start.line
 
 	initDecorations(state, functionName)
 	const statusBar = createStatusBarTest(functionName, `${functionName}  🟡`)
-
+	vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"])
 	const results = await runDecorated(
 		state,
 		{
@@ -24,7 +26,6 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 		},
 		"Test running",
 	)
-
 	resetDecorations(state, functionName, ["success", "fail"])
 
 	if (results.ui.statusBar) {

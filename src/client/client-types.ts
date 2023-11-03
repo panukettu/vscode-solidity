@@ -3,6 +3,7 @@ import type { ExecStatus } from "@shared/enums"
 import type { FunctionName } from "@shared/types"
 import * as vscode from "vscode"
 import type { Diagnostic } from "vscode-languageclient/node"
+import { ParsedLogs } from "./lens/foundry/logs-parser"
 
 // export namespace ExecOutput {
 // 	export type TestSuccess = {
@@ -37,6 +38,7 @@ export namespace Lens {
 
 export type ParseStdOutArgs<T, R = T, U = T> = {
 	process: ProcessOut
+	args: readonly [string, ...any[]]
 	scope?: string
 	onUnhandled: (parsed: TestExec.Unhandled, stdout: string, error: ExecFileException) => U
 	onCompilerError: (parsed: TestExec.Result, stdout: string, error: ExecFileException) => T
@@ -83,28 +85,7 @@ export type TestOutputs = {
 	lines: string[]
 	summary: string[]
 	details: string[]
-	logs: {
-		all: string[]
-		formatted: string[]
-	}
-	infos: {
-		stackTooDeep: string
-		gasSpent: string
-		testDuration: string
-		compileDuration: string
-		compileInfo: string
-		errors: string[]
-		warnings: string[]
-	}
-	traces?: {
-		contracts?: { address: string; size: string; name: string }[]
-		calls: {
-			user: string[]
-			vm: string[]
-		}
-		events: string[]
-	}
-}
+} & ParsedLogs
 
 export type ForgeTestJson<T extends string = ""> = {
 	duration: {

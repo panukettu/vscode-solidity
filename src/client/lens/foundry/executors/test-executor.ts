@@ -2,13 +2,11 @@ import * as cp from "child_process"
 import { Config } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
 import type { Lens, ProcessOut, TestExec } from "@client/client-types"
+import { CLIENT_COMMAND_LIST } from "@client/commands/list"
 import { ExecStatus } from "@shared/enums"
-import {
-	clearAllFoundryDiagnosticScopes,
-	createCompilerDiagnostics,
-	createTestDiagnostics,
-} from "../diagnostics/foundry-diagnostics"
-import { parseOutput } from "../stdout-parser"
+import * as vscode from "vscode"
+import { createCompilerDiagnostics, createTestDiagnostics } from "../diagnostics/foundry-diagnostics"
+import { parseTestOutput } from "../stdout-parser"
 
 const processMap = new Map<string, cp.ChildProcess>()
 
@@ -40,8 +38,8 @@ export function execForgeTestFunction(
 						error,
 						stderr,
 					})
-					processMap.delete(functionName)
 					resolve(result)
+					processMap.delete(functionName)
 				},
 			),
 		)
@@ -51,11 +49,10 @@ export function execForgeTestFunction(
 export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTestExec, process: ProcessOut) => {
 	try {
 		const [functionName, document, range] = args
-		clearAllFoundryDiagnosticScopes(state)
-		state.diagnostics.clear()
 
-		return parseOutput<TestExec.Result, TestExec.Restart, TestExec.Unhandled>({
+		return parseTestOutput<TestExec.Result, TestExec.Restart, TestExec.Unhandled>({
 			process,
+			args,
 			onPass: (result) => {
 				createTestDiagnostics(state, args, result)
 				const summary = result.out.summary.join("\n")
@@ -155,6 +152,7 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 				}
 			},
 			onUnhandled: (result, output, error) => {
+				console.debug(error)
 				return {
 					status: ExecStatus.Error,
 					ui: {

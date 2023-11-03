@@ -80,26 +80,17 @@ export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index:
 		endCharacter = 0
 		startCharacter = 1
 	}
-
+	const range = Range.create(startLine, startCharacter, endLine, endCharacter)
 	const diagnostic: Diagnostic = {
 		message: errorMessage,
 		source: "vsc-solidity",
 		code: error.errorCode,
-		range: {
-			end: {
-				character: endCharacter,
-				line: endLine,
-			},
-			start: {
-				character: startCharacter,
-				line: startLine,
-			},
-		},
+		range: range,
 		severity: severity,
 	}
 
 	if (error.secondarySourceLocations?.length) {
-		const [relatedInfos, extraDiagnostics] = mapSecondarySourceToVscode(error, {
+		const [relatedInfos] = mapSecondarySourceToVscode(error, {
 			diagnostic,
 			fileName,
 		})
@@ -107,7 +98,7 @@ export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index:
 		return {
 			diagnostic,
 			fileName,
-			extraDiagnostics,
+			extraDiagnostics: [],
 		}
 	}
 	return {
@@ -127,8 +118,10 @@ export function forgeOutputErrorToDiagnostic(match: string[], rootPath: string):
 		character = match[14]
 	}
 
-	const start = Position.create(parseInt(matchLine) - 1, parseInt(character))
-	const end = Position.create(start.line, start.character + 9999)
+	const trimmedCode = code ? code.trim() : ""
+
+	const start = Position.create(parseInt(matchLine) - 1, parseInt(character) - 1)
+	const end = Position.create(start.line, start.character)
 
 	const typeLower = type.toLowerCase().trim()
 
@@ -137,7 +130,7 @@ export function forgeOutputErrorToDiagnostic(match: string[], rootPath: string):
 		code: errorCode ? (Number.isNaN(Number(errorCode)) ? "stack-too-deep" : errorCode.trim()) : undefined,
 		range: Range.create(start, end),
 		source: "vsc-solidity",
-		severity: typeLower === "error" ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
+		severity: (typeLower === "error" ? 0 : typeLower === "warning" ? 1 : 2) as DiagnosticSeverity,
 	}
 
 	if (message.toLowerCase().includes("missing implementation")) {
@@ -170,7 +163,7 @@ const mapSecondarySourceToVscode = (error: SolcError, parent?: DiagnosticWithFil
 		const trimmed = code ? code.trim() : ""
 		const range = Range.create(
 			Position.create(parseInt(matchLine) - 1, parseInt(character)),
-			Position.create(parseInt(matchLine) - 1, parseInt(character) + (trimmed?.length || 9999)),
+			Position.create(parseInt(matchLine) - 1, parseInt(character)),
 		)
 		results.push({
 			location: {

@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.6",
+	"version": "0.8.7",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -318,14 +318,14 @@
 				"category": "Solidity"
 			},
 			{
-				"title": "Print Test Information",
+				"title": "Print Test Function Info",
 				"enablement": "resourceExtname == .sol && resourceFilename =~ /.*?\\.t\\.sol/g",
-				"command": "solidity.lens.test.info",
+				"command": "solidity.lens.function.test.info",
 				"category": "Solidity"
 			},
 			{
 				"title": "Clear All Diagnostics",
-				"command": "solidity.lens.diagnostics.clear",
+				"command": "solidity.diagnostics.clear",
 				"category": "Solidity"
 			},
 			{
@@ -654,7 +654,7 @@
 				},
 				{
 					"when": "editorLangId == 'solidity'",
-					"command": "solidity.lens.diagnostics.clear",
+					"command": "solidity.diagnostics.clear",
 					"group": "0_solidity"
 				}
 			],

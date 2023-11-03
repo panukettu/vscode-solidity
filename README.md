@@ -2,10 +2,11 @@
 
 [![Version](https://vsmarketplacebadges.dev/version/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity#review-details)
 
-# FEATURES
-
 _Disclaimer_: bugs likely
 
+# FEATURES
+
+- autofix slight variable naming errors
 - execute t.sol functions and get log/assertion data inline
 - compiler configuration added to settings
 - can configure location for compilation output

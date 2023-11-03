@@ -3,7 +3,8 @@ import type { Lens, TestExec } from "@client/client-types"
 import type { ErrorWarningCounts, ScopedURI } from "@shared/types"
 import { toScopedURI } from "@shared/util"
 import * as vscode from "vscode"
-import { parseOutputCompilerErrors, parseOutputLabels, parsedLabelsToDiagnostics } from "./foundry-diagnostic-parsers"
+import { Diagnostic, Position, Range } from "vscode-languageclient"
+import { parseOutputCompilerErrors, parseOutputLabels } from "./foundry-diagnostic-parsers"
 
 export const foundryDiagnostics = new Map<ScopedURI, vscode.Diagnostic[]>()
 
@@ -14,28 +15,11 @@ export function saveFoundryDiagnostics(
 	diagnostics: vscode.Diagnostic[],
 ) {
 	foundryDiagnostics.set(toScopedURI(scope, uri), diagnostics)
-	state.diagnostics.foundry.set(uri, Array.from(foundryDiagnostics.values()).flat())
+	state.diagnostics.default.set(uri, Array.from(foundryDiagnostics.values()).flat())
 }
 
 export function clearAllFoundryDiagnosticScopes(state: ClientState) {
-	state.diagnostics.foundry.clear()
 	foundryDiagnostics.clear()
-}
-
-export function clearFoundryDiagnosticScope(state: ClientState, scope: string, uri: vscode.Uri) {
-	const scopedURI = toScopedURI(scope, uri)
-	if (!foundryDiagnostics.has(scopedURI)) return
-
-	const diagnosticsToClear = foundryDiagnostics.get(scopedURI)
-	if (!diagnosticsToClear.length) return
-
-	const allUriDiagnostics = state.diagnostics.foundry.get(uri) ?? []
-
-	state.diagnostics.foundry.set(
-		uri,
-		allUriDiagnostics.filter((diag) => !diagnosticsToClear.includes(diag)),
-	)
-	foundryDiagnostics.delete(scopedURI)
 }
 
 export const createCompilerDiagnostics = (
@@ -47,7 +31,6 @@ export const createCompilerDiagnostics = (
 	const parsedErrors: any[] = parseOutputCompilerErrors(state, args, result, output)
 	const errorWarningCounts = { errors: 0, warnings: 0 }
 
-	clearAllFoundryDiagnosticScopes(state)
 	state.diagnostics.clear()
 
 	const functionName = args[0]
@@ -63,9 +46,9 @@ export const createCompilerDiagnostics = (
 			foundryDiagnostics.set(scopedUri, diagnostics)
 		}
 
-		const previousDiagnostics = state.diagnostics.foundry.get(uri) ?? []
+		const previousDiagnostics = state.diagnostics.default.get(uri) ?? []
 		const diagnostics = [...previousDiagnostics, err.diagnostic]
-		state.diagnostics.foundry.set(uri, diagnostics)
+		state.diagnostics.default.set(uri, diagnostics)
 
 		if (err.diagnostic.severity === vscode.DiagnosticSeverity.Error) {
 			errorWarningCounts.errors++
@@ -82,6 +65,57 @@ export const createTestDiagnostics = (state: ClientState, args: Lens.ForgeTestEx
 	const [functionName, document, range] = args
 	const offset = document.offsetAt(range.start)
 	const outputLabels = parseOutputLabels(result.out.logs.all)
-	const diagnostics = parsedLabelsToDiagnostics(args, offset, outputLabels)
+	const diagnostics = createDiagnosticFromLabels(args, offset, outputLabels)
 	saveFoundryDiagnostics(state, functionName, document.uri, diagnostics as any)
+}
+
+export const createDiagnosticFromLabels = (
+	args: Lens.ForgeTestExec,
+	offset: number,
+	labels: ReturnType<typeof parseOutputLabels>,
+) => {
+	const [functionName, document, range] = args
+	const docText = document.getText(range)
+	const results = labels.map((item) => {
+		const id = item.key
+		if (id === "") return null
+
+		const indexSingle = docText.indexOf(`'${id}`)
+		const indexDouble = docText.indexOf(`"${id}`)
+		const exactDouble = docText.indexOf(`"${id}"`)
+		const exactSingle = docText.indexOf(`'${id}'`)
+		const indexLoose = docText.indexOf(id)
+
+		let index = Math.max(indexSingle, indexDouble)
+
+		if (exactDouble !== -1 || exactSingle !== -1) index = Math.max(exactDouble, exactSingle)
+		if (indexLoose !== -1 && index === -1) index = indexLoose
+		if (index === -1) return null
+
+		const position = document.positionAt(offset + index + 1)
+		const line = document.lineAt(position.line)
+		const range = Range.create(
+			Position.create(
+				line.lineNumber,
+				item.severity === 1 ? line.firstNonWhitespaceCharacterIndex : position.character,
+			),
+			Position.create(
+				line.lineNumber,
+				item.severity === 1 ? line.range.end.character - 1 : position.character + id.length,
+			),
+		)
+
+		const diagnostic = Diagnostic.create(
+			range,
+			`${item.value}`,
+			item.severity as any,
+			item.severity === 1 ? "assert" : "log",
+			"vsc-solidity",
+		)
+		diagnostic.source = `${functionName}: ${id}`
+
+		return diagnostic
+	})
+
+	return results.filter(Boolean)
 }

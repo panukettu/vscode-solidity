@@ -1,3 +1,4 @@
+import { CLIENT_COMMAND_LIST } from "@client/commands/list"
 import { functionRegexp, testFunctionRegexp } from "@shared/regexp"
 import * as vscode from "vscode"
 
@@ -49,19 +50,19 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 								new vscode.CodeLens(range, {
 									title: "execute",
 									tooltip: "Run this test function with forge",
-									command: "solidity.lens.function.test",
+									command: CLIENT_COMMAND_LIST["solidity.lens.function.test"],
 									arguments: [functionName, document, range],
 								}),
 								new vscode.CodeLens(range, {
 									title: "print",
 									tooltip: "Print contracts to the output channel",
-									command: "solidity.lens.test.info",
+									command: CLIENT_COMMAND_LIST["solidity.lens.function.test.info"],
 									arguments: [functionName, document, range],
 								}),
 								new vscode.CodeLens(range, {
 									title: "natspec",
 									tooltip: "Generate natspec comment",
-									command: "solidity.lens.function.natspec",
+									command: CLIENT_COMMAND_LIST["solidity.lens.function.natspec"],
 									arguments: [document, range],
 								}),
 							)
@@ -71,13 +72,13 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 							new vscode.CodeLens(range, {
 								title: "selector",
 								tooltip: "Preview the bytes4 selector",
-								command: "solidity.lens.function.selector",
+								command: CLIENT_COMMAND_LIST["solidity.lens.function.selector"],
 								arguments: [document, range],
 							}),
 							new vscode.CodeLens(range, {
 								title: "natspec",
 								tooltip: "Generate natspec comment",
-								command: "solidity.lens.function.natspec",
+								command: CLIENT_COMMAND_LIST["solidity.lens.function.natspec"],
 								arguments: [document, range],
 							}),
 						)

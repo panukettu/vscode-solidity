@@ -11,4 +11,10 @@ export function registerDocumentProviders(state: ClientState) {
 			},
 		}),
 	)
+	vscode.languages.onDidChangeDiagnostics((e) => {
+		// for (const uri of e.uris) {
+		// 	console.debug("removing", uri.fsPath)
+		// 	state.diagnostics.default.set(uri, [])
+		// }
+	})
 }

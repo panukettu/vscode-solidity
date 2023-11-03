@@ -1,11 +1,11 @@
 import { CompilerType } from "@shared/enums"
+import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import type { MultisolcSettings, SolidityConfig } from "@shared/types"
 import packageJson from "package.json"
 import * as vscode from "vscode-languageserver/node"
 import { connection } from "../server"
 import { replaceRemappings } from "../shared/util"
 import SolhintService from "./linter/solhint"
-import { SERVER_COMMANDS_LIST } from "./server-commands"
 import { createServerMultisolc } from "./server-compiler"
 import { ExtendedSettings } from "./server-types"
 function defaultConfig(): SolidityConfig {

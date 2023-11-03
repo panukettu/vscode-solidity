@@ -1,24 +1,20 @@
+import { connection } from "@server"
+import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import { getFunctionSelector, keccak256, toBytes } from "viem"
 import { ExecuteCommandParams, Range } from "vscode-languageserver"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { CodeWalkerService } from "./codewalker"
 
-export const SERVER_COMMANDS_LIST = {
-	"function.selector": "solidity.server.lens.function.selector",
-	"string.keccak256": "solidity.server.lens.string.keccak256",
-	"function.natspec": "solidity.server.lens.function.natspec",
-}
-
 export const executeCommand = (
-	params: ExecuteCommandParams,
-	document: TextDocument,
-	range: Range,
 	walker: CodeWalkerService,
+	params?: ExecuteCommandParams,
+	document?: TextDocument,
+	range?: Range,
 ) => {
-	return commandMap[params.command](params, document, range, walker)
+	return commandMap[params.command](walker, document, range, params)
 }
 
-const funcSig = (params: ExecuteCommandParams, document: TextDocument, range: Range, walker: CodeWalkerService) => {
+const funcSig = (walker: CodeWalkerService, document?: TextDocument, range?: Range, params?: ExecuteCommandParams) => {
 	try {
 		const selected = walker.getSelectedDocument(document, range.start)
 		const item = selected.getSelectedItem(document.offsetAt(range.start))
@@ -29,7 +25,12 @@ const funcSig = (params: ExecuteCommandParams, document: TextDocument, range: Ra
 		throw new Error(`lens.server.function.selector failed: ${e.message}`)
 	}
 }
-const funcNatspec = (params: ExecuteCommandParams, document: TextDocument, range: Range, walker: CodeWalkerService) => {
+const funcNatspec = (
+	walker: CodeWalkerService,
+	document?: TextDocument,
+	range?: Range,
+	params?: ExecuteCommandParams,
+) => {
 	try {
 		const selected = walker.getSelectedDocument(document, range.start)
 		const func = selected.getSelectedFunction(document.offsetAt(range.start))
@@ -38,7 +39,12 @@ const funcNatspec = (params: ExecuteCommandParams, document: TextDocument, range
 		throw new Error(`lens.server.function.natspec failed: ${e.message}`)
 	}
 }
-export const hash = (params: ExecuteCommandParams, document: TextDocument, range: Range, walker: CodeWalkerService) => {
+export const hash = (
+	walker: CodeWalkerService,
+	document?: TextDocument,
+	range?: Range,
+	params?: ExecuteCommandParams,
+) => {
 	try {
 		const text = document.getText(range)
 		return keccak256(toBytes(text))
@@ -47,7 +53,30 @@ export const hash = (params: ExecuteCommandParams, document: TextDocument, range
 	}
 }
 
+export const setDiagnostics = (
+	walker: CodeWalkerService,
+	document?: TextDocument,
+	range?: Range,
+	params?: ExecuteCommandParams,
+) => {
+	// console.debug(params)
+	try {
+	} catch (e) {}
+}
+export const clearDiagnostic = (walker: CodeWalkerService) => {
+	try {
+		walker.parsedDocumentsCache.forEach((doc) => {
+			connection.sendDiagnostics({ uri: doc.sourceDocument.absolutePath, diagnostics: [] })
+		})
+	} catch (e) {
+		console.debug(e)
+		throw new Error(`lens.server.diagnostic.clear failed: ${e.message}`)
+	}
+}
+
 const commandMap = {
+	[SERVER_COMMANDS_LIST["diagnostic.clear"]]: clearDiagnostic,
+	[SERVER_COMMANDS_LIST["diagnostic.set"]]: setDiagnostics,
 	[SERVER_COMMANDS_LIST["string.keccak256"]]: hash,
 	[SERVER_COMMANDS_LIST["function.selector"]]: funcSig,
 	[SERVER_COMMANDS_LIST["function.natspec"]]: funcNatspec,

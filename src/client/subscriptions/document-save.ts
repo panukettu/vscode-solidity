@@ -1,3 +1,4 @@
+import { CLIENT_COMMAND_LIST } from "@client/commands/list"
 import { LensProvider } from "@client/context/register-code-lens"
 import * as vscode from "vscode"
 
@@ -10,9 +11,12 @@ export const executeOnSave = () =>
 			const position = vscode.window.activeTextEditor?.selection.active
 			if (!position) return
 
-			const lens = LensProvider.getCodeLensFromPosition("solidity.lens.function.test", position)
+			const lens = LensProvider.getCodeLensFromPosition(CLIENT_COMMAND_LIST["solidity.lens.function.test"], position)
 			if (!lens || !lens.command?.arguments?.length) return
 
 			vscode.commands.executeCommand(lens.command.command, ...lens.command.arguments)
+		}
+		if (e.languageId === "solidity" && e.fileName.endsWith(".sol")) {
+			vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"], true)
 		}
 	})
