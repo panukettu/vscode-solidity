@@ -1,4 +1,6 @@
+import { getCodeActionFixes } from "@server/actions/server-code-actions"
 import { provideSignatureHelp } from "@server/providers/signatures"
+import { DocUtil } from "@server/utils/text-document"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import * as vscode from "vscode-languageserver/node"
 import { getCompletionItems } from "./server/providers/completions"
@@ -70,7 +72,7 @@ connection.onSignatureHelp((handler) => {
 
 connection.onExecuteCommand((params) => {
 	const [document, range] = params.arguments as CommandParamsBase
-
+	document && initCommon(document)
 	try {
 		return executeCommand(
 			getCodeWalkerService(),
@@ -93,6 +95,17 @@ connection.onDidChangeWatchedFiles((_change) => {
 		settings.linter.loadFileConfig(settings.rootPath)
 	}
 	validateAllDocuments()
+})
+
+connection.onCodeAction((handler) => {
+	// console.debug("OnCodeAction", handler)
+	initCommon(handler.textDocument)
+	const docUtil = new DocUtil(handler.textDocument, handler.range, getCodeWalkerService())
+	return getCodeActionFixes(docUtil, handler.context.diagnostics)
+})
+connection.onCodeActionResolve((handler) => {
+	// console.debug("CodeActionResolve", handler)
+	return handler
 })
 
 connection.onDidChangeConfiguration((change) => handleConfigChange(change))

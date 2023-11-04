@@ -2,7 +2,7 @@ import type { ExecFileException } from "child_process"
 import type { ParseStdOutArgs, TestExec } from "@client/client-types"
 import { ExecStatus } from "@shared/enums"
 import { formatOutput } from "@shared/regexp"
-import logUtils, { getLineIndexFinder, getLinesFinder, keywords, toDefaultFormat, toLines } from "./logs-parser"
+import logUtils, { getLineIndexFinder, getLinesFinder, keywords, toDefaultFormat, toLines } from "./foundry-logs-parser"
 
 export const parseTestOutput = <T, R = T, U = T>({
 	process,
@@ -21,7 +21,7 @@ export const parseTestOutput = <T, R = T, U = T>({
 
 	const formatted = formatOutput(output)
 	const lines = toLines(formatted)
-	const results = getTestResults(lines, id)
+	const results = getTestResults(lines, id, process.error)
 
 	if (results.status === ExecStatus.Pass) {
 		return onPass(results, formatted)

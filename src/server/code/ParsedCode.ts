@@ -1,3 +1,4 @@
+import path from "path"
 import { commentFormatRegexp } from "@shared/regexp"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { CompletionItem, Hover, Location, MarkupContent, MarkupKind, Position, Range } from "vscode-languageserver/node"
@@ -250,6 +251,17 @@ export class ParsedCode {
 	}
 	public createCompletionItem(): CompletionItem {
 		return null
+	}
+	public getRemappedOrRelativeImportPath(from: string): string {
+		if (!this.document) return ""
+		const remapping = this.document.sourceDocument.project.findRemappingForFile(
+			this.document.sourceDocument.absolutePath,
+		)
+		if (remapping) {
+			return remapping.createImportFromFile(this.document.sourceDocument.absolutePath)
+		} else {
+			return path.relative(path.dirname(from), this.document.sourceDocument.absolutePath)
+		}
 	}
 	public initCompletionItem(): CompletionItem {
 		const completionItem = CompletionItem.create(this.name)

@@ -1,7 +1,7 @@
 import { connection } from "@server"
 import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import { getFunctionSelector, keccak256, toBytes } from "viem"
-import { ExecuteCommandParams, Range } from "vscode-languageserver"
+import { Diagnostic, ExecuteCommandParams, Range } from "vscode-languageserver"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { CodeWalkerService } from "./codewalker"
 
@@ -61,7 +61,14 @@ export const setDiagnostics = (
 ) => {
 	// console.debug(params)
 	try {
-	} catch (e) {}
+		const [, , diagnostics] = params.arguments as [any, any, [string, Diagnostic[]][]]
+		diagnostics.forEach(([uri, diagnostics]) => {
+			connection.sendDiagnostics({ uri, diagnostics })
+		})
+	} catch (e) {
+		console.debug(e)
+		throw new Error(`lens.server.diagnostic.set failed: ${e.message}`)
+	}
 }
 export const clearDiagnostic = (walker: CodeWalkerService) => {
 	try {

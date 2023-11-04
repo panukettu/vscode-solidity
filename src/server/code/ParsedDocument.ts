@@ -90,6 +90,20 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		}
 	}
 
+	public getAllImportables() {
+		const returnItems: ParsedCode[] = []
+		returnItems.push(...this.innerContracts)
+		returnItems.push(...this.functions)
+		returnItems.push(...this.structs)
+		returnItems.push(...this.errors)
+		returnItems.push(...this.events)
+		returnItems.push(...this.enums)
+		returnItems.push(...this.constants)
+		returnItems.push(...this.customTypes)
+		returnItems.push(...this.expressions)
+		return returnItems
+	}
+
 	public getAllContracts(): ParsedContract[] {
 		let returnItems: ParsedContract[] = []
 

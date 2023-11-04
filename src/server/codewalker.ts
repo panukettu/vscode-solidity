@@ -24,7 +24,8 @@ export class CodeWalkerService {
 	constructor(rootPath: string, config: SolidityConfig) {
 		this.rootPath = rootPath
 		this.config = config
-
+		console.debug("walker.rootPath", rootPath)
+		console.debug("walker.config", this.config)
 		if (this.rootPath != null) {
 			const { project, sources } = createProject(this.rootPath, this.config)
 			this.project = project
@@ -36,7 +37,7 @@ export class CodeWalkerService {
 
 	public initDocuments(initExclude: string[]) {
 		const sourceDocuments = new SourceDocumentCollection()
-		const files = this.project.getProjectSolFiles(initExclude)
+		const files = this.project?.getProjectSolFiles(initExclude) ?? []
 
 		for (const path of files) {
 			const existing = sourceDocuments.documents.find((d) => d.absolutePath === path)

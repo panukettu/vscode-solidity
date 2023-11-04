@@ -6,8 +6,9 @@ import { initDecorations, lineDecoration, resetDecorations, runDecorated } from 
 import { createStatusBarTest } from "@client/ui/statusbar"
 import { ExecStatus } from "@shared/enums"
 import * as vscode from "vscode"
-import { CLIENT_COMMAND_LIST } from "./list"
+import { CLIENT_COMMAND_LIST } from "./commands"
 
+// Executes the test function command
 export const commandExecTest = (state: ClientState) => async (...args: Lens.ForgeTestExec) => {
 	const isTracing = Config.getTestVerbosity() > 2
 	const functionName = args[0]
@@ -16,7 +17,10 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 
 	initDecorations(state, functionName)
 	const statusBar = createStatusBarTest(functionName, `${functionName}  🟡`)
-	vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"])
+
+	/* ------------------------------------------------------------------------- */
+	/*                                    run                                    */
+	/* ------------------------------------------------------------------------- */
 	const results = await runDecorated(
 		state,
 		{
@@ -26,6 +30,11 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 		},
 		"Test running",
 	)
+
+	/* ------------------------------------------------------------------------- */
+	/*                                  results                                  */
+	/* ------------------------------------------------------------------------- */
+
 	resetDecorations(state, functionName, ["success", "fail"])
 
 	if (results.ui.statusBar) {
@@ -38,6 +47,8 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 
 	const tooltip = (contracts: number, events: number, calls: number) =>
 		`contracts/events/calls\n${contracts}/${events}/${calls}`
+
+	/* --------------------------------- pass --------------------------------- */
 	if (results.status === ExecStatus.Pass) {
 		results.ui.popup && vscode.window.showInformationMessage(results.ui.popup)
 		if (isTracing && results.out.traces.contracts.length) {
@@ -49,6 +60,8 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 		}
 		return
 	}
+
+	/* ------------------------------- setup fail ------------------------------ */
 	if (results.status === ExecStatus.SetupFail) {
 		results.ui.popup && vscode.window.showWarningMessage(results.ui.popup)
 		if (isTracing && results.out.traces.contracts.length) {
@@ -61,6 +74,7 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 		return
 	}
 
+	/* ---------------------------------- fail --------------------------------- */
 	if (results.status === ExecStatus.Fail) {
 		results.ui.popup && vscode.window.showWarningMessage(results.ui.popup)
 		if (isTracing && results.out.traces.contracts.length) {
@@ -72,7 +86,7 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 		}
 		return
 	}
-
+	/* ----------------------------- errors/restart ---------------------------- */
 	if (results.status === ExecStatus.Restart) {
 		results.ui.popup && vscode.window.showInformationMessage(results.ui.popup)
 		return

@@ -1,5 +1,5 @@
 import { ClientState } from "@client/client-state"
-import { CLIENT_COMMAND_LIST } from "@client/commands/list"
+import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import * as vscode from "vscode"
 
 export function registerConfigSetters(state: ClientState): void {
@@ -17,7 +17,7 @@ export function registerConfigSetters(state: ClientState): void {
 			vscode.workspace.getConfiguration("solidity").update("test.executeOnSave", true, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.test.enableTracing"], () => {
-			vscode.workspace.getConfiguration("solidity").update("test.verbosity", 4, false)
+			vscode.workspace.getConfiguration("solidity").update("test.verbosity", 5, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.test.disableTracing"], () => {
 			vscode.workspace.getConfiguration("solidity").update("test.verbosity", 2, false)

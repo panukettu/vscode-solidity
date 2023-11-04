@@ -1,4 +1,4 @@
-import { CodeActionsProvider } from "@client/actions/code-action-fix"
+import { CodeActionsProvider } from "@client/actions/client-code-actions"
 import type { ClientState } from "@client/client-state"
 import { EtherscanContractDownloader } from "@shared/external/etherscan"
 import * as vscode from "vscode"

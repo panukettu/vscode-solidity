@@ -43,7 +43,7 @@ export function compileAllContracts(state: ClientState) {
 		}
 	}
 
-	const documents = project.getProjectSolFiles()
+	const documents = project?.getProjectSolFiles() ?? []
 
 	for (const document of documents) {
 		const contractPath = document

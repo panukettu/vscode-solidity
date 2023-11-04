@@ -1,9 +1,9 @@
+import path from "path"
 import { Location, Range } from "vscode-languageserver"
 import { URI } from "vscode-uri"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
 import { ParsedDocument } from "./ParsedDocument"
-
 export class ParsedImport extends ParsedCode {
 	public from: string
 	public documentReference: ParsedDocument = null
@@ -29,6 +29,7 @@ export class ParsedImport extends ParsedCode {
 		this.element = element
 		this.from = element.from
 		this.symbols = element.symbols
+		this.name = (<string>element.from)?.split("/").pop()
 	}
 
 	public override getSelectedTypeReferenceLocation(offset: number): TypeReference[] {
@@ -64,7 +65,15 @@ export class ParsedImport extends ParsedCode {
 		return []
 	}
 
+	public getRelativePath(from: string): string {
+		if (!this.document) return ""
+		const result = path.relative(path.dirname(from), this.document.sourceDocument.resolveImportPath(this.from))
+		if (result.startsWith(".")) return result
+		return `./${result}`
+	}
+
 	public getReferenceLocation(): Location {
+		if (!this.document) return null
 		const path = this.document.sourceDocument.resolveImportPath(this.from)
 		// note: we can use the path to find the referenced source document too.
 		return Location.create(URI.file(path).toString(), Range.create(0, 0, 0, 0))

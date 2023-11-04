@@ -1,4 +1,4 @@
-import { CLIENT_COMMAND_LIST } from "@client/commands/list"
+import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { functionRegexp, testFunctionRegexp } from "@shared/regexp"
 import * as vscode from "vscode"
 

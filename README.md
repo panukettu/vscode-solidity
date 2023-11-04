@@ -6,7 +6,8 @@ _Disclaimer_: bugs likely
 
 # FEATURES
 
-- autofix slight variable naming errors
+- quickfix: import missing symbols (remapping support)
+- quickfix: variable naming errors (and argument-dependent lookup)
 - execute t.sol functions and get log/assertion data inline
 - compiler configuration added to settings
 - can configure location for compilation output
@@ -27,34 +28,58 @@ _Disclaimer_: bugs likely
 
 - base extension compilation most likely crashes if you have huuuuge source files
 - t.sol and s.sol files have validation mechanism disabled for now (too unstable on big repos)
-- use "solidity.lens.diagnostics.clear" command if things get too heavy on UI.
-- go to definition will probably at times show eg. "click to show 3 definitions" - it will rather force definitions than not have one.
-- no idea how this runs on other hardware than apple silicon setup
+- use "solidity.diagnostics.clear" command if things get too heavy on UI.
+- go to definition can at times show eg. "click to show 3 definitions" - it will rather force definitions than not have one.
+- no idea how this runs on hardware other than apple silicon
 
 _for feature ideas just https://github.com/panukettu/vscode-solidity_
 _probably moving this extension to some more comfy fork later buuut this works for now_
 
 ## FORGE
 
-- execute t.sol function with cursor onSave / from codelens and get info about it.
-- you'll see status info next to the function and on the bottom activity bar.
-- had no problems running spamming different functions concurrently, duplicate exec will kill the previous one.
+### Execute test
 
-![executor](screenshots/test-execute-lens.png)
+- execute t.sol functions under cursor on save
+- diagnostics/highlights for failed assertions and logs:
 
 ![onsave](screenshots/test-function-execute.gif)
 
-- diagnostics/highlights are available on t.sol execution through the extension.
-- works semi stable for assertion results + logs, you need to have an identifier though, eg. assertEq(a,b, "identifier") or console.log("foo", bar)
+- duplicate exec will just restart
+- can optionally execute the test from codelens:
+
+![executor](screenshots/test-execute-lens.png)
+
+#### Test output
+
+- function level output with gas difference etc:
+
+![test-output](screenshots/test-output.png)
+
+#### Test status
+
+- Can be seen next to function and in bottom status bar:
+
+![test-status-bar](screenshots/test-status-bar.png)
+
+#### Test diagnostics
+
+- semi stable diagnostics for asserts + logs but you do need to specify some identifier: `assertEq(a,b, "identifier")`, `console.log("foo", bar)` etc.
 
 ![test-inline-diagnostic](screenshots/test-inline-diagnostic.png)
 
-- initial tiny tracing data output:
+#### Tracing output
 
-![current-tracing-data](screenshots/test-inline-tracing-data.png)
+- Only small support
+  - setup included: verbosity 5
+  - only function: 4
+  - only fails: 3
 
-- peek test runtime data from tracing, contains eg. contract names, addresses sizes, event counts and call counts.
-- will extend further but I guess it has some utility here
+![tracing-data](screenshots/test-inline-tracing-data.png)
+
+#### Print test runtime info
+
+- data from tracing: contains contract names, addresses sizes, event counts and call counts.
+- extending further but I guess it has some utility here
 
 ![function-runtime-info](screenshots/test-output-info.png)
 

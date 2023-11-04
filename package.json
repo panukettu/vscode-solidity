@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.7",
+	"version": "0.8.9",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -365,13 +365,13 @@
 			{
 				"title": "Disable Tracing",
 				"command": "solidity.test.disableTracing",
-				"enablement": "config.solidity.test.verbosity > 2",
+				"enablement": "config.solidity.test.verbosity > 4",
 				"category": "Solidity"
 			},
 			{
 				"title": "Enable Tracing",
 				"command": "solidity.test.enableTracing",
-				"enablement": "config.solidity.test.verbosity < 3",
+				"enablement": "config.solidity.test.verbosity < 5",
 				"category": "Solidity"
 			},
 			{
@@ -643,12 +643,12 @@
 					"group": "0_solidity"
 				},
 				{
-					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.test.verbosity < 3",
+					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.test.verbosity < 5",
 					"command": "solidity.test.enableTracing",
 					"group": "0_solidity"
 				},
 				{
-					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.test.verbosity > 2",
+					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.test.verbosity > 4",
 					"command": "solidity.test.disableTracing",
 					"group": "0_solidity"
 				},

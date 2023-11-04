@@ -1,5 +1,6 @@
 import type { ClientState } from "@client/client-state"
 import type { Lens, TestExec } from "@client/client-types"
+import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import type { ErrorWarningCounts, ScopedURI } from "@shared/types"
 import { toScopedURI } from "@shared/util"
 import * as vscode from "vscode"
@@ -30,7 +31,7 @@ export const createCompilerDiagnostics = (
 ): ErrorWarningCounts => {
 	const parsedErrors: any[] = parseOutputCompilerErrors(state, args, result, output)
 	const errorWarningCounts = { errors: 0, warnings: 0 }
-
+	const diagnosticsMap = new Map<string, vscode.Diagnostic[]>()
 	state.diagnostics.clear()
 
 	const functionName = args[0]
@@ -46,9 +47,8 @@ export const createCompilerDiagnostics = (
 			foundryDiagnostics.set(scopedUri, diagnostics)
 		}
 
-		const previousDiagnostics = state.diagnostics.default.get(uri) ?? []
-		const diagnostics = [...previousDiagnostics, err.diagnostic]
-		state.diagnostics.default.set(uri, diagnostics)
+		const previousDiagnostics = diagnosticsMap.get(uri.toString()) ?? []
+		diagnosticsMap.set(uri.toString(), [...previousDiagnostics, err.diagnostic])
 
 		if (err.diagnostic.severity === vscode.DiagnosticSeverity.Error) {
 			errorWarningCounts.errors++
@@ -58,6 +58,10 @@ export const createCompilerDiagnostics = (
 		}
 	}
 
+	const diagnostics = Array.from(diagnosticsMap.entries()).map(([uri, diagnostics]) => {
+		return [uri, diagnostics] as [string, vscode.Diagnostic[]]
+	})
+	vscode.commands.executeCommand(SERVER_COMMANDS_LIST["diagnostic.set"], args[1], args[2], diagnostics)
 	return errorWarningCounts
 }
 
@@ -110,7 +114,7 @@ export const createDiagnosticFromLabels = (
 			`${item.value}`,
 			item.severity as any,
 			item.severity === 1 ? "assert" : "log",
-			"vsc-solidity",
+			"forge-test",
 		)
 		diagnostic.source = `${functionName}: ${id}`
 

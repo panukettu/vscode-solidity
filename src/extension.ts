@@ -35,6 +35,7 @@ function server(context: vscode.ExtensionContext): LanguageClient {
 		synchronize: {
 			// Synchronize the setting section 'solidity' to the server
 			configurationSection: "solidity",
+
 			// Notify the server about file changes to '.sol.js files contain in the workspace (TODO node, linter)
 			fileEvents: [
 				vscode.workspace.createFileSystemWatcher(
@@ -46,6 +47,7 @@ function server(context: vscode.ExtensionContext): LanguageClient {
 			],
 		},
 		initializationOptions: {
+			codeActionLiteralSupport: true,
 			solcCachePath: context.extensionPath,
 		},
 	}

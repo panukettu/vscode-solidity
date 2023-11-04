@@ -2,47 +2,55 @@ import * as cp from "child_process"
 import { Config } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
 import type { Lens, ProcessOut, TestExec } from "@client/client-types"
-import { CLIENT_COMMAND_LIST } from "@client/commands/list"
+import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
+import { gasCache } from "@client/utils/gas"
 import { ExecStatus } from "@shared/enums"
 import * as vscode from "vscode"
 import { createCompilerDiagnostics, createTestDiagnostics } from "../diagnostics/foundry-diagnostics"
-import { parseTestOutput } from "../stdout-parser"
+import { parseTestOutput } from "../foundry-test-stdout-parser"
 
 const processMap = new Map<string, cp.ChildProcess>()
 
-export function execForgeTestFunction(
+export async function execForgeTestFunction(
 	state: ClientState,
 	args: Lens.ForgeTestExec,
 	rootPath: string,
 	forceTrace = false,
 ) {
 	return new Promise<TestExec.Result | TestExec.Restart | TestExec.Unhandled>((resolve, reject) => {
-		const functionName = args[0]
-		const tracing = Config.getTestVerbosity() ?? 2
-		const verbosity = !forceTrace ? `-${"v".repeat(tracing)}` : "-vvvv"
+		try {
+			const functionName = args[0]
+			const tracing = Config.getTestVerbosity() ?? 2
+			const verbosity = !forceTrace ? `-${"v".repeat(tracing)}` : "-vvvvv"
 
-		const wordBound = `${functionName}\\b`
-		if (processMap.has(functionName)) {
-			processMap.get(functionName)?.kill()
+			const wordBound = `${functionName}\\b`
+			if (processMap.has(functionName)) {
+				processMap.get(functionName)?.kill()
+			}
+
+			processMap.set(
+				functionName,
+				cp.execFile(
+					"forge",
+					["test", "--mt", wordBound, "-vvvvv", "--allow-failure"],
+					{ cwd: rootPath, maxBuffer: 2048 * 1024 * 10 },
+					(error, stdout, stderr) => {
+						vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"], true, args[1])
+						const result = handleTestExecuteOutput(state, args, {
+							stdout,
+							error,
+							stderr,
+						})
+						resolve(result)
+						processMap.delete(functionName)
+					},
+				),
+			)
+		} catch (e) {
+			console.error(e)
+			reject(e)
+			processMap.clear()
 		}
-
-		processMap.set(
-			functionName,
-			cp.execFile(
-				"forge",
-				["test", "--mt", wordBound, verbosity, "--allow-failure"],
-				{ cwd: rootPath },
-				(error, stdout, stderr) => {
-					const result = handleTestExecuteOutput(state, args, {
-						stdout,
-						error,
-						stderr,
-					})
-					resolve(result)
-					processMap.delete(functionName)
-				},
-			),
-		)
 	})
 }
 
@@ -55,7 +63,12 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 			args,
 			onPass: (result) => {
 				createTestDiagnostics(state, args, result)
-				const summary = result.out.summary.join("\n")
+
+				const summary = [
+					`Pass (${result.out.infos.testDuration})`,
+					gasCache.save(functionName, result.out.infos.gasSpent).summary,
+					" ",
+				].join("\n")
 				const details = result.out.details.join("\n")
 				return {
 					ui: {
@@ -72,9 +85,12 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 			},
 			onFail: (result) => {
 				createTestDiagnostics(state, args, result)
-				const summary = result.out.summary.join("\n")
+				const summary = [
+					`Fail: ${result.out.infos.reason} (${result.out.infos.testDuration})`,
+					gasCache.save(functionName, result.out.infos.gasSpent).summary,
+					" ",
+				].join("\n")
 				const details = result.out.details.join("\n")
-
 				return {
 					ui: {
 						statusBar: `${functionName}  🛑`,
@@ -90,7 +106,7 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 			},
 			onSetupFail: (result) => {
 				createTestDiagnostics(state, args, result)
-				const summary = result.out.summary.join("\n")
+				const summary = [`${result.out.infos.reason} (${result.out.infos.testDuration})`, " "].join("\n")
 				const details = result.out.details.join("\n")
 				return {
 					ui: {
@@ -156,8 +172,8 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 				return {
 					status: ExecStatus.Error,
 					ui: {
-						statusBar: `${functionName}: Unhandled 🐞`,
-						popup: "Test: Unknown error while running test.",
+						statusBar: `${functionName}: Unhandled error 🐞`,
+						popup: "Test: Error during execution.",
 					},
 					error,
 					...result,

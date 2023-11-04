@@ -28,6 +28,7 @@ export const innerImportRegexp = new RegExp(/(import\s\{)/s)
 export const emitRegexp = new RegExp(/(emit\s)/s)
 export const importRegexp = new RegExp(/(import\s)(?!\{)/s)
 export const fromRegexp = new RegExp(/(import\s\{.*?\}\sfrom)/s)
+export const importFullRegexp = new RegExp(/import\s*({(?<symbols>.*?)}\s*from\s*)?["'](?<from>.*?)["']/, "gm")
 export const symbolIdRegexp = new RegExp(/import\s\{(.*?)\W/s)
 
 export const emitDotRegexp = /emit\s(\w+)\./g

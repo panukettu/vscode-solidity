@@ -31,7 +31,7 @@ export const commandTestInfo = (state: ClientState) => async (...args: Lens.Forg
 				state.compilers.outputChannel.appendLine(`No contracts deployed during ${functionName}().`)
 			} else {
 				state.compilers.outputChannel.appendLine(JSON.stringify(results.out.traces.contracts, null, 2))
-				state.compilers.outputChannel.appendLine(`Total contracts deployed during ${functionName}():`)
+				state.compilers.outputChannel.appendLine(`Total contracts deployed during ${functionName}(): ${contractCount}`)
 				try {
 					state.compilers.outputChannel.appendLine(
 						`Total size of contracts in bytes: ${results.out.traces.contracts.reduce((a, b) => {

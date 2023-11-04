@@ -83,7 +83,7 @@ export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index:
 	const range = Range.create(startLine, startCharacter, endLine, endCharacter)
 	const diagnostic: Diagnostic = {
 		message: errorMessage,
-		source: "vsc-solidity",
+		source: "solc",
 		code: error.errorCode,
 		range: range,
 		severity: severity,
@@ -129,7 +129,7 @@ export function forgeOutputErrorToDiagnostic(match: string[], rootPath: string):
 		message: message.trim(),
 		code: errorCode ? (Number.isNaN(Number(errorCode)) ? "stack-too-deep" : errorCode.trim()) : undefined,
 		range: Range.create(start, end),
-		source: "vsc-solidity",
+		source: "solc",
 		severity: (typeLower === "error" ? 0 : typeLower === "warning" ? 1 : 2) as DiagnosticSeverity,
 	}
 
@@ -174,7 +174,7 @@ const mapSecondarySourceToVscode = (error: SolcError, parent?: DiagnosticWithFil
 		})
 		const diagnostic: Diagnostic = {
 			message: message + trimmed,
-			source: "vsc-solidity",
+			source: "solc",
 			code: error.errorCode ?? errorCode,
 			range: range,
 			severity: DiagnosticSeverity.Error,

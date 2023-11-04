@@ -17,7 +17,6 @@ const getInfos = (lines: string[], functionName: string) => {
 
 	const summary = getLine(keywords.test.summary)
 	const fullFunctionName = summary?.length ? summary.split("(gas:")[0].split("]")[1].trim() : functionName
-
 	return {
 		summary,
 		fullFunctionName: fullFunctionName,
@@ -105,7 +104,7 @@ const getLogs = (lines: string[]) => {
 	const all = lines.slice(logStartIndex, logEndIndex - 1)
 
 	return {
-		formatted: ["-- output"].concat(all.slice(1)),
+		formatted: ["-- output"].concat([...all.slice(1), " "]),
 		all,
 	}
 }

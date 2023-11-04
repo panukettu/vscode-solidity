@@ -46,7 +46,6 @@ export const handleConfigChange = async (change: vscode.DidChangeConfigurationPa
 export function handleInitialize(params: vscode.InitializeParams): vscode.InitializeResult {
 	settings.rootPath = params.rootUri.replace("file://", "")
 	const capabilities = params.capabilities
-
 	settings.hasWorkspaceFolderCapability = !!(capabilities.workspace && !!capabilities.workspace.workspaceFolders)
 
 	if (params.workspaceFolders) {
@@ -58,6 +57,11 @@ export function handleInitialize(params: vscode.InitializeParams): vscode.Initia
 			completionProvider: {
 				resolveProvider: false,
 				triggerCharacters: [".", "/", '"', "'"],
+			},
+			codeActionProvider: {
+				resolveProvider: true,
+				codeActionKinds: [vscode.CodeActionKind.QuickFix],
+				// workDoneProgress: false,
 			},
 			definitionProvider: true,
 			referencesProvider: true,

@@ -3,7 +3,7 @@ import type { ExecStatus } from "@shared/enums"
 import type { FunctionName } from "@shared/types"
 import * as vscode from "vscode"
 import type { Diagnostic } from "vscode-languageclient/node"
-import { ParsedLogs } from "./lens/foundry/logs-parser"
+import { ParsedLogs } from "./lens/foundry/foundry-logs-parser"
 
 // export namespace ExecOutput {
 // 	export type TestSuccess = {

@@ -1,6 +1,6 @@
 import { getCurrentWorkspaceRootFolder } from "@client/client-config"
 import { ClientState } from "@client/client-state"
-import { CLIENT_COMMAND_LIST } from "@client/commands/list"
+import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { compileActiveFile } from "@client/compiler/compile-active"
 import { compileAllContracts } from "@client/compiler/compile-all"
 import { CompilerType } from "@shared/enums"

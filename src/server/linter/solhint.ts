@@ -25,9 +25,11 @@ export default class SolhintService implements Linter {
 
 	private toDiagnostic(error) {
 		return {
-			message: `Linter: ${error.message} [${error.ruleId}]`,
+			message: `${error.message}`,
 			range: this.rangeOf(error),
+			code: error.ruleId,
 			severity: this.severity(error),
+			source: "solhint",
 		}
 	}
 

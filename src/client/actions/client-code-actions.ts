@@ -47,64 +47,49 @@ const checksum: ActionDefinition = {
 	},
 }
 
-const variableName: ActionDefinition = {
-	code: "7576",
-	kinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Empty],
-	regex: () => new RegExp(/Did you mean "(?<variable>.*?)"((?=\s?)?.*?"(?<second>.*?)")?/, "gm"),
-	createFix: (
-		document: vscode.TextDocument,
-		diagnostic: vscode.Diagnostic,
-		range: vscode.Range,
-	): vscode.CodeAction[] => {
-		const match = variableName.regex().exec(diagnostic.message)
-		if (match) {
-			if (match.groups.variable) {
-				const result: vscode.CodeAction[] = []
-				const convertedRange = new vscode.Range(
-					diagnostic.range.start.line,
-					diagnostic.range.start.character,
-					diagnostic.range.end.line,
-					diagnostic.range.end.character,
-				)
-				const variable = match.groups.variable
-				const fix = new vscode.CodeAction(`Change to: ${variable}`, vscode.CodeActionKind.QuickFix)
-				const wordRange = document.getWordRangeAtPosition(convertedRange.start)
-				const line = document.lineAt(convertedRange.start.line)
-				fix.edit = new vscode.WorkspaceEdit()
-				fix.edit.replace(document.uri, wordRange, `${variable}`)
-
-				fix.diagnostics = [{ ...diagnostic, range: line.range }]
-				if (match.groups.second) {
-					const second = match.groups.second
-					const fix2 = new vscode.CodeAction(`Change to: ${second}`, vscode.CodeActionKind.QuickFix)
-					fix2.edit = new vscode.WorkspaceEdit()
-					fix2.diagnostics = fix.diagnostics
-					fix2.edit.replace(document.uri, wordRange, `${second}`)
-					fix2.isPreferred = line.range.contains(range.start)
-					result.push(fix2)
-				} else {
-					fix.isPreferred = line.range.contains(range.start)
-				}
-				result.push(fix)
-				return result
-			}
-		}
-		return null
-	},
-}
-// const importer: ActionDefinition = {
-// 	code: "7920",
+// const variableName: ActionDefinition = {
+// 	code: "7576",
 // 	kinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Empty],
+// 	regex: () => new RegExp(/Did you mean "(?<variable>.*?)"((?=\s?)?.*?"(?<second>.*?)")?/, "gm"),
 // 	createFix: (
 // 		document: vscode.TextDocument,
 // 		diagnostic: vscode.Diagnostic,
 // 		range: vscode.Range,
 // 	): vscode.CodeAction[] => {
-// 		const fix = new vscode.CodeAction("Import from..", vscode.CodeActionKind.QuickFix)
-// 		const wordRange = document.getWordRangeAtPosition(diagnostic.range.start)
-// 		const line = document.lineAt(diagnostic.range.start.line)
-// 		fix.diagnostics = [diagnostic]
-// 		return [fix]
+// 		const match = variableName.regex().exec(diagnostic.message)
+// 		if (match) {
+// 			if (match.groups.variable) {
+// 				const result: vscode.CodeAction[] = []
+// 				const convertedRange = new vscode.Range(
+// 					diagnostic.range.start.line,
+// 					diagnostic.range.start.character,
+// 					diagnostic.range.end.line,
+// 					diagnostic.range.end.character,
+// 				)
+// 				const variable = match.groups.variable
+// 				const fix = new vscode.CodeAction(`Change to: ${variable}`, vscode.CodeActionKind.QuickFix)
+// 				const wordRange = document.getWordRangeAtPosition(convertedRange.start)
+// 				const line = document.lineAt(convertedRange.start.line)
+// 				fix.edit = new vscode.WorkspaceEdit()
+// 				fix.edit.replace(document.uri, wordRange, `${variable}`)
+
+// 				fix.diagnostics = [{ ...diagnostic, range: line.range }]
+// 				if (match.groups.second) {
+// 					const second = match.groups.second
+// 					const fix2 = new vscode.CodeAction(`Change to: ${second}`, vscode.CodeActionKind.QuickFix)
+// 					fix2.edit = new vscode.WorkspaceEdit()
+// 					fix2.diagnostics = fix.diagnostics
+// 					fix2.edit.replace(document.uri, wordRange, `${second}`)
+// 					fix2.isPreferred = line.range.contains(range.start)
+// 					result.push(fix2)
+// 				} else {
+// 					fix.isPreferred = line.range.contains(range.start)
+// 				}
+// 				result.push(fix)
+// 				return result
+// 			}
+// 		}
+// 		return null
 // 	},
 // }
 
@@ -152,7 +137,7 @@ const spdx = {
 		})
 	},
 }
-const actions: ActionDefinition[] = [checksum, variableName, compilerVersion, spdx]
+const actions = [checksum, compilerVersion, spdx] as const
 
 /* -------------------------------------------------------------------------- */
 /*                                     New                                    */
