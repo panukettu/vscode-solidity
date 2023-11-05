@@ -1,6 +1,6 @@
 {
 	"name": "vsc-solidity",
-	"description": "Solidity language support and tools, fork of vscode-solidity.",
+	"description": "Extended solidity support for VSCode - based on vscode-solidity.",
 	"keywords": [
 		"solidity",
 		"ethereum",

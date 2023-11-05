@@ -1,10 +1,10 @@
-# Solidity support VSCode
+# Solidity for Visual Studio Code.
 
 [![Version](https://vsmarketplacebadges.dev/version/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity#review-details)
 
 _Disclaimer_: bugs likely
 
-# FEATURES
+## EXTENDED FEATURES OVERVIEW
 
 - quickfixes:
   - import missing symbols (supports remappings)
