@@ -24,15 +24,13 @@ export class CodeWalkerService {
 	constructor(rootPath: string, config: SolidityConfig) {
 		this.rootPath = rootPath
 		this.config = config
-		console.debug("walker.rootPath", rootPath)
-		console.debug("walker.config", this.config)
 		if (this.rootPath != null) {
 			const { project, sources } = createProject(this.rootPath, this.config)
 			this.project = project
 			this.resolvedSources = sources
 		}
 
-		this.initDocuments(this.config.initExclude)
+		this.initDocuments(this.config.project.exclude)
 	}
 
 	public initDocuments(initExclude: string[]) {
@@ -229,7 +227,7 @@ export class CodeWalkerService {
 
 			this.parsedDocumentsCache.push(newDocument)
 		} catch (error) {
-			console.debug("Unhandled (parse)", error)
+			console.error("Unhandled (parse)", error)
 			// console.log(JSON.stringify(error));
 			/*
             // if we error parsing (cannot cater for all combos) we fix by removing current line.

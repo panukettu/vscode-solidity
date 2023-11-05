@@ -34,7 +34,7 @@ export class ClientCompilers {
 				CompilerType[CompilerType.Extension],
 			]
 			const selectedCompiler: string = await vscode.window.showQuickPick(compilers)
-			vscode.workspace.getConfiguration("solidity").update("compilerType", selectedCompiler, target)
+			vscode.workspace.getConfiguration("solidity").update("compiler.location", selectedCompiler, target)
 			vscode.window.showInformationMessage(`Compiler changed to: ${selectedCompiler}`)
 		} catch (e) {
 			vscode.window.showErrorMessage(`Error changing default compiler: ${e}`)
@@ -43,7 +43,7 @@ export class ClientCompilers {
 
 	public async downloadSolcAndSetAsLocal(target: vscode.ConfigurationTarget, folderPath: string) {
 		const downloadPath = await this.downloadRemoteVersion(folderPath)
-		vscode.workspace.getConfiguration("solidity").update("localSolcVersion", downloadPath, target)
+		vscode.workspace.getConfiguration("solidity").update("compiler.version.local", downloadPath, target)
 	}
 
 	public async downloadRemoteVersion(folderPath: string): Promise<string> {
@@ -91,7 +91,7 @@ export class ClientCompilers {
 					}
 				}
 			}
-			vscode.workspace.getConfiguration("solidity").update("remoteSolcVersion", updateValue, target)
+			vscode.workspace.getConfiguration("solidity").update("compiler.version.remote", updateValue, target)
 		})
 	}
 
@@ -128,7 +128,7 @@ export class ClientCompilers {
 			vscode.window.setStatusBarMessage("Compilation success!", 5000)
 			return this.processCompilationOutput(output, this.outputChannel, args)
 		} catch (e) {
-			console.debug(e)
+			console.error(e)
 			this.initializeSolcs(args.solcType).then(() => {
 				const output = this.multisolc.compileInputWith(args.solcInput, args.solcType)
 				vscode.window.setStatusBarMessage("Compilation success!", 5000)

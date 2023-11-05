@@ -21,15 +21,10 @@ export function compileAllContracts(state: ClientState) {
 	}
 	const rootPath = getCurrentProjectInWorkspaceRootFsPath()
 
-	const { libs, libSources } = Config.getLibs()
+	const config = Config.getConfig()
 
 	const contractsCollection = new SourceDocumentCollection()
-	const project = createProject(rootPath, {
-		libs,
-		libSources,
-		sources: Config.getSources(),
-		remappings: getSolidityRemappings(),
-	} as SolidityConfig).project
+	const project = createProject(rootPath, config).project
 
 	// Process open Text Documents first as it is faster (We might need to save them all first? Is this assumed?)
 

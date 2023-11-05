@@ -168,7 +168,7 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 				}
 			},
 			onUnhandled: (result, output, error) => {
-				console.debug(error)
+				console.error(error)
 				return {
 					status: ExecStatus.Error,
 					ui: {

@@ -47,7 +47,7 @@ export const commandTestInfo = (state: ClientState) => async (...args: Lens.Forg
 					state.compilers.outputChannel.appendLine(`- Smallest contract: ${smallest.name} (${smallest.size})`)
 					state.compilers.outputChannel.appendLine(`- Biggest contract: ${bigggest.name} (${bigggest.size})`)
 				} catch (e) {
-					console.debug(e)
+					console.error(e)
 					state.compilers.outputChannel.appendLine("*** Could not calculate total size of contracts.")
 				}
 			}

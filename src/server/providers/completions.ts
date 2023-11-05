@@ -2,7 +2,7 @@ import * as vscode from "vscode-languageserver"
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { DotCompletionService } from "../code/utils/dotCompletionService"
 import { CodeWalkerService } from "../codewalker"
-import { settings } from "../server-settings"
+import { settings } from "../server-config"
 import { getGlobalKeywordCompletions } from "./utils/completion/globals"
 import {
 	handleCustomFunctionCompletion,

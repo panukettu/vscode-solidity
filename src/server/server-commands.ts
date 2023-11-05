@@ -59,14 +59,13 @@ export const setDiagnostics = (
 	range?: Range,
 	params?: ExecuteCommandParams,
 ) => {
-	// console.debug(params)
 	try {
 		const [, , diagnostics] = params.arguments as [any, any, [string, Diagnostic[]][]]
 		diagnostics.forEach(([uri, diagnostics]) => {
 			connection.sendDiagnostics({ uri, diagnostics })
 		})
 	} catch (e) {
-		console.debug(e)
+		console.error(e)
 		throw new Error(`lens.server.diagnostic.set failed: ${e.message}`)
 	}
 }
@@ -76,7 +75,7 @@ export const clearDiagnostic = (walker: CodeWalkerService) => {
 			connection.sendDiagnostics({ uri: doc.sourceDocument.absolutePath, diagnostics: [] })
 		})
 	} catch (e) {
-		console.debug(e)
+		console.error(e)
 		throw new Error(`lens.server.diagnostic.clear failed: ${e.message}`)
 	}
 }

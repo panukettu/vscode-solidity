@@ -5,7 +5,7 @@ import debounce from "lodash.debounce"
 import * as vscode from "vscode-languageserver/node"
 import { URI } from "vscode-uri"
 import { connection } from "../server"
-import { config, config as configImport, getCurrentMultisolcSettings, settings } from "./server-settings"
+import { config, config as configImport, getCurrentMultisolcSettings, settings } from "./server-config"
 import { initCommon } from "./server-utils"
 export let validatingDocument = false
 export let validatingAllDocuments = false
@@ -27,7 +27,7 @@ export async function createServerMultisolc(settings: MultisolcSettings) {
 	compilerInitialized = true
 }
 
-const validateDebounced = debounce(validate, configImport.validationDelay, {
+const validateDebounced = debounce(validate, configImport.validation.delay, {
 	leading: false,
 	trailing: true,
 })
@@ -97,7 +97,7 @@ export function validate(document: vscode.TextDocument) {
 				linterDiagnostics = settings.linter.validate(filePath, documentText)
 			}
 		} catch (e) {}
-		if (configImport.validateOnChange || configImport.validateOnOpen || configImport.validateOnSave) {
+		if (configImport.validation.onChange || configImport.validation.onOpen || configImport.validation.onSave) {
 			const isFSol = filePath.endsWith(".t.sol") || filePath.endsWith(".s.sol")
 			if (isFSol) {
 				if (!forgeInfoShown) {
@@ -111,7 +111,7 @@ export function validate(document: vscode.TextDocument) {
 					filePath,
 					documentText,
 					configImport,
-					configImport.compilerType,
+					configImport.compiler.location,
 				)
 
 				for (const errorItem of errors) {
@@ -132,7 +132,7 @@ export function validate(document: vscode.TextDocument) {
 					}
 				}
 			} catch (e) {
-				console.debug("Unhandled:", e)
+				console.error("Unhandled:", e)
 			}
 		}
 

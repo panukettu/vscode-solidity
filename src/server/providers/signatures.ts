@@ -40,7 +40,7 @@ export const provideSignatureHelp = (
 			activeSignature: 0,
 		}
 	} catch (e) {
-		// console.debug("SignatureHelp", e);
+		// console.error("SignatureHelp", e);
 		return null
 	}
 }

@@ -15,7 +15,7 @@ import {
 	validateAllDocuments,
 	validateDocument,
 } from "./server/server-compiler"
-import { config, handleConfigChange, handleInitialize, handleInitialized, settings } from "./server/server-settings"
+import { config, handleConfigChange, handleInitialize, handleInitialized, settings } from "./server/server-config"
 import { CommandParamsBase } from "./server/server-types"
 import { getCodeWalkerService, initCommon } from "./server/server-utils"
 
@@ -38,7 +38,7 @@ connection.onInitialized((params) => {
 	handleInitialized()
 })
 connection.onRequest("CompilerError", (params) => {
-	console.debug("CompilerError", params)
+	console.error("CompilerError", params)
 })
 /* -------------------------------------------------------------------------- */
 /*                                   Actions                                  */
@@ -81,7 +81,7 @@ connection.onExecuteCommand((params) => {
 			range ? vscode.Range.create(range[0], range[1]) : undefined,
 		)
 	} catch (e) {
-		console.debug("Unhandled", e.message)
+		console.log("Unhandled", e.message)
 		return null
 	}
 })
@@ -98,20 +98,15 @@ connection.onDidChangeWatchedFiles((_change) => {
 })
 
 connection.onCodeAction((handler) => {
-	// console.debug("OnCodeAction", handler)
 	initCommon(handler.textDocument)
 	const docUtil = new DocUtil(handler.textDocument, handler.range, getCodeWalkerService())
 	return getCodeActionFixes(docUtil, handler.context.diagnostics)
-})
-connection.onCodeActionResolve((handler) => {
-	// console.debug("CodeActionResolve", handler)
-	return handler
 })
 
 connection.onDidChangeConfiguration((change) => handleConfigChange(change))
 
 documents.onDidChangeContent((event) => {
-	if (!config.validateOnChange || event.document.version < 2 || !compilerInitialized) return
+	if (!config.validation.onChange || event.document.version < 2 || !compilerInitialized) return
 	validateDocument(event.document)
 })
 
@@ -127,11 +122,12 @@ documents.onDidClose((event) => {
 	})
 })
 documents.onDidOpen(async (event) => {
-	if (!config.validateOnOpen || !compilerInitialized) return
+	if (!config.validation.onOpen || !compilerInitialized) return
 	validateDocument(event.document)
 })
+
 documents.onDidSave(async (event) => {
-	if (!config.validateOnSave || !compilerInitialized) return
+	if (!config.validation.onSave || !compilerInitialized) return
 	validateDocument(event.document)
 })
 

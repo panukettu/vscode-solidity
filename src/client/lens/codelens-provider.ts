@@ -33,7 +33,6 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 			const text = document.getText()
 			let matches: RegExpExecArray | null
 
-			// biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
 			while ((matches = regex.exec(text)) !== null) {
 				const posStart = document.positionAt(matches.index)
 				const posEnd = document.positionAt(matches.index + matches[0].length)

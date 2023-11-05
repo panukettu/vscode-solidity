@@ -154,7 +154,7 @@ export const handleCustomFunctionCompletion = (
 			),
 		)
 	} catch (e) {
-		// console.debug(e);
+		// console.error(e);
 		return handleDefault(document, offset)
 	}
 }

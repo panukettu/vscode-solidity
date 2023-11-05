@@ -10,40 +10,40 @@ export function registerConfigSetters(state: ClientState): void {
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableCodeLens"], () => {
 			vscode.workspace.getConfiguration("solidity").update("enableCodeLens", false, true)
 		}),
-		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.test.disableExecuteOnSave"], () => {
-			vscode.workspace.getConfiguration("solidity").update("test.executeOnSave", false, false)
+		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableExecuteOnSave"], () => {
+			vscode.workspace.getConfiguration("solidity.test").update("executeOnSave", false, false)
 		}),
-		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.test.enableExecuteOnsave"], () => {
-			vscode.workspace.getConfiguration("solidity").update("test.executeOnSave", true, false)
+		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.enableExecuteOnSave"], () => {
+			vscode.workspace.getConfiguration("solidity.test").update("executeOnSave", true, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.test.enableTracing"], () => {
-			vscode.workspace.getConfiguration("solidity").update("test.verbosity", 5, false)
+			vscode.workspace.getConfiguration("solidity.test").update("verbosity", 5, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.test.disableTracing"], () => {
-			vscode.workspace.getConfiguration("solidity").update("test.verbosity", 2, false)
+			vscode.workspace.getConfiguration("solidity.test").update("verbosity", 2, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.enableValidateOnChange"], () => {
-			vscode.workspace.getConfiguration("solidity").update("validateOnChange", true, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onChange", true, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableValidateOnChange"], () => {
-			vscode.workspace.getConfiguration("solidity").update("validateOnChange", false, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onChange", false, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.enableValidateOnSave"], () => {
-			vscode.workspace.getConfiguration("solidity").update("validateOnSave", true, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onSave", true, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableValidateOnSave"], () => {
-			vscode.workspace.getConfiguration("solidity").update("validateOnSave", false, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onSave", false, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.enableValidateOnOpen"], () => {
-			vscode.workspace.getConfiguration("solidity").update("validateOnOpen", true, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onOpen", true, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableValidateOnOpen"], () => {
-			vscode.workspace.getConfiguration("solidity").update("validateOnOpen", false, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onOpen", false, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableAllValidation"], () => {
-			vscode.workspace.getConfiguration("solidity").update("validateOnOpen", false, false)
-			vscode.workspace.getConfiguration("solidity").update("validateOnSave", false, false)
-			vscode.workspace.getConfiguration("solidity").update("validateOnChange", false, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onOpen", false, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onSave", false, false)
+			vscode.workspace.getConfiguration("solidity.validation").update("onChange", false, false)
 		}),
 	)
 }

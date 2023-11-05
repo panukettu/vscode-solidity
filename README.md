@@ -1,4 +1,4 @@
-# Solidity for Visual Studio Code
+# Solidity support VSCode
 
 [![Version](https://vsmarketplacebadges.dev/version/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Downloads](https://vsmarketplacebadges.dev/downloads-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Installs](https://vsmarketplacebadges.dev/installs-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity) [![Rating](https://vsmarketplacebadges.dev/rating-short/0xp.vsc-solidity.png)](https://marketplace.visualstudio.com/items?itemName=0xp.vsc-solidity#review-details)
 
@@ -6,31 +6,53 @@ _Disclaimer_: bugs likely
 
 # FEATURES
 
-- quickfix: import missing symbols (remapping support)
-- quickfix: variable naming errors (and argument-dependent lookup)
-- execute t.sol functions and get log/assertion data inline
-- compiler configuration added to settings
-- can configure location for compilation output
-- set background sol validation to trigger onChange/onSave/onOpen
-- toggle this validation from context menus etc.
-- go to definition, find all references and auto completions "fixed_tm" for library based things.
-- signature help for function calls.
-- peek 4byte selectors from codelens above func
-- create natspec stubs from codelens above functions
-- bundles all js dependencies.
-- works bit faster on big projects.
-  - does not validate all documents on open.
-  - validation is currently disabled in t.sol or s.sol files.
-- .solhintignore works (atleast at one point it did)
-- removes Nethereum, Solium and dApproject related things.
+- quickfixes:
+  - import missing symbols (supports remappings)
+  - correct naming errors (and argument-dependent lookup)
+    - fuzzy suggestion for this can be configured with `solidity.fuzzLevel` items.
+  - - originals:
+    * add spdx license
+    * correct compiler version to match extension settings
+    * address checksum
+- execute forge t.sol functions
+  - get function level output
+  - get assertion results inline at location (requires using a label)
+  - get logs inline at the location (requires using a label)
+- compiler
+
+  - configure compilation output location
+  - configure full settings or just output selection
+
+- validation (mostly like original extension)
+
+  - diagnostic on exact locations when compiler has errors
+  - code validation with triggers: onChange | onSave | onOpen
+  - toggle this validation on/off from menus.
+  - note: validation is currently disabled in t.sol or s.sol files and there is no automatic full validation of project.
+
+- signature help
+  - get signature help on function calls args
+- codelens
+  - peek 4byte selectors from codelens above func
+  - create natspec stubs from codelens above functions
+- improvements
+
+  - go to definition is more aware of context,
+  - find all references works with library based patterns
+  - auto completions work with library based patterns
+  - extension bundles all deps so no node_modules included
+  - works a bit faster on big projects than original
+  - .solhintignore works (atleast at one point it did)
+  - removes Nethereum, Solium and dApproject related things.
 
 ## ISSUES
 
-- base extension compilation most likely crashes if you have huuuuge source files
-- t.sol and s.sol files have validation mechanism disabled for now (too unstable on big repos)
-- use "solidity.diagnostics.clear" command if things get too heavy on UI.
-- go to definition can at times show eg. "click to show 3 definitions" - it will rather force definitions than not have one.
-- no idea how this runs on hardware other than apple silicon
+- copilot code-actions break autofix, put cursor at the start of diagnostic for keyboard trigger or disable copilot code-actions
+- extension provided compilation likely to crash with huuuuge source files
+- t.sol and s.sol files have validation mechanism disabled for now - too unstable on big repos
+- go to definition can at times show eg. "click to show 3 definitions" - it rather forces a definition than not providing one.
+- no idea of performance outside apple silicon
+- "solidity.diagnostics.clear" command exists if things get too heavy on UI.
 
 _for feature ideas just https://github.com/panukettu/vscode-solidity_
 _probably moving this extension to some more comfy fork later buuut this works for now_
@@ -108,23 +130,23 @@ _probably moving this extension to some more comfy fork later buuut this works f
 - solidity.test.verbosity
   - forge verbosity setting
   - default: 3 (traces on failed tests)
-- solidity.compilerOutputSelection
+- solidity.compiler.outputSelection
   - configure contract output items.
-- solidity.compilerSettings
-  - configure all solcjs supported settings for the compiler.
-- solidity.validateOnSave:
+- solidity.compiler.settings
+  - configure all solcjs supported settings for the compiler. ![Reference](https://github.com/panukettu/vscode-solidity/blob/master/src/shared/compiler/types-solc.ts#L371)
+- solidity.validation.onSave:
   - validate file on save.
   - default: true
-- solidity.validateOnChange
+- solidity.validation.onChange
   - validate file on change (typing)
   - default: false
-- solidity.validateOnOpen
+- solidity.validation.onOpen
   - validate file on open.
   - default: true
-- solidity.outDir
+- solidity.compiler.outDir
   - output for compilation artifacts generated from this extension.
   - default: 'bin'
-- solidity.sources (string):
+- solidity.project.sources (string):
   - your solidity source folder.
   - tries to get from foundry.toml or hardhat.config.js if not set.
   - default: ""
@@ -135,18 +157,19 @@ _probably moving this extension to some more comfy fork later buuut this works f
 
 ## CONFIG CHANGES
 
-- solidity.defaultCompiler -> solidity.compilerType
+- solidity.sources -> solidity.project.sources
+- solidity.defaultCompiler -> solidity.compiler.location
   - default: "Default"
-- solidity.nodemodulespackage -> solidity.npmSolcPackage
+- solidity.nodemodulespackage -> solidity.compiler.version.npm
   - default: "solc"
-- solidity.packageDefaultDependenciesDirectory -> solidity.libs
+- solidity.packageDefaultDependenciesDirectory -> solidity.project.libs
   - default: ["node_modules", "lib"]
-- solidity.packageDefaultDependenciesContractsDirectory -> solidity.libSources
+- solidity.packageDefaultDependenciesContractsDirectory -> solidity.project.libSources
   - default: ["src", "contracts"]
-- remote solc -> solidity.remoteSolcVersion
-- local solc -> solidity.localSolcVersion
-- npm solc -> solidity.npmSolcPackage
-- compiler -> solidity.compilerType
+- remote solc -> solidity.compiler.version.remote
+- local solc -> solidity.compiler.version.local
+- npm solc -> solidity.compiler.version.npm
+- compiler -> solidity.compiler.location
 
 ## _DISCLAIMER_ no idea how many things below are not supported by this version
 

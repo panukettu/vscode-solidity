@@ -2,45 +2,49 @@ import * as vscode from "vscode"
 import type { ContractLevelSolcOutput, SolcInput } from "../shared/compiler/types-solc"
 import { CompilerType } from "../shared/enums"
 import { findFirstRootProjectFile } from "../shared/project/utils"
-import type { MultisolcSettings } from "../shared/types"
+import type { MultisolcSettings, SolidityConfig } from "../shared/types"
 import { replaceRemappings } from "../shared/util"
 
 // biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export class Config {
 	public static getConfig() {
-		return vscode.workspace.getConfiguration().get<string[]>("solidity")
-	}
-	public static getLibs(): { libs: string[]; libSources: string[] } {
-		return {
-			libs: vscode.workspace.getConfiguration("solidity").get<string[]>("libs"),
-			libSources: vscode.workspace.getConfiguration("solidity").get<string[]>("libSources"),
-		}
+		return vscode.workspace.getConfiguration().get<SolidityConfig>("solidity")
 	}
 
-	public static getSources() {
-		return vscode.workspace.getConfiguration("solidity").get<string>("sources")
+	public static getProject() {
+		return vscode.workspace.getConfiguration("solidity").get<{
+			excludes: string[]
+			sources: string
+			libs: string[]
+			libSources: string[]
+			remappings: string[]
+			remappingsWindows: string[]
+			remappingsUnix: string[]
+			monorepo: boolean
+		}>("project")
+	}
+	public static getCompiler() {
+		return vscode.workspace.getConfiguration("solidity").get<{
+			outDir: string
+			outputSelection: ContractLevelSolcOutput[]
+			settings: Partial<SolcInput["settings"]>
+			version: {
+				npm: string
+				remote: string
+				local: string
+			}
+			location: CompilerType
+		}>("compiler")
 	}
 	public static getTestVerbosity() {
 		return vscode.workspace.getConfiguration("solidity").get<number>("test.verbosity")
 	}
 	public static getOutDir() {
-		return vscode.workspace.getConfiguration("solidity").get<string>("outDir")
-	}
-
-	public static getCompilerOptimisation() {
-		return vscode.workspace.getConfiguration("solidity").get<number>("compilerOptimization")
+		return vscode.workspace.getConfiguration("solidity").get<string>("compiler.outDir")
 	}
 
 	public static getCompilerType(): CompilerType {
-		return CompilerType[vscode.workspace.getConfiguration("solidity").get<string>("compilerType")]
-	}
-
-	public static getRemappings() {
-		return vscode.workspace.getConfiguration("solidity").get<string[]>("remappings")
-	}
-
-	public static getRemappingsWindows() {
-		return vscode.workspace.getConfiguration("solidity").get<string[]>("remappingsWindows")
+		return CompilerType[vscode.workspace.getConfiguration("solidity").get<string>("compiler.location")]
 	}
 
 	public static getCompilerOptions(
@@ -48,40 +52,44 @@ export class Config {
 		sourceDir?: string | null,
 		overrideType?: CompilerType,
 	): MultisolcSettings {
-		const compilerSettings = vscode.workspace
-			.getConfiguration("solidity")
-			.get<Partial<SolcInput["settings"]>>("compilerSettings")
-		const outputSelection = vscode.workspace
-			.getConfiguration("solidity")
-			.get<ContractLevelSolcOutput[]>("compilerOutputSelection")
-		compilerSettings.outputSelection
-			? compilerSettings.outputSelection
-			: // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
-			  (compilerSettings.outputSelection = {
-					"*": { "*": outputSelection, "": [] },
+		const compiler = Config.getCompiler()
+		compiler.settings.outputSelection
+			? compiler.settings.outputSelection
+			: (compiler.settings.outputSelection = {
+					"*": { "*": compiler.outputSelection, "": [] },
 			  })
+		const project = Config.getProject()
+
 		return {
-			excludePaths: exclusions || vscode.workspace.getConfiguration("solidity").get<string[]>("initExclude"),
+			excludePaths: exclusions || project.excludes,
 			rootPath: getCurrentWorkspaceRootFsPath(),
-			sourceDir: sourceDir ? sourceDir : sourceDir === null ? null : Config.getSources(),
+			sourceDir: sourceDir ? sourceDir : sourceDir === null ? null : Config.getProject().sources,
 			outDir: Config.getOutDir(),
 			compilerConfig: {
 				language: "Solidity",
-				settings: compilerSettings,
+				settings: compiler.settings,
 			},
-			remoteSolcVersion: vscode.workspace.getConfiguration("solidity").get<string>("remoteSolcVersion"),
-			localSolcVersion: vscode.workspace.getConfiguration("solidity").get<string>("localSolcVersion"),
-			npmSolcPackage: vscode.workspace.getConfiguration("solidity").get<string>("npmSolcPackage"),
-			selectedType: overrideType || Config.getCompilerType(),
+			remoteSolcVersion: compiler.version.remote,
+			localSolcVersion: compiler.version.local,
+			npmSolcPackage: compiler.version.npm,
+			selectedType: overrideType || compiler.location,
 		}
 	}
 
+	public static getRemappings() {
+		return vscode.workspace.getConfiguration("solidity").get<string[]>("project.remappings")
+	}
+
+	public static getRemappingsWindows() {
+		return vscode.workspace.getConfiguration("solidity").get<string[]>("project.remappingsWindows")
+	}
+
 	public static getRemappingsUnix(): string[] {
-		return vscode.workspace.getConfiguration("solidity").get<string[]>("remappingsUnix")
+		return vscode.workspace.getConfiguration("solidity").get<string[]>("project.remappingsUnix")
 	}
 
 	public static getMonoRepoSupport(): boolean {
-		return vscode.workspace.getConfiguration("solidity").get<boolean>("monoRepoSupport")
+		return vscode.workspace.getConfiguration("solidity").get<boolean>("project.monorepo")
 	}
 }
 

@@ -14,7 +14,7 @@ export default defineConfig(async (opts) => {
 		format: "cjs",
 		outDir: "./out/src",
 		platform: "node",
-		sourcemap: false,
+		sourcemap: true,
 		bundle: true,
 		noExternal: [
 			// /(?:[^vscode]).*?([\w\-]+)/,
@@ -27,6 +27,7 @@ export default defineConfig(async (opts) => {
 			"solhint",
 			"lodash.debounce",
 			"prettier",
+			"fuse.js",
 			"prettier-plugin-solidity",
 			"solparse-exp-jb",
 			"vscode-languageclient",
@@ -39,7 +40,7 @@ export default defineConfig(async (opts) => {
 		treeshake: true,
 		splitting: true,
 		tsconfig: "./tsconfig.json",
-		minify: true,
+		minify: false,
 		clean: true,
 		async onSuccess() {
 			if (opts.watch) return
@@ -59,7 +60,7 @@ export default defineConfig(async (opts) => {
 				...glob.sync("./out/src/yaml-*.js"),
 			]
 
-			console.debug("deleted", files)
+			console.log("deleted", files)
 			if (files.length > 0) {
 				for (const file of files) {
 					unlinkSync(file)

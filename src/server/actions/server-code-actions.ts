@@ -1,6 +1,6 @@
-import { ParsedCode } from "@server/code/ParsedCode"
-import { ParsedContract } from "@server/code/ParsedContract"
-import { ParsedImport } from "@server/code/ParsedImport"
+import type { ParsedContract } from "@server/code/ParsedContract"
+import type { ParsedImport } from "@server/code/ParsedImport"
+import { fuzzySearchByName } from "@server/search/fuzzy"
 import { DocUtil } from "@server/utils/text-document"
 import * as vscode from "vscode-languageserver/node"
 
@@ -19,11 +19,11 @@ const variableName: ActionDefinition = {
 	regex: () => new RegExp(/Did you mean "(?<variable>.*?)"((?=\s?)?.*?"(?<second>.*?)")?/, "gm"),
 	createFix: (doc, diagnostic) => {
 		const match = variableName.regex().exec(diagnostic.message)
-		if (match) {
-			const result: vscode.CodeAction[] = []
-			const wordRange = doc.wordRange(doc.range.start)
+		const diagnosticsFixed = [diagnostic]
+		const result: vscode.CodeAction[] = []
+		const wordRange = doc.wordRange(doc.range.start)
 
-			const diagnosticsFixed = [diagnostic]
+		if (match) {
 			if (match.groups.variable) {
 				const isPreferred = doc.lineHasCurrentWord(doc.getLine(diagnostic.range.start.line), doc.range)
 
@@ -48,10 +48,40 @@ const variableName: ActionDefinition = {
 				return result
 			}
 		}
-		return null
+		return createFuzzyNameFix(doc, diagnostic, wordRange)
 	},
 }
-const variableName2: ActionDefinition = {
+
+const createFuzzyNameFix = (
+	doc: DocUtil,
+	diagnostic: vscode.Diagnostic,
+	range: vscode.Range,
+	thresholdOverride?: number,
+	preferredOverride?: boolean,
+) => {
+	// const wordRange = doc.wordRange(doc.range.start)
+	const diagnosticsFixed = [diagnostic]
+	const result: vscode.CodeAction[] = []
+	const word = doc.toText(range)
+
+	const foundMatches = fuzzySearchByName(word, doc.getSelectedDocument(), doc, true, thresholdOverride)
+	if (foundMatches.length > 0) {
+		const maxScore = Math.max(...foundMatches.map((m) => m.score))
+		for (const m of foundMatches) {
+			const fix = vscode.CodeAction.create(`Change to: ${m.match.name}`, vscode.CodeActionKind.QuickFix)
+			fix.edit = {
+				changes: doc.change({ replace: [{ range, text: m.match.name }] }),
+			}
+			fix.isPreferred = preferredOverride != null ? preferredOverride : m.score === maxScore
+			fix.diagnostics = diagnosticsFixed
+			result.push(fix)
+		}
+		return result
+	}
+	return null
+}
+
+const memberLookup: ActionDefinition = {
 	code: ["9582"],
 	kinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Empty],
 	regex: () =>
@@ -61,53 +91,34 @@ const variableName2: ActionDefinition = {
 		),
 	regexpInner: (min: number, max: number, variable: string) => new RegExp(`[${variable}]{${min},${max}}`, "g"),
 	createFix: (doc, diagnostic) => {
-		const match = variableName2.regex().exec(diagnostic.message)
+		const match = memberLookup.regex().exec(diagnostic.message)
+		const meta = doc.getLineMeta()
 		if (match) {
 			const result: vscode.CodeAction[] = []
 			const diagnosticsFixed = [diagnostic]
-			if (match.groups.variable && match.groups.contract) {
-				const range = 2
-				const min = match.groups.variable.length > range ? match.groups.variable.length - range : 1
-				const max = match.groups.variable.length + range
-
-				// const fuzzVariableRegexpImproved =
-				const matches: { match: ParsedCode; score: number }[] = []
-
-				const foundMatches = doc.findCache<{ contract: ParsedContract; matches: typeof matches }>((d) => {
+			if (match?.groups?.variable && match?.groups?.contract) {
+				const foundMatches = doc.findCache<{
+					contract: ParsedContract
+					matches: ReturnType<typeof fuzzySearchByName>
+				}>((d) => {
 					const contract = d.findContractByName(match.groups.contract)
 					if (!contract) return { found: false, result: undefined }
+					const matches = fuzzySearchByName(match.groups.variable, contract, doc, true)
 
-					for (const item of contract.functions
-						.concat(contract.functions as any)
-						.concat(contract.structs as any)
-						.concat(contract.stateVariables as any)
-						.concat(contract.enums as any)
-						.concat(contract.events as any)
-						.concat(
-							contract.contractIsStatements.flatMap((c) => {
-								const contract = c.initialiseContractReference()
-								return [
-									...contract.functions,
-									...contract.stateVariables,
-									...contract.enums,
-									...contract.events,
-									...contract.structs,
-								]
-							}) as any,
-						)) {
-						const fullMatch = variableName2.regexpInner(min, max, match.groups.variable).exec(item.name)
-						if (fullMatch?.length && fullMatch[0].length) {
-							matches.push({ match: item, score: fullMatch[0].length })
-						}
+					return {
+						found: true,
+						result: { contract, matches },
 					}
-					return { found: true, result: { contract, matches } }
 				})
 				const maxScore = Math.max(...foundMatches.matches.map((m) => m.score))
 				for (const m of foundMatches.matches) {
+					const isWrapper = meta.isWrapper(match.groups.contract)
 					const fix = vscode.CodeAction.create(`Change to: ${m.match.name}`, vscode.CodeActionKind.QuickFix)
 					const nextWord = doc.getNextWord()
 					fix.edit = {
-						changes: doc.change({ replace: [{ range: nextWord, text: m.match.name }] }),
+						changes: doc.change({
+							replace: [{ range: isWrapper ? doc.getNextWord(nextWord.start) : nextWord, text: m.match.name }],
+						}),
 					}
 					fix.isPreferred = m.score === maxScore
 					fix.diagnostics = diagnosticsFixed
@@ -117,7 +128,15 @@ const variableName2: ActionDefinition = {
 				return result
 			}
 		}
-		return null
+
+		const isTypeWrap =
+			meta.isWrapper("type") ||
+			meta.isWrapper("address") ||
+			meta.isWrapper("uint256") ||
+			meta.isWrapper("bytes32") ||
+			meta.isWrapper("bytes")
+		const nextWord = doc.getNextWord()
+		return createFuzzyNameFix(doc, diagnostic, isTypeWrap ? doc.getNextWord(nextWord.start) : nextWord)
 	},
 }
 type ImportResult = {
@@ -134,6 +153,7 @@ const importer: ActionDefinition = {
 	createFix: (doc, diagnostic): vscode.CodeAction[] => {
 		try {
 			const symbol = doc.getWord(diagnostic.range.start)
+
 			/* -------------------------------------------------------------------- */
 			/*                                get all                               */
 			/* -------------------------------------------------------------------- */
@@ -192,11 +212,13 @@ const importer: ActionDefinition = {
 			/* -------------------------------------------------------------------- */
 
 			const docImports = doc.getImports()
+			const diagnosticsFixed = [diagnostic]
 			/* ----------------------------- internals ---------------------------- */
+
 			const internals = selectedDocumentImports.map((imp, i) => {
 				const importPath = imp.isRelative ? imp.relativePath : imp.import.from
 				const fix = vscode.CodeAction.create(`Import from '${importPath}'`, vscode.CodeActionKind.QuickFix)
-				fix.diagnostics = [diagnostic]
+				fix.diagnostics = diagnosticsFixed
 				fix.edit = {
 					changes: docImports[imp.index].addSymbol(symbol),
 				}
@@ -207,7 +229,7 @@ const importer: ActionDefinition = {
 			const externals = imports.map((imp, i) => {
 				const importPath = imp.importPath ? imp.importPath : imp.isRelative ? imp.relativePath : imp.import.from
 				const fix = vscode.CodeAction.create(`Import from '${importPath}'`, vscode.CodeActionKind.QuickFix)
-				fix.diagnostics = [diagnostic]
+				fix.diagnostics = diagnosticsFixed
 				fix.edit = {
 					changes: docImports[docImports.length - 1].addNewBelow(symbol, importPath),
 				}
@@ -215,14 +237,21 @@ const importer: ActionDefinition = {
 				return fix
 			})
 			/* ------------------------------ return ------------------------------ */
-			return [...internals, ...externals.filter((e) => !internals.find((i) => i.title === e.title))]
+			const result = [...internals, ...externals.filter((e) => !internals.find((i) => i.title === e.title))].filter(
+				Boolean,
+			)
+			if (result.length) {
+				return result.concat(createFuzzyNameFix(doc, diagnostic, doc.wordRange(), 0.05, false))
+			} else if (diagnostic.code !== "7576") {
+				return createFuzzyNameFix(doc, diagnostic, doc.wordRange())
+			}
 		} catch (e) {
-			console.debug(e)
+			console.error(e)
 		}
 	},
 }
 
-const actions = [importer, variableName, variableName2] as const
+const actions = [importer, variableName, memberLookup] as const
 
 export const getCodeActionFixes = (document: DocUtil, diagnostics: vscode.Diagnostic[]) => {
 	return diagnostics

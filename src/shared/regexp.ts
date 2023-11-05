@@ -47,3 +47,8 @@ export const keccak256Regexp = () => new RegExp(/(?<=keccak256\(")(.*?)(?="\))/g
 export const nameRegexp = new RegExp(/(?<=\W)(\w+)(?=\()/gs)
 
 export const commentFormatRegexp = new RegExp(/\s(\w.+)/, "s")
+
+export const lineMetadataRegexp = () =>
+	new RegExp(/(?<type>\w+\s?\W+?)?(?<location>\w+)?\s(?<assignment>(?<variable>\w+)\s*=)/, "s")
+export const funcDefMetadataRegexp = () =>
+	new RegExp(/[\(](?<assignment>((?<type>.*?)(?<location>\s\w+)?)\s(?<variable>\w+))\s*[,|\)|{]/, "g")

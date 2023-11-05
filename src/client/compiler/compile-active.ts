@@ -37,13 +37,10 @@ export function compileActiveFile(
 
 	try {
 		const contractsCollection = new SourceDocumentCollection()
-		const { libs, libSources } = Config.getLibs()
-		const project = createProject(getCurrentProjectInWorkspaceRootFsPath(), {
-			sources: Config.getSources(),
-			libs,
-			libSources,
-			remappings: getSolidityRemappings(),
-		} as SolidityConfig).project
+		const projectConfig = Config.getConfig()
+		const compilerConfig = Config.getCompiler()
+		const config = { ...projectConfig, ...compilerConfig }
+		const project = createProject(getCurrentProjectInWorkspaceRootFsPath(), config).project
 
 		const contract = contractsCollection.addSourceDocumentAndResolveImports(
 			editor.document.fileName,
@@ -62,6 +59,6 @@ export function compileActiveFile(
 			solcType: overrideDefaultCompiler || Config.getCompilerType(),
 		})
 	} catch (e) {
-		console.debug("Unhandled:", e.message)
+		console.error("Unhandled:", e.message)
 	}
 }

@@ -8,14 +8,14 @@ import { replaceRemappings } from "../shared/util"
 import SolhintService from "./linter/solhint"
 import { createServerMultisolc } from "./server-compiler"
 import { ExtendedSettings } from "./server-types"
-function defaultConfig(): SolidityConfig {
+function defaultConfig() {
 	const result = {} as SolidityConfig
 
 	let defaultCompiler = CompilerType.Extension
 	for (const key in packageJson.contributes.configuration.properties) {
 		const keys = key.split(".")
-		if (keys.length === 2 && keys[0] === "solidity") {
-			if (key === "solidity.compilerType") {
+		if (keys[0] === "solidity") {
+			if (key === "solidity.compiler.location") {
 				defaultCompiler = CompilerType[packageJson.contributes.configuration.properties[key].default]
 			} else {
 				result[keys[1]] = packageJson.contributes.configuration.properties[key].default
@@ -25,7 +25,10 @@ function defaultConfig(): SolidityConfig {
 
 	return {
 		...result,
-		compilerType: defaultCompiler,
+		compiler: {
+			...result.compiler,
+			location: defaultCompiler,
+		},
 	}
 }
 export const settings: ExtendedSettings = {
@@ -59,9 +62,8 @@ export function handleInitialize(params: vscode.InitializeParams): vscode.Initia
 				triggerCharacters: [".", "/", '"', "'"],
 			},
 			codeActionProvider: {
-				resolveProvider: true,
+				resolveProvider: false,
 				codeActionKinds: [vscode.CodeActionKind.QuickFix],
-				// workDoneProgress: false,
 			},
 			definitionProvider: true,
 			referencesProvider: true,
@@ -106,18 +108,24 @@ export async function handleInitialized() {
 	})
 }
 
-export function updateConfig(soliditySettings: SolidityConfig) {
+export function updateConfig(newConfig: SolidityConfig) {
 	config = {
-		...soliditySettings,
-		compilerType: soliditySettings.compilerType || CompilerType.Extension,
-		remappings: replaceRemappings(
-			soliditySettings.remappings,
-			process.platform === "win32" ? soliditySettings.remappingsWindows : soliditySettings.remappingsUnix,
-		),
+		...newConfig,
+		compiler: {
+			...newConfig.compiler,
+			location: newConfig.compiler.location || CompilerType.Extension,
+		},
+		project: {
+			...newConfig.project,
+			remappings: replaceRemappings(
+				newConfig.project.remappings,
+				process.platform === "win32" ? newConfig.project.remappingsWindows : newConfig.project.remappingsUnix,
+			),
+		},
 	}
-	if (config.linter === "solhint") {
-		settings.linter = new SolhintService(settings.rootPath, config.solhintRules)
-		settings.linter.setIdeRules(config.solhintRules)
+	if (config.linter.type === "solhint") {
+		settings.linter = new SolhintService(settings.rootPath, config.linter.rules)
+		settings.linter.setIdeRules(config.linter.rules)
 	}
 
 	createServerMultisolc(getCurrentMultisolcSettings(config))
@@ -132,7 +140,7 @@ export function getCurrentMultisolcSettings(_config?: SolidityConfig): Multisolc
 		_config = config
 	}
 	return {
-		outDir: config.outDir,
+		outDir: config.compiler.outDir,
 		compilerConfig: {
 			settings: {
 				optimizer: {
@@ -142,12 +150,12 @@ export function getCurrentMultisolcSettings(_config?: SolidityConfig): Multisolc
 			},
 		},
 		rootPath: settings.rootPath,
-		excludePaths: config.initExclude,
-		sourceDir: config.sources,
-		localSolcVersion: config.localSolcVersion,
-		remoteSolcVersion: config.remoteSolcVersion,
-		npmSolcPackage: config.npmSolcPackage,
-		selectedType: config.compilerType,
+		excludePaths: config.project.exclude,
+		sourceDir: config.project.sources,
+		localSolcVersion: config.compiler.version.local,
+		remoteSolcVersion: config.compiler.version.remote,
+		npmSolcPackage: config.compiler.version.npm,
+		selectedType: config.compiler.location,
 	}
 }
 
@@ -161,10 +169,10 @@ async function requestConfig() {
 		]
 		return {
 			...configuration,
-			compilerType: CompilerType[configuration.compilerType] || CompilerType.Extension,
+			compilerType: CompilerType[configuration.compiler.location] || CompilerType.Extension,
 		} as SolidityConfig
 	} catch (e) {
-		console.debug("No config received:", e.message)
+		console.error("No config received:", e.message)
 		return defaultConfig()
 	}
 }

@@ -90,6 +90,7 @@
 		"class-utils": "^0.3.6",
 		"esbuild": "0.19.2",
 		"esbuild-plugin-copy": "^2.1.1",
+		"fuse.js": "^7.0.0",
 		"lodash.unset": "^4.5.2",
 		"obj-walker": "^1.7.0",
 		"reftools": "^1.1.9",
@@ -121,14 +122,63 @@
 			"type": "object",
 			"title": "Solidity",
 			"properties": {
+				"solidity.fuzzLevel.suggestions": {
+					"type": "number",
+					"default": 0.275,
+					"description": "Fuzzy search threshold. 0 = no suggestions, 1 = all suggestions."
+				},
+				"solidity.fuzzLevel.suggestionsLoose": {
+					"type": "number",
+					"default": 0.4,
+					"description": "Next fuzz threshold when no search results are found. set equal/less than fuzzLevel.suggestions to disable."
+				},
+				"solidity.fuzzLevel.suggestionsWithImport": {
+					"type": "number",
+					"default": 0.05,
+					"description": "Fuzzy search threshold when import also exists. 0 = no suggestions, 1 = all suggestions."
+				},
 				"solidity.test.verbosity": {
-					"type": [
-						"number"
-					],
+					"type": "number",
 					"default": 3,
 					"description": "Basically just sets matching forge verbosity, eg. default 3 = -vvv so traces on fails. Some experimental tracing overview is available."
 				},
-				"solidity.compilerOutputSelection": {
+				"solidity.test.executeOnSave": {
+					"type": "boolean",
+					"default": true,
+					"description": "Run forge test in cursor position on file save."
+				},
+				"solidity.compiler.outDir": {
+					"type": "string",
+					"default": "bin",
+					"description": "The output directory for extension compilation results eg. 'bin'"
+				},
+				"solidity.compiler.version.npm": {
+					"type": "string",
+					"default": "solc",
+					"description": "npm package to look for a solc compiler"
+				},
+				"solidity.compiler.version.remote": {
+					"type": "string",
+					"default": "latest",
+					"description": "Remote solc version used, downloaded from 'https://binaries.soliditylang.org/'. 'latest', 'v0.4.3+commit.2353da71'. See: 'Get solidity releases'"
+				},
+				"solidity.compiler.version.local": {
+					"type": "string",
+					"default": "",
+					"description": "Local solc path, eg. 'C://v0.4.3+commit.2353da71.js'"
+				},
+				"solidity.compiler.location": {
+					"type": "string",
+					"description": "Solc location used by default. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `localSolcVersion`. `NPM` looks from node_modules folder or configured 'npmSolcPackage'",
+					"enum": [
+						"Remote",
+						"File",
+						"NPM",
+						"Extension"
+					],
+					"default": "Extension"
+				},
+				"solidity.compiler.outputSelection": {
 					"type": [
 						"string"
 					],
@@ -143,7 +193,7 @@
 					],
 					"description": "Select output items (contract level) from compilation"
 				},
-				"solidity.compilerSettings": {
+				"solidity.compiler.settings": {
 					"type": "object",
 					"default": {
 						"viaIR": true,
@@ -155,50 +205,73 @@
 					},
 					"description": "Compiler settings used. Overrides other configuration values if clashing. (https://docs.soliditylang.org/en/latest/using-the-compiler.html#input-description) "
 				},
-				"solidity.test.executeOnSave": {
-					"type": [
-						"boolean"
-					],
-					"default": true,
-					"description": "Run forge test in cursor position on file save."
+				"solidity.validation.onChange": {
+					"type": "boolean",
+					"default": false,
+					"description": "Compile and provide validations on file changes."
 				},
-				"solidity.initExclude": {
+				"solidity.validation.onSave": {
+					"type": "boolean",
+					"default": true,
+					"description": "Compile and provide validations on file save."
+				},
+				"solidity.validation.onOpen": {
+					"type": "boolean",
+					"default": false,
+					"description": "Compile and provide validations on file open. Will not validate on initial project open."
+				},
+				"solidity.validation.delay": {
+					"type": "number",
+					"default": 350,
+					"description": "Delay (debounce) for triggering validation after file changes (in ms)"
+				},
+				"solidity.project.exclude": {
 					"type": "array",
 					"default": [],
 					"description": "Folders to exclude from sources, i.e: ['temp', 'test']"
 				},
-				"solidity.npmSolcPackage": {
-					"type": "string",
-					"default": "solc",
-					"description": "npm package to look for a solc compiler"
+				"solidity.project.libs": {
+					"type": "array",
+					"default": [
+						"node_modules",
+						"lib"
+					],
+					"description": "Directories to look for dependencies, eg. ['node_modules', 'lib']."
 				},
-				"solidity.outDir": {
-					"type": "string",
-					"default": "bin",
-					"description": "The output directory for extension compilation results eg. 'bin'"
+				"solidity.project.monorepo": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enables multiple project roots. Project is deduced using these files: remappings.txt, truffle-config.js, brownie-config.yaml, foundry.toml, hardhat.config.js, dappfile"
 				},
-				"solidity.remoteSolcVersion": {
-					"type": "string",
-					"default": "latest",
-					"description": "Remote solc version used, downloaded from 'https://binaries.soliditylang.org/'. 'latest', 'v0.4.3+commit.2353da71'. See: 'Get solidity releases'"
-				},
-				"solidity.localSolcVersion": {
+				"solidity.project.sources": {
 					"type": "string",
 					"default": "",
-					"description": "Local solc path, eg. 'C://v0.4.3+commit.2353da71.js'"
+					"description": "Folder containing the solidity sources eg. 'src'. If not specified looks for folder set in foundry.toml or hardhat.config.js (NOT-ts), if not found defaults to project root."
 				},
-				"solidity.compilerType": {
-					"type": "string",
-					"description": "Solc location used by default. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `localSolcVersion`. `NPM` looks from node_modules folder or configured 'npmSolcPackage'",
-					"enum": [
-						"Remote",
-						"File",
-						"NPM",
-						"Extension"
+				"solidity.project.libSources": {
+					"type": "array",
+					"default": [
+						"src",
+						"contracts"
 					],
-					"default": "Extension"
+					"description": "Directories to look for solidity files within libs."
 				},
-				"solidity.linter": {
+				"solidity.project.remappings": {
+					"type": "array",
+					"default": [],
+					"description": "Remappings to resolve contracts to local files / directories, i.e: [\"@openzeppelin/=lib/openzeppelin-contracts\",\"ds-test/=lib/ds-test/src/\"]"
+				},
+				"solidity.project.remappingsWindows": {
+					"type": "array",
+					"default": [],
+					"description": "Windows Remappings to resolve contracts to local Windows files / directories (Note this overrides the generic remapping settings if the OS is Windows) , i.e: [\"@openzeppelin/=C:/lib/openzeppelin-contracts\",\"ds-test/=C:/lib/ds-test/src/\"]"
+				},
+				"solidity.project.remappingsUnix": {
+					"type": "array",
+					"default": [],
+					"description": "Unix Remappings to resolve contracts to local Unix files / directories (Note this overrides the generic remapping settings if the OS is Unix based), i.e: [\"@openzeppelin/=/opt/lib/openzeppelin-contracts\",\"ds-test/=/opt/lib/ds-test/src/\"]"
+				},
+				"solidity.linter.type": {
 					"type": "string",
 					"enum": [
 						"",
@@ -207,7 +280,7 @@
 					"default": "solhint",
 					"description": "Enables linting using solhint."
 				},
-				"solidity.solhintRules": {
+				"solidity.linter.rules": {
 					"type": [
 						"object"
 					],
@@ -223,71 +296,6 @@
 						"forge"
 					],
 					"description": "Set the formatter used, prettier (default) or forge fmt (note: forge needs to exist)"
-				},
-				"solidity.validateOnChange": {
-					"type": "boolean",
-					"default": false,
-					"description": "Compile and provide validations on file changes."
-				},
-				"solidity.validateOnSave": {
-					"type": "boolean",
-					"default": true,
-					"description": "Compile and provide validations on file save."
-				},
-				"solidity.validateOnOpen": {
-					"type": "boolean",
-					"default": false,
-					"description": "Compile and provide validations on file open. Will not validate on initial project open."
-				},
-				"solidity.validationDelay": {
-					"type": "number",
-					"default": 350,
-					"description": "Delay (debounce) for triggering validation after file changes (in ms)"
-				},
-				"solidity.libs": {
-					"type": [
-						"array"
-					],
-					"default": [
-						"node_modules",
-						"lib"
-					],
-					"description": "Directories to look for dependencies, eg. ['node_modules', 'lib']."
-				},
-				"solidity.monoRepoSupport": {
-					"type": "boolean",
-					"default": false,
-					"description": "Enables multiple project roots. Project is deduced using these files: remappings.txt, truffle-config.js, brownie-config.yaml, foundry.toml, hardhat.config.js, dappfile"
-				},
-				"solidity.sources": {
-					"type": "string",
-					"default": "",
-					"description": "Folder containing the solidity sources eg. 'src'. If not specified looks for folder set in foundry.toml or hardhat.config.js (NOT-ts), if not found defaults to project root."
-				},
-				"solidity.libSources": {
-					"type": [
-						"array"
-					],
-					"default": [
-						"src",
-						"contracts"
-					],
-					"description": "Directories to look for solidity files within libs."
-				},
-				"solidity.remappings": {
-					"type": "array",
-					"default": [],
-					"description": "Remappings to resolve contracts to local files / directories, i.e: [\"@openzeppelin/=lib/openzeppelin-contracts\",\"ds-test/=lib/ds-test/src/\"]"
-				},
-				"solidity.remappingsWindows": {
-					"type": "array",
-					"default": [],
-					"description": "Windows Remappings to resolve contracts to local Windows files / directories (Note this overrides the generic remapping settings if the OS is Windows) , i.e: [\"@openzeppelin/=C:/lib/openzeppelin-contracts\",\"ds-test/=C:/lib/ds-test/src/\"]"
-				},
-				"solidity.remappingsUnix": {
-					"type": "array",
-					"default": [],
-					"description": "Unix Remappings to resolve contracts to local Unix files / directories (Note this overrides the generic remapping settings if the OS is Unix based), i.e: [\"@openzeppelin/=/opt/lib/openzeppelin-contracts\",\"ds-test/=/opt/lib/ds-test/src/\"]"
 				}
 			}
 		},
@@ -352,13 +360,13 @@
 			},
 			{
 				"title": "Disable Test On Save",
-				"command": "solidity.test.disableExecuteOnSave",
+				"command": "solidity.disableExecuteOnSave",
 				"enablement": "config.solidity.test.executeOnSave",
 				"category": "Solidity"
 			},
 			{
 				"title": "Enable Test On Save",
-				"command": "solidity.test.enableExecuteOnSave",
+				"command": "solidity.enableExecuteOnSave",
 				"enablement": "!config.solidity.test.executeOnSave",
 				"category": "Solidity"
 			},
@@ -376,43 +384,43 @@
 			},
 			{
 				"title": "Disable All Validation",
-				"enablement": "config.solidity.validateOnChange || config.solidity.validateOnSave || config.solidity.validateOnOpen",
 				"command": "solidity.disableAllValidation",
+				"enablement": "(config.solidity.validation.onChange || config.solidity.validation.onSave || config.solidity.validation.onOpen)",
 				"category": "Solidity"
 			},
 			{
 				"title": "Disable Validate On Change",
-				"enablement": "config.solidity.validateOnChange",
+				"enablement": "config.solidity.validation.onChange",
 				"command": "solidity.disableValidateOnChange",
 				"category": "Solidity"
 			},
 			{
 				"title": "Enable Validate On Change",
-				"enablement": "!config.solidity.validateOnChange",
+				"enablement": "!config.solidity.validation.onChange",
 				"command": "solidity.enableValidateOnChange",
 				"category": "Solidity"
 			},
 			{
 				"title": "Disable Validate On Save",
-				"enablement": "config.solidity.validateOnSave",
+				"enablement": "config.solidity.validation.onSave",
 				"command": "solidity.disableValidateOnSave",
 				"category": "Solidity"
 			},
 			{
 				"title": "Enable Validate On Save",
-				"enablement": "!config.solidity.validateOnSave",
+				"enablement": "!config.solidity.validation.onSave",
 				"command": "solidity.enableValidateOnSave",
 				"category": "Solidity"
 			},
 			{
 				"title": "Disable Validate On Open",
-				"enablement": "config.solidity.validateOnOpen",
+				"enablement": "config.solidity.validation.onOpen",
 				"command": "solidity.disableValidateOnOpen",
 				"category": "Solidity"
 			},
 			{
 				"title": "Enable Validate On Open",
-				"enablement": "!config.solidity.validateOnOpen",
+				"enablement": "!config.solidity.validation.onOpen",
 				"command": "solidity.enableValidateOnOpen",
 				"category": "Solidity"
 			},
@@ -576,37 +584,37 @@
 					"group": "3_solidity"
 				},
 				{
-					"when": "editorLangId == 'solidity' && config.solidity.validateOnChange",
+					"when": "editorLangId == 'solidity' && config.solidity.validation.onChange",
 					"command": "solidity.disableValidateOnChange",
 					"group": "4_solidity"
 				},
 				{
-					"when": "editorLangId == 'solidity' && !config.solidity.validateOnChange",
+					"when": "editorLangId == 'solidity' && !config.solidity.validation.onChange",
 					"command": "solidity.enableValidateOnChange",
 					"group": "4_solidity"
 				},
 				{
-					"when": "editorLangId == 'solidity' && config.solidity.validateOnSave",
+					"when": "editorLangId == 'solidity' && config.solidity.validation.onSave",
 					"command": "solidity.disableValidateOnSave",
 					"group": "4_solidity"
 				},
 				{
-					"when": "editorLangId == 'solidity' && !config.solidity.validateOnSave",
+					"when": "editorLangId == 'solidity' && !config.solidity.validation.onSave",
 					"command": "solidity.enableValidateOnSave",
 					"group": "4_solidity"
 				},
 				{
-					"when": "editorLangId == 'solidity' && config.solidity.validateOnOpen",
+					"when": "editorLangId == 'solidity' && config.solidity.validation.onOpen",
 					"command": "solidity.disableValidateOnOpen",
 					"group": "4_solidity"
 				},
 				{
-					"when": "editorLangId == 'solidity' && !config.solidity.validateOnOpen",
+					"when": "editorLangId == 'solidity' && !config.solidity.validation.onOpen",
 					"command": "solidity.enableValidateOnOpen",
 					"group": "4_solidity"
 				},
 				{
-					"when": "editorLangId == 'solidity' && !config.solidity.validateOnOpen",
+					"when": "editorLangId == 'solidity'",
 					"command": "solidity.disableAllValidation",
 					"group": "4_solidity"
 				}
@@ -623,23 +631,23 @@
 					"group": "0_solidity"
 				},
 				{
-					"when": "resourceExtname == .sol && !config.solidity.validateOnChange",
+					"when": "resourceExtname == .sol && !config.solidity.validation.onChange",
 					"command": "solidity.enableValidateOnChange",
 					"group": "0_solidity"
 				},
 				{
-					"when": "resourceExtname == .sol && config.solidity.validateOnChange",
+					"when": "resourceExtname == .sol && config.solidity.validation.onChange",
 					"command": "solidity.disableValidateOnChange",
 					"group": "0_solidity"
 				},
 				{
 					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && !config.solidity.test.executeOnSave",
-					"command": "solidity.test.enableExecuteOnSave",
+					"command": "solidity.enableExecuteOnSave",
 					"group": "0_solidity"
 				},
 				{
 					"when": "resourceFilename =~ /.*?\\.t\\.sol/g && config.solidity.test.executeOnSave",
-					"command": "solidity.test.disableExecuteOnSave",
+					"command": "solidity.disableExecuteOnSave",
 					"group": "0_solidity"
 				},
 				{

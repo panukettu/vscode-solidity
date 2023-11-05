@@ -76,7 +76,7 @@ export class Multisolc {
 			const compiler = this.getCompiler(type)
 			return JSON.parse(compiler.solc.compile(JSON.stringify(input))) as SolcOutput
 		} catch (e) {
-			console.debug("Unhandled (compile):", e)
+			console.error("Unhandled (compile):", e)
 		}
 	}
 
@@ -139,7 +139,7 @@ export class Multisolc {
 
 			return output.errors?.map(errorToDiagnostic) ?? []
 		} catch (error) {
-			console.debug("Unhandled (compileWithDiagnostic):", error)
+			console.error("Unhandled (compileWithDiagnostic):", error)
 			this.initializeSolc(selectedType).then(() => {
 				const output = this.compileInputWith(contracts.getMinimalSolcInput(), selectedType)
 				return output.errors?.map(errorToDiagnostic) ?? []

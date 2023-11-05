@@ -21,7 +21,7 @@ export const getFunctionsByNameOffset = (functionNames: string[], document: Pars
 
 		return methodsFound
 	} catch (e) {
-		console.debug("Unhandled", e)
+		console.error("Unhandled", e)
 	}
 }
 

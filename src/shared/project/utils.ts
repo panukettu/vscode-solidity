@@ -45,7 +45,7 @@ export function createProject(
 	sources: string
 	remappings: string[]
 } {
-	let sources = config.sources
+	let sources = config.project.sources
 	const foundrySources = getFoundrySourceFolder(rootPath)
 	const hardhatSource = getHardhatSourceFolder(rootPath)
 	if (!sources) {
@@ -55,12 +55,17 @@ export function createProject(
 		sources = hardhatSource
 	}
 
-	const projectPackage = createDefaultPackage(rootPath, sources, config.outDir)
+	const projectPackage = createDefaultPackage(rootPath, sources, config.compiler.outDir)
 
-	const dependencies: Package[] = getDependencyPackages(config.libs, rootPath, projectPackage, config.libSources)
-	const remappings = loadRemappings(rootPath, config.remappings)
+	const dependencies: Package[] = getDependencyPackages(
+		config.project.libs,
+		rootPath,
+		projectPackage,
+		config.project.libSources,
+	)
+	const remappings = loadRemappings(rootPath, config.project.remappings)
 	return {
-		project: new Project(projectPackage, dependencies, config.libs, remappings, rootPath),
+		project: new Project(projectPackage, dependencies, config.project.libs, remappings, rootPath),
 		sources: sources,
 		remappings: remappings,
 	}
@@ -181,7 +186,7 @@ function getRemappingsTxt(rootPath: string) {
 		}
 		return remappings
 	} catch (e) {
-		console.debug("Unhandled (remappings.txt)", e.message)
+		console.error("Unhandled (remappings.txt)", e.message)
 		return null
 	}
 }

@@ -59,7 +59,7 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 		clearCaches()
 		currentOffset = 0
 		currentItem = undefined
-		// console.debug('definition', e);
+		// console.error('definition', e);
 		return []
 	}
 }

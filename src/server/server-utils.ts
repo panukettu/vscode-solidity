@@ -3,7 +3,7 @@ import { URI } from "vscode-uri"
 import { findFirstRootProjectFile } from "../shared/project/utils"
 import { CodeWalkerService } from "./codewalker"
 import { ServerCompilers } from "./server-compiler"
-import { config, settings } from "./server-settings"
+import { config, settings } from "./server-config"
 
 export let selectedDocument = null
 export let selectedProjectFolder = null
@@ -49,7 +49,7 @@ export function initWorkspaceRootFolder(uri: string) {
 }
 
 export function initCurrentProjectInWorkspaceRootFsPath(currentDocument: string) {
-	if (config.monoRepoSupport) {
+	if (config.project.monorepo) {
 		if (selectedDocument === currentDocument && selectedProjectFolder != null) {
 			return selectedProjectFolder
 		}

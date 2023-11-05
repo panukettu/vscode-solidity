@@ -100,7 +100,7 @@ export class SolidityHoverProvider {
 			reset()
 			return null
 		} catch (e) {
-			// console.debug('hover', e);
+			// console.error('hover', e);
 		}
 	}
 }

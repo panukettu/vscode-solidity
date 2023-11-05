@@ -1,7 +1,7 @@
 import { documents } from "@server"
 import { ParsedDocument } from "@server/code/ParsedDocument"
 import { CodeWalkerService } from "@server/codewalker"
-import { importFullRegexp } from "@shared/regexp"
+import { funcDefMetadataRegexp, importFullRegexp, lineMetadataRegexp } from "@shared/regexp"
 import * as vscode from "vscode-languageserver/node"
 
 // const containsText = (line: string, range: vscode.Range, text: string) => {
@@ -66,6 +66,7 @@ export class DocUtil {
 	public range: vscode.Range
 	public position: vscode.Position
 	public selection: vscode.SelectionRange
+	public currentOffset: number
 	public solFiles: string[]
 	constructor(document: vscode.TextDocumentIdentifier, range: vscode.Range, walker: CodeWalkerService) {
 		this.document = documents.get(document.uri)
@@ -74,6 +75,7 @@ export class DocUtil {
 		this.range = range
 		this.position = range.start
 		this.selection = vscode.SelectionRange.create(range)
+		this.currentOffset = this.document.offsetAt(this.position)
 		this.lines = this.document.getText().split(/\r?\n/g)
 		this.walker = walker
 		this.solFiles = this.walker.project.getProjectSolFiles().concat(this.walker.project.getLibSourceFiles())
@@ -124,22 +126,82 @@ export class DocUtil {
 		return strWithFile.replace("file://", "")
 	}
 
-	public rangeText(range: vscode.Range) {
+	public toText(range: vscode.Range) {
 		return this.document.getText(range)
+	}
+
+	public getLineMeta() {
+		const lineText = this.lineText()
+		const word = this.getWord()
+		const result = {
+			isAssigning: false,
+			isType: false,
+			isVariable: false,
+			isStorageLocation: false,
+			isWrapper: (id: string) => lineText?.includes(`${id}(`) ?? false,
+			ranges: {
+				word: this.wordRange(),
+				nextWord: this.getNextWord(),
+				previousWord: this.getPreviousWord(),
+			},
+			text: {
+				line: lineText,
+				word,
+				nextWord: this.toText(this.getNextWord()),
+				previousWord: this.toText(this.getPreviousWord()),
+			},
+			type: undefined as string | undefined,
+			storageLocation: undefined as string | undefined,
+			variable: undefined as string | undefined,
+			assignment: undefined as string | undefined,
+			lineAfterPos: lineText.slice(this.position.character),
+			isDotAccessBefore: lineText[this.position.character - 1] === ".",
+			isEmit: lineText?.includes("emit") ?? false,
+			isRevert: lineText?.includes("revert") ?? false,
+			isDotAccessAfter: lineText[this.position.character + word.length] === ".",
+		}
+		let match = lineMetadataRegexp().exec(result.text.line)
+		if (!match?.groups) {
+			match = funcDefMetadataRegexp().exec(result.text.line)
+			if (!match?.groups) {
+				return result
+			}
+		}
+		result.isAssigning = result.lineAfterPos?.includes("=") ?? false
+		result.type = match.groups.type ? match.groups.type.trim() : undefined
+		result.storageLocation = match.groups.location ? match.groups.location.trim() : undefined
+		result.variable = match.groups.variable ? match.groups.variable.trim() : undefined
+		result.assignment = match.groups.assignment ? match.groups.assignment.trim() : undefined
+
+		const hasWord = result.text.word !== ""
+		result.isType = hasWord && result.type && result.type.includes(result.text.word)
+		result.isVariable = hasWord && result.text.word === result.variable
+		result.isStorageLocation = hasWord && result.text.word === result.storageLocation
+		return result
 	}
 
 	public getWord(position = this.position) {
 		return this.document.getText(this.wordRange(position))
 	}
-	public getNextWord() {
-		const word = this.getWord()
-		const line = this.lineText(this.position.line, false)
-		const index = line.indexOf(word) + word.length + 1
-		const start = vscode.Position.create(this.position.line, index)
-		return this.wordRange(start)
+	public getNextWord(position = this.position) {
+		const line = this.lineText(position.line)
+		const match = line.slice(position.character).match(/\W(\w+)/)
+		if (!match) return vscode.Range.create(position.line, line.length, position.line, line.length)
+		return this.wordRange(vscode.Position.create(position.line, match.index + position.character + 1))
 	}
-	public lineText(line = this.position.line, ws = true) {
-		return this.document.getText(this.lineRange(line, ws))
+
+	public getPreviousWord(position = this.position) {
+		const line = this.lineText(position.line)
+		const lastIndex = position.character - 1
+		const match = line.slice(0, lastIndex).match(/(\w+)\W*$/)
+		if (!match) return vscode.Range.create(position.line, 0, position.line, 0)
+		return this.wordRange(vscode.Position.create(position.line, match.index))
+	}
+	public lineText(line = this.position.line) {
+		return this.document.getText(this.lineRange(line, false))
+	}
+	public lineTextNoWhitespace(line = this.position.line) {
+		return this.document.getText(this.lineRange(line, true))
 	}
 
 	public getLine(line: number) {
@@ -159,15 +221,15 @@ export class DocUtil {
 	}
 
 	public lineHasCurrentWord(line: string, range: vscode.Range) {
-		return line.indexOf(this.rangeText(this.wordRange(range.start))) !== -1
+		return line.indexOf(this.toText(this.wordRange(range.start))) !== -1
 	}
 
-	public lineRange(line: number, ws = true) {
+	public lineRange(line: number, ignoreWhitespace = true) {
 		const lineText = this.lines[line]
-		const startIndex = ws ? lineText.match(/\S/)?.index ?? 0 : 0
+		const startIndex = ignoreWhitespace ? lineText.match(/\S/)?.index ?? 0 : 0
 		return vscode.Range.create(vscode.Position.create(line, startIndex), vscode.Position.create(line, lineText.length))
 	}
-	public getWordAt(text: string, pos: number) {
+	public getWordAt(pos: number, text = this.document.getText()) {
 		const left = text.slice(0, pos + 1).search(/\w+$/)
 		const right = text.slice(pos).search(/\W/)
 		return {
@@ -176,12 +238,16 @@ export class DocUtil {
 		}
 	}
 
-	public wordRange(position: vscode.Position) {
-		const text = this.document.getText()
-		const word = this.getWordAt(text, this.document.offsetAt(position))
+	public wordRange(position: vscode.Position = this.position) {
+		const word = this.getWordAt(this.document.offsetAt(position))
 		if (!word) return
 		const start = this.document.positionAt(word.start)
 		const end = this.document.positionAt(word.end)
+		if (start.line === 0 && start.character === 0 && end.line !== 0) {
+			return vscode.Range.create(end, end)
+		} else if (end.line === 0 && end.character === 0 && start.line !== 0) {
+			return vscode.Range.create(start, start)
+		}
 		return vscode.Range.create(start, end)
 	}
 
@@ -213,7 +279,7 @@ export class DocUtil {
 							return this.change({ replace: [{ range: this.lineRange(start.line), text: newLine }] })
 						}
 					} catch (e) {
-						console.debug(e)
+						console.error(e)
 					}
 				},
 				addNewBelow: (symbol: string, from: string) => {
