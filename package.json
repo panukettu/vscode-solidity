@@ -124,17 +124,17 @@
 			"properties": {
 				"solidity.fuzzLevel.suggestions": {
 					"type": "number",
-					"default": 0.275,
+					"default": 0.25,
 					"description": "Fuzzy search threshold. 0 = no suggestions, 1 = all suggestions."
 				},
 				"solidity.fuzzLevel.suggestionsLoose": {
 					"type": "number",
-					"default": 0.4,
+					"default": 0.39,
 					"description": "Next fuzz threshold when no search results are found. set equal/less than fuzzLevel.suggestions to disable."
 				},
 				"solidity.fuzzLevel.suggestionsWithImport": {
 					"type": "number",
-					"default": 0.05,
+					"default": 0.025,
 					"description": "Fuzzy search threshold when import also exists. 0 = no suggestions, 1 = all suggestions."
 				},
 				"solidity.test.verbosity": {

@@ -1,6 +1,7 @@
 import type { ParsedContract } from "@server/code/ParsedContract"
 import type { ParsedImport } from "@server/code/ParsedImport"
 import { fuzzySearchByName } from "@server/search/fuzzy"
+import { config } from "@server/server-config"
 import { DocUtil } from "@server/utils/text-document"
 import * as vscode from "vscode-languageserver/node"
 
@@ -241,7 +242,9 @@ const importer: ActionDefinition = {
 				Boolean,
 			)
 			if (result.length) {
-				return result.concat(createFuzzyNameFix(doc, diagnostic, doc.wordRange(), 0.05, false))
+				return result.concat(
+					createFuzzyNameFix(doc, diagnostic, doc.wordRange(), config.fuzzLevel.suggestionsWithImport, false),
+				)
 			} else if (diagnostic.code !== "7576") {
 				return createFuzzyNameFix(doc, diagnostic, doc.wordRange())
 			}
