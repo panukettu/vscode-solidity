@@ -6,6 +6,7 @@ import { ParsedDeclarationType } from "./ParsedDeclarationType"
 import { ParsedDocument } from "./ParsedDocument"
 import { ParsedEnum } from "./ParsedEnum"
 import { ParsedFunction } from "./ParsedFunction"
+import { ParsedImport } from "./ParsedImport"
 import { ParsedParameter } from "./ParsedParameter"
 import { ParsedStruct } from "./ParsedStruct"
 import { ParsedVariable } from "./ParsedVariable"
@@ -17,6 +18,8 @@ export class ParsedStructVariable extends ParsedVariable {
 	private completionItem: CompletionItem = null
 	public abiType: string | null
 	public isContract: boolean
+	public importRef: ParsedImport | null
+	public importRef2: string | null
 
 	public properties: ParsedStructVariable[]
 	public items: string[]
@@ -47,10 +50,16 @@ export class ParsedStructVariable extends ParsedVariable {
 			this.abiType = this.type.isValueType ? this.type.getTypeSignature() : null
 
 			if (!this.abiType) {
-				const imports = this.document.sourceDocument.getAllImportFromPackages()
-				if (imports.find((i) => i.indexOf(this.type.name) !== -1)) {
+				const imported = this.document.sourceDocument.imports.find(
+					(i) => i.importPath.indexOf(this.type.name) !== -1,
+				)?.importPath
+
+				if (imported) {
 					this.abiType = `address${this.type.getArraySignature()}`
 					this.isContract = true
+					this.importRef = this.document.imports.find((i) => {
+						return i.from.includes(imported)
+					})
 				}
 			}
 		}

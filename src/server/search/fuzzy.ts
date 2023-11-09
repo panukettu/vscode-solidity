@@ -92,7 +92,7 @@ const getMatches = (
 				...(includeErrors ? c.errors : []),
 				...(includeEvents ? c.events : []),
 				...(includeStructs ? c.structs : []),
-				...(includeStructMembers ? c.structs.flatMap((s) => s.getInnerMembers() as any) : []),
+				...(includeStructMembers ? c.structs.flatMap((s) => s.getInnerMembers() as any[]) : []),
 			]
 		})
 

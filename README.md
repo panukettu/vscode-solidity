@@ -4,16 +4,17 @@
 
 _Disclaimer_: bugs likely
 
-## EXTENDED FEATURES OVERVIEW
+## FEATURES OVERVIEW
 
-- quickfixes:
+- quickfix
+
   - import missing symbols (supports remappings)
   - correct naming errors (and argument-dependent lookup)
     - fuzzy suggestion for this can be configured with `solidity.fuzzLevel` items.
-  - - originals:
-    * add spdx license
-    * correct compiler version to match extension settings
-    * address checksum
+  - add spdx license
+  - correct compiler version to match extension settings
+  - correct address to checksum
+
 - execute forge t.sol functions
   - get function level output
   - get assertion results inline at location (requires using a label)
@@ -33,9 +34,9 @@ _Disclaimer_: bugs likely
 - signature help
   - get signature help on function calls args
 - codelens
-  - peek 4byte selectors from codelens above func
-  - create natspec stubs from codelens above functions
-- improvements
+  - peek 4bytes selector of function/error
+  - generate func natspec stub
+- misc
 
   - go to definition is more aware of context,
   - find all references works with library based patterns

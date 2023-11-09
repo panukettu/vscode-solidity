@@ -1,5 +1,8 @@
+import { ParsedContract } from "@server/code/ParsedContract"
 import { ParsedDocument } from "@server/code/ParsedDocument"
-import { ParsedExpression } from "@server/code/ParsedExpression"
+import { ParsedExpression, ParsedExpressionIdentifier } from "@server/code/ParsedExpression"
+import { ParsedStructVariable } from "@server/code/ParsedStructVariable"
+import { getCodeWalkerService } from "@server/server-utils"
 import * as vscode from "vscode-languageserver/node"
 import { ParsedCode } from "../code/ParsedCode"
 import { CodeWalkerService } from "../codewalker"
@@ -18,10 +21,25 @@ export const handleParsedExpression = (document: ParsedDocument, currentItem: Pa
 	const parent = currentItem.parent
 	if (!parent) return []
 	const parentContract = document.getAllContracts().find((c) => c.name === parent.name)
-	if (!parentContract) return []
-	const foundMethods = parentContract.findMethodsInScope(currentItem.name)
+	if (!parentContract) {
+		const typeRefParent = document.brute(parent.name)
+		for (const ref of typeRefParent) {
+			if (ref instanceof ParsedStructVariable) {
+				if (ref.isContract && ref.type.name && ref.importRef) {
+					const contract = ref.importRef.documentReference.innerContracts.find((c) => c.name === ref.type.name)
+					if (contract) {
+						const foundMethods = contract.findMethodsInScope(currentItem.name).filter((f) => f?.getLocation)
+						if (!foundMethods.length) continue
+						return foundMethods
+					}
+				}
+			}
+		}
+		return []
+	}
+	const foundMethods = parentContract.findMethodsInScope(currentItem.name).filter((f) => f?.getLocation)
 	if (!foundMethods?.length) return []
-	return foundMethods.filter((f) => f?.getLocation)
+	return foundMethods
 }
 
 export const getDefinition = (document: vscode.TextDocument, position: vscode.Position, walker: CodeWalkerService) => {
@@ -54,7 +72,7 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 		currentOffset = 0
 		currentItem = undefined
 		clearCaches()
-		return foundLocations
+		return removeDuplicates(foundLocations)
 	} catch (e) {
 		clearCaches()
 		currentOffset = 0
@@ -65,6 +83,6 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 }
 const removeDuplicates = (foundLocations: vscode.Location[]) => {
 	return foundLocations.filter(
-		(v, i, a) => a.findIndex((t) => t.uri === v.uri && t.range.start === v.range.start) === i,
+		(v, i, a) => a.findIndex((t) => t.uri === v.uri && t.range.start.character === v.range.start.character) === i,
 	)
 }

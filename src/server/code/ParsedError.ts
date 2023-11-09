@@ -2,8 +2,10 @@ import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
 import { ParsedContract } from "./ParsedContract"
+import { ParsedCustomType } from "./ParsedCustomType"
 import { ParsedDocument } from "./ParsedDocument"
 import { ParsedParameter } from "./ParsedParameter"
+import { ParsedStruct } from "./ParsedStruct"
 import { Element } from "./types"
 
 export class ParsedError extends ParsedCode {
@@ -92,6 +94,50 @@ export class ParsedError extends ParsedCode {
 
 	public getDeclaration(): string {
 		return "error"
+	}
+
+	public getSelector(): string {
+		const selectors = []
+		for (const input of this.input) {
+			let selector: string
+			if (input.type.isValueType) {
+				selector = input.type.name
+			} else {
+				let item: ParsedStruct | undefined
+				if (this.contract) {
+					item = this.contract.getAllStructs().find((s) => s.name === input.type.name)
+				} else {
+					item = this.document.getAllGlobalStructs().find((s) => s.name === input.type.name)
+				}
+				if (item) {
+					selector = item.abiType
+				} else {
+					let isEnum = false
+					if (this.contract) {
+						isEnum = !!this.contract.getAllEnums().find((s) => s.name === input.type.name)
+					} else {
+						isEnum = !!this.document.getAllGlobalEnums().find((s) => s.name === input.type.name)
+					}
+					if (isEnum) {
+						selector = "uint8"
+					} else {
+						let customType: ParsedCustomType | undefined
+						if (this.contract) {
+							customType = this.contract.getAllCustomTypes().find((s) => s.name === input.type.name)
+						} else {
+							customType = this.document.getAllGlobalCustomTypes().find((s) => s.name === input.type.name)
+						}
+						if (customType) {
+							selector = customType.isType
+						} else {
+							selector = "address"
+						}
+					}
+				}
+			}
+			selectors.push(selector + input.type.getArraySignature())
+		}
+		return `${this.name}(${selectors.join(",")})`
 	}
 	public getSignature(): string {
 		const paramsInfo = ParsedParameter.createParamsInfo(this.element.params)

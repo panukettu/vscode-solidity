@@ -20,7 +20,7 @@ export class ParsedStateVariable extends ParsedVariable {
 			const item = CompletionItem.create(this.name)
 			item.kind = CompletionItemKind.Field
 			if (this.type.isMapping) {
-				item.insertText = this.name + this.type.createMappingSnippet() + ";"
+				item.insertText = `${this.name + this.type.createMappingSnippet()};`
 				item.insertTextFormat = 2
 			}
 			item.detail = `${this.getRootName()}.${this.name}`
@@ -50,11 +50,11 @@ export class ParsedStateVariable extends ParsedVariable {
 	public getElementInfo(): string {
 		const storageType = this.getStorageType()
 
-		return this.name + ": " + this.type.getTypeSignature() + " " + (storageType || "")
+		return `${this.name}: ${this.type.getTypeSignature()} ${storageType || ""}`
 	}
 	public getStorageType(space = true): string {
 		let result = ""
-		if (!!this.element?.storage_location) {
+		if (this.element?.storage_location) {
 			result = this.element?.storage_location + (space ? " " : "")
 		}
 		return result

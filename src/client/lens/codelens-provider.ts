@@ -1,5 +1,5 @@
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
-import { functionRegexp, testFunctionRegexp } from "@shared/regexp"
+import { errorRegexp, functionRegexp, testFunctionRegexp } from "@shared/regexp"
 import * as vscode from "vscode"
 
 /**
@@ -30,9 +30,26 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 		if (vscode.workspace.getConfiguration("solidity").get("enableCodeLens", true)) {
 			this.codeLenses = []
 			const regex = functionRegexp()
+			const errorRegex = errorRegexp()
 			const text = document.getText()
 			let matches: RegExpExecArray | null
-
+			let errorMatches: RegExpExecArray | null
+			while ((errorMatches = errorRegex.exec(text)) !== null) {
+				const posStart = document.positionAt(errorMatches.index)
+				const posEnd = document.positionAt(errorMatches.index + errorMatches[0].length)
+				const range = new vscode.Range(posStart, posEnd)
+				const line = document.lineAt(posStart.line)
+				if (range) {
+					this.codeLenses.push(
+						new vscode.CodeLens(range, {
+							title: "selector",
+							tooltip: "Preview the bytes4 selector",
+							command: CLIENT_COMMAND_LIST["solidity.lens.function.selector"],
+							arguments: [document, range, line],
+						}),
+					)
+				}
+			}
 			while ((matches = regex.exec(text)) !== null) {
 				const posStart = document.positionAt(matches.index)
 				const posEnd = document.positionAt(matches.index + matches[0].length)

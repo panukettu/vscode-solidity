@@ -3,6 +3,8 @@ import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import { getFunctionSelector, keccak256, toBytes } from "viem"
 import { Diagnostic, ExecuteCommandParams, Range } from "vscode-languageserver"
 import { TextDocument } from "vscode-languageserver-textdocument"
+import { ParsedError } from "./code/ParsedError"
+import { ParsedFunction } from "./code/ParsedFunction"
 import { CodeWalkerService } from "./codewalker"
 
 export const executeCommand = (
@@ -19,8 +21,9 @@ const funcSig = (walker: CodeWalkerService, document?: TextDocument, range?: Ran
 		const selected = walker.getSelectedDocument(document, range.start)
 		const item = selected.getSelectedItem(document.offsetAt(range.start))
 
-		// @ts-expect-error
-		return getFunctionSelector(item.getSelector())
+		if (item instanceof ParsedFunction || item instanceof ParsedError) {
+			return getFunctionSelector(item.getSelector())
+		}
 	} catch (e) {
 		throw new Error(`lens.server.function.selector failed: ${e.message}`)
 	}

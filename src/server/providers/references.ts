@@ -42,10 +42,16 @@ export const getAllReferencesToItem = (walker: CodeWalkerService, activeDocument
 
 		providerRequest.selectedDocument = null
 		clearCaches()
-		return references.filter((x) => x.range != null && x.uri)
+		return removeDuplicates(references.filter((x) => x.range != null && x.uri))
 	} catch (e) {
 		providerRequest.selectedDocument = null
 		clearCaches()
 		return references
 	}
+}
+
+const removeDuplicates = (foundLocations: vscode.Location[]) => {
+	return foundLocations.filter(
+		(v, i, a) => a.findIndex((t) => t.uri === v.uri && t.range.start.character === v.range.start.character) === i,
+	)
 }

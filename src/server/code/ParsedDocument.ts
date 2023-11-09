@@ -104,15 +104,24 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		return returnItems
 	}
 
-	public getAllContracts(): ParsedContract[] {
+	public getAllContracts(extend = false): ParsedContract[] {
 		let returnItems: ParsedContract[] = []
 
 		returnItems = returnItems.concat(this.innerContracts)
-
+		if (extend) {
+			returnItems = returnItems.concat(this.innerContracts.flatMap((c) => c.getExtendedContractsRecursive()))
+		}
 		for (const item of this.importedDocuments) {
 			returnItems = returnItems.concat(item.innerContracts)
+			if (extend) {
+				returnItems = returnItems.concat(item.getAllContracts(false))
+				returnItems = returnItems.concat(item.innerContracts.flatMap((c) => c.getExtendedContractsRecursive()))
+			}
 		}
-		return returnItems
+		const onlyUniques = returnItems.filter((v, i) => {
+			return returnItems.map((mapObj) => mapObj.name).indexOf(v.name) === i
+		})
+		return onlyUniques
 	}
 
 	public getAllGlobalFunctions(includeExtendedMethods = false): ParsedFunction[] {
@@ -605,7 +614,26 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		if (localResults.length > 0) {
 			return localResults
 		}
+
+		const inherits = this.innerContracts.flatMap((s) =>
+			s
+				.getExtendedContractsRecursive()
+				.flatMap((c) => {
+					return [
+						c.functions,
+						c.getAllFunctions(true).flatMap((i) => i.getAllItems()),
+						c.stateVariables,
+						c.enums,
+						c.errors,
+						c.events,
+						c.structs,
+						c.structs.flatMap((s) => s.getInnerMembers()),
+					]
+				})
+				.flat(),
+		)
 		const returnVs = results
+			.concat(inherits)
 			.concat(this.functions)
 			.concat(this.innerContracts)
 			.concat(this.errors)
