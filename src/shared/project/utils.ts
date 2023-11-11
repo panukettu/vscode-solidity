@@ -137,7 +137,7 @@ function getFoundryRemappings(rootPath: string): string[] | null {
 
 		return remappingsLoaded
 	} catch (error) {
-		console.log("Unhandled (forge.remappings)", error.message)
+		console.debug("Unhandled (forge.remappings)", error.message)
 	}
 }
 

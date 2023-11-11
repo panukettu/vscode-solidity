@@ -32,7 +32,7 @@ export async function execForgeTestFunction(
 				functionName,
 				cp.execFile(
 					"forge",
-					["test", "--mt", wordBound, "-vvvvv", "--allow-failure"],
+					["test", "--mt", wordBound, verbosity, "--allow-failure"],
 					{ cwd: rootPath, maxBuffer: 2048 * 1024 * 10 },
 					(error, stdout, stderr) => {
 						vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"], true, args[1])

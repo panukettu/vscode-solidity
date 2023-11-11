@@ -1,3 +1,4 @@
+import { DocUtil } from "@server/utils/text-document"
 import * as vscode from "vscode-languageserver"
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { DotCompletionService } from "../code/utils/dotCompletionService"
@@ -31,12 +32,10 @@ export const getCompletionItems = (
 	walker: CodeWalkerService,
 ) => {
 	let completionItems: CompletionItem[] = []
-
+	const docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
+	const [, selectedDocument] = docUtil.getSelected()
 	try {
 		const offset = document.offsetAt(position)
-
-		const documentContractSelected = walker.getSelectedDocumentProfiler(document, position)
-
 		ctx.pos = parsePosition(document, position)
 		if (ctx.pos.triggers.declaration) return []
 
@@ -52,30 +51,24 @@ export const getCompletionItems = (
 				} else if (ctx.matchers.useCustomFunctionCompletion || ctx.matchers.useCustomFuncParamsCompletion) {
 					// console.debug('custom func handler');
 					try {
-						completionItems = completionItems.concat(
-							handleCustomFunctionCompletion(documentContractSelected, offset, position, ctx.matchers, ctx.pos),
-						)
+						completionItems = completionItems.concat(handleCustomFunctionCompletion(docUtil, ctx.matchers, ctx.pos))
 					} catch (e) {
 						// console.debug('custom-func-completion', e.message);
 					}
 				} else if (ctx.matchers.useCustomMappingCompletion) {
 					// console.debug('custom mapping handler');
-					completionItems = completionItems.concat(
-						handleCustomMappingCompletion(documentContractSelected, offset, position, ctx.matchers, ctx.pos),
-					)
+					completionItems = completionItems.concat(handleCustomMappingCompletion(docUtil, ctx.matchers, ctx.pos))
 				} else {
 					if (ctx.pos.triggers.emit) {
 						// console.debug('custom emit handler');
-						completionItems = completionItems.concat(handleDotEmit(documentContractSelected, ctx.pos.line))
+						completionItems = completionItems.concat(handleDotEmit(docUtil, ctx.pos.line))
 					}
 					// console.debug('dot handler');
 					completionItems = completionItems.concat(
 						DotCompletionService.getSelectedDocumentDotCompletionItems(
+							docUtil,
 							ctx.pos.lines,
-							position,
 							ctx.pos.triggers.dotStart,
-							documentContractSelected,
-							offset,
 						),
 					)
 				}
@@ -88,7 +81,7 @@ export const getCompletionItems = (
 			// console.debug('outside dot');
 			if (ctx.pos.triggers.searchFiles) {
 				// console.debug('file search handler');
-				return handleFileSearch(walker, completionItems, document, ctx.pos, position, settings.rootPath)
+				return handleFileSearch(docUtil, completionItems, ctx.pos, settings.rootPath)
 			} else if (ctx.pos.triggers.innerImport) {
 				// console.debug('inner import handler');
 				try {
@@ -105,13 +98,13 @@ export const getCompletionItems = (
 				}
 			} else if (ctx.pos.triggers.emit) {
 				// console.debug('emit handler');
-				completionItems = completionItems.concat(handleEmit(documentContractSelected))
+				completionItems = completionItems.concat(handleEmit(selectedDocument))
 			} else if (ctx.pos.triggers.revert) {
 				// console.debug('revert handler');
-				completionItems = completionItems.concat(handleRevert(documentContractSelected))
+				completionItems = completionItems.concat(handleRevert(selectedDocument))
 			} else {
 				// console.debug('default handler');
-				completionItems = completionItems.concat(handleDefault(documentContractSelected, offset))
+				completionItems = completionItems.concat(handleDefault(selectedDocument, offset))
 			}
 		}
 	} catch (e) {

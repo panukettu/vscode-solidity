@@ -1,3 +1,4 @@
+import { DocUtil } from "@server/utils/text-document"
 import { CompletionItem, Position } from "vscode-languageserver"
 import { IParsedExpressionContainer } from "../IParsedExpressionContainer"
 import { ParsedContract } from "../ParsedContract"
@@ -77,21 +78,20 @@ export class DotCompletionService {
 	}
 
 	public static getSelectedDocumentDotCompletionItems(
+		docUtil: DocUtil,
 		lines: string[],
-		position: Position,
 		triggeredByDotStart: number,
-		documentSelected: ParsedDocument,
-		offset: number,
 		skipFirstParamSnipppet = false,
 	): CompletionItem[] {
+		const [, selectedDocument, offset] = docUtil.getSelected()
 		let contractSelected: ParsedContract = null
 		let expressionContainer: IParsedExpressionContainer = null
 
-		if (documentSelected.selectedContract == null) {
-			expressionContainer = documentSelected
+		if (selectedDocument.selectedContract == null) {
+			expressionContainer = selectedDocument
 		} else {
-			contractSelected = documentSelected.selectedContract
-			const functionSelected = documentSelected.selectedContract.getSelectedFunction(offset)
+			contractSelected = selectedDocument.selectedContract
+			const functionSelected = selectedDocument.selectedContract.getSelectedFunction(offset)
 			if (!functionSelected) {
 				expressionContainer = contractSelected
 			} else {
@@ -99,11 +99,11 @@ export class DotCompletionService {
 			}
 		}
 
-		const autocompleteByDot = this.buildAutoCompleteExpression(lines[position.line], triggeredByDotStart - 1)
+		const autocompleteByDot = this.buildAutoCompleteExpression(lines[docUtil.position.line], triggeredByDotStart - 1)
 		const expression = this.convertAutoCompleteExpressionToParsedExpression(
 			autocompleteByDot,
 			null,
-			documentSelected,
+			selectedDocument,
 			contractSelected,
 			expressionContainer,
 		)
@@ -181,8 +181,9 @@ export class DotCompletionService {
 		return wordEndPosition
 	}
 
-	private static isAlphaNumeric(str) {
-		let code, i, len
+	private static isAlphaNumeric(str: string) {
+		// biome-ignore lint/style/useSingleVarDeclarator: <explanation>
+		let code: number, i: number, len: number
 		for (i = 0, len = str.length; i < len; i++) {
 			code = str.charCodeAt(i)
 			if (

@@ -1,3 +1,4 @@
+import { DocUtil } from "@server/utils/text-document"
 import { nameRegexp } from "@shared/regexp"
 import * as vscode from "vscode-languageserver/node"
 import { CodeWalkerService } from "../codewalker"
@@ -10,10 +11,8 @@ export const provideSignatureHelp = (
 	walker: CodeWalkerService,
 ): vscode.SignatureHelp => {
 	try {
-		const documentContractSelected = walker.getSelectedDocumentProfiler(document, position)
-		const offset = document.offsetAt(position)
-		const line = documentContractSelected.getLineRange(position.line)
-		const text = document.getText(line)
+		const docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
+		const text = docUtil.lineText()
 		const dotStart = text.lastIndexOf(".") !== -1
 
 		const functionNames = text.match(nameRegexp)
@@ -21,7 +20,7 @@ export const provideSignatureHelp = (
 		if (!functionNames?.length || isLeavingFunctionParams(text, position.character)) return null
 		const index =
 			text.slice(text.indexOf(functionNames[functionNames.length - 1]), position.character).split(",").length - 1
-		const functionsFound = getFunctionsByNameOffset(functionNames, documentContractSelected, offset)
+		const functionsFound = getFunctionsByNameOffset(functionNames, docUtil)
 
 		// const skipSelf = functionNames.length === 2 || functionNames.length === 4;
 		const { parameters, inputs, selectedFunction } = findByParam(functionsFound, index, undefined, dotStart)

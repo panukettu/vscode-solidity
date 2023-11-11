@@ -1,3 +1,4 @@
+import { DocUtil } from "@server/utils/text-document"
 import * as vscode from "vscode-languageserver/node"
 import { documents } from "../../../server"
 import { CodeWalkerService } from "../../codewalker"
@@ -11,26 +12,18 @@ export const providerRequest: ProviderRequestHelp = {
 	lineText: "",
 }
 
-export const useProviderHelper = (
-	action: "definition" | "references" | "hover",
-	document: vscode.TextDocument,
-	position: vscode.Position,
-	walker: CodeWalkerService,
-) => {
-	const documentContractSelected = walker.getSelectedDocumentProfiler(document, position)
-
-	const range = documentContractSelected.getLineRange(position.line)
-	const offset = document.offsetAt(position)
-	const text = document.getText(range)
+export const useProviderHelper = (action: "definition" | "references" | "hover", util: DocUtil) => {
+	const [, selectedDocument, offset] = util.getSelected()
+	const range = util.lineRange()
 	providerRequest.currentOffset = offset
-	providerRequest.currentLine = position.line
-	providerRequest.currentRange = range
-	providerRequest.position = position
+	providerRequest.currentLine = util.position.line
+	providerRequest.currentRange = util.range
+	providerRequest.position = util.position
 	providerRequest.action = action
-	providerRequest.selectedDocument = documentContractSelected
-	providerRequest.lineText = text
+	providerRequest.selectedDocument = selectedDocument
+	providerRequest.lineText = util.lineText()
 	return {
-		documentContractSelected,
+		selectedDocument,
 		range,
 		offset,
 		reset: () => {

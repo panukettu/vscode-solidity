@@ -591,16 +591,13 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 					}
 					default:
 						for (const key in statement) {
-							// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 							if (statement.hasOwnProperty(key)) {
 								const element = statement[key]
 								if (Array.isArray(element)) {
-									// biome-ignore lint/complexity/noForEach: <explanation>
 									element.forEach((innerElement) => {
 										this.initialiseVariablesMembersEtc(innerElement, statement, null)
 									})
 								} else if (element instanceof Object) {
-									// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 									if (element.hasOwnProperty("start") && element.hasOwnProperty("end")) {
 										this.initialiseVariablesMembersEtc(element, statement, null)
 									}
@@ -610,7 +607,7 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 				}
 			}
 		} catch (error) {
-			console.log("Unhandled", error.message)
+			console.debug("Unhandled", error.message)
 		}
 	}
 

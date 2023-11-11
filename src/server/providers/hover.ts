@@ -15,13 +15,7 @@ export const provideHover = (
 ): vscode.Hover | undefined => {
 	try {
 		const docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
-		const { range, offset, documentContractSelected, reset } = useProviderHelper("hover", document, position, walker)
-		// const doc = new DocUtil(document, DocUtil.positionRange(position), walker)
-
-		// console.debug({
-		// 	expression: doc.getExpression(),
-		// 	funcs: doc.getFunction(),
-		// })
+		const { range, offset, selectedDocument, reset } = useProviderHelper("hover", docUtil)
 		const text = document.getText(range)
 		if (keccak256Regexp().test(text)) {
 			reset()
@@ -34,25 +28,16 @@ export const provideHover = (
 		} else if (isComment(text)) {
 			reset()
 			return null
-		} else if (documentContractSelected != null) {
-			const selectedFunction = documentContractSelected.getSelectedFunction(offset)
-			const item = documentContractSelected.getSelectedItem(offset)
+		} else if (selectedDocument != null) {
+			const selectedFunction = selectedDocument.getSelectedFunction(offset)
+			const item = selectedDocument.getSelectedItem(offset)
 			if (!item) {
 				reset()
 				return null
 			}
 
 			if (item instanceof ParsedExpression) {
-				// if (item.element.type === "CallExpression") {
-				// 	if (item.element.arguments?.length) {
-				// 		const parsed = item.element.arguments.map((e) => {
-				// 			const item = documentContractSelected.getSelectedItem(e.start)
-				// 			return item
-				// 		})
-				// 		// console.debug(parsed)
-				// 	}
-				// }
-				const results = handleParsedExpression(documentContractSelected, item, docUtil)
+				const results = handleParsedExpression(selectedDocument, item, docUtil)
 				if (results?.length && results[0].getHover) {
 					reset()
 					return results[0].getHover()
@@ -81,13 +66,12 @@ export const provideHover = (
 				const parentMapping =
 					// @ts-expect-error
 					item.parent?.reference?.element?.literal?.literal?.to?.literal
-				const allFound = documentContractSelected.brute(item.name, true)
+				const allFound = selectedDocument.brute(item.name, true)
 
 				if (allFound.length === 0) {
 					reset()
 					return null
 				}
-
 				for (const found of allFound) {
 					// @ts-expect-error
 					if (found.struct && found.struct?.name === parentMapping) {

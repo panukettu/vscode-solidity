@@ -402,7 +402,7 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 	}
 
 	public findMethodCalls(name: string, includeExtendedMethods = false): ParsedCode[] {
-		return this.getInnerMethodCalls(includeExtendedMethods).filter((x) => x.name === name)
+		return this.getInnerMethodCalls().filter((x) => x.name === name)
 	}
 
 	public getSelectedFunction(offset: number, includeExtendedMethods = false): ParsedFunction {
@@ -456,7 +456,7 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 		let returnItems: ParsedFunction[] = []
 		returnItems = returnItems.concat(this.functions)
 
-		for (const contract of this.getExtendContracts()) {
+		for (const contract of this.getExtendedContractsRecursive()) {
 			returnItems = returnItems.concat(contract.getAllFunctions(true, includeExtendedMethods))
 		}
 		if (includeGlobal) {

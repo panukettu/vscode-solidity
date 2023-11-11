@@ -1,8 +1,9 @@
+import { DocUtil } from "@server/utils/text-document"
 import { ParameterInformation } from "vscode-languageserver"
 import { ParsedDocument } from "../../code/ParsedDocument"
 import { ParsedFunction } from "../../code/ParsedFunction"
 
-export const getFunctionsByNameOffset = (functionNames: string[], document: ParsedDocument, offset: number) => {
+export const getFunctionsByNameOffset = (functionNames: string[], doc: DocUtil) => {
 	if (!functionNames?.length) {
 		throw new Error("No function names found")
 	}
@@ -12,16 +13,25 @@ export const getFunctionsByNameOffset = (functionNames: string[], document: Pars
 		if (!functionName) {
 			throw new Error("No function name found")
 		}
-		const selectedItem = document.getSelectedItem(offset)
+		const [selectedItem, selectedDocument, offset] = doc.getSelected()
 		let methodsFound = selectedItem.findMethodsInScope(functionName, true) as ParsedFunction[]
 
-		if (!methodsFound?.length && document.selectedFunction) {
-			methodsFound = document.selectedFunction.findMethodsInScope(functionName, true) as ParsedFunction[]
+		if (!methodsFound?.length && selectedDocument.selectedFunction) {
+			methodsFound = selectedDocument.selectedFunction.findMethodsInScope(functionName, true) as ParsedFunction[]
 		}
 
+		if (!methodsFound?.length) {
+			methodsFound = doc.findCache((d) => {
+				const methods = d.findMethodsInScope(functionName, true) as ParsedFunction[]
+				if (methods?.length) {
+					return { found: true, result: methods }
+				}
+				return { found: false, result: undefined }
+			})
+		}
 		return methodsFound
 	} catch (e) {
-		console.error("Unhandled", e)
+		console.debug("Unhandled", e)
 	}
 }
 

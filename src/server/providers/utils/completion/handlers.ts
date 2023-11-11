@@ -1,8 +1,10 @@
 import { relative } from "path"
 import * as path from "path"
 import { fileURLToPath } from "url"
+import { DocUtil } from "@server/utils/text-document"
 import { emitDotRegexp } from "@shared/regexp"
 import glob from "glob"
+import { doc } from "prettier"
 import * as vscode from "vscode-languageserver/node"
 import { ParsedContract } from "../../../code/ParsedContract"
 import { ParsedDocument } from "../../../code/ParsedDocument"
@@ -23,26 +25,21 @@ import { getImportPath, textEdit } from "./misc"
 import { dotStartMatchers, parsePosition } from "./textMatchers"
 
 const getLastDot = (
-	document: ParsedDocument,
-	offset: number,
+	docUtil: DocUtil,
 	triggers: ReturnType<typeof parsePosition>,
-	position: vscode.Position,
 	matchers: ReturnType<typeof dotStartMatchers>,
 	trigger: ReturnType<typeof parsePosition>,
 	indexToStart: number,
 ) => {
 	const index = triggers.line.lastIndexOf(".", indexToStart - 1)
-
 	let results = DotCompletionService.getSelectedDocumentDotCompletionItems(
+		docUtil,
 		triggers.lines,
-		position,
 		index,
-		document,
-		offset,
 		matchers.dotAfterFuncParams,
 	)
 	if (!results.length && index > 1) {
-		results = results.concat(getLastDot(document, offset, triggers, position, matchers, trigger, index).results)
+		results = results.concat(getLastDot(docUtil, triggers, matchers, trigger, index).results)
 	}
 	return {
 		results,
@@ -50,31 +47,30 @@ const getLastDot = (
 	}
 }
 export const handleCustomFunctionCompletion = (
-	document: ParsedDocument,
-	offset: number,
-	position: vscode.Position,
+	docUtil: DocUtil,
 	matchers: ReturnType<typeof dotStartMatchers>,
 	triggers: ReturnType<typeof parsePosition>,
 ) => {
+	const [, selectedDocument, offset] = docUtil.getSelected()
 	try {
-		const items = getFunctionsByNameOffset(matchers.itemIdsFiltered, document, offset)
+		const items = getFunctionsByNameOffset(matchers.itemIdsFiltered, docUtil)
 		if (!items?.length) {
 			if (matchers.isReplacingCall && matchers.itemIdsFiltered?.length > 0) {
-				const itemsInner = getFunctionsByNameOffset(matchers.itemIdsFiltered.slice(0, 1), document, offset)
-				if (itemsInner?.length && document.selectedContract) {
-					return document.selectedContract.using
+				const itemsInner = getFunctionsByNameOffset(matchers.itemIdsFiltered.slice(0, 1), docUtil)
+				if (itemsInner?.length && selectedDocument.selectedContract) {
+					return selectedDocument.selectedContract.using
 						.filter((u) => {
 							return u.for.name === itemsInner[0].name
 						})
 						.flatMap((u) => u.for.getInnerCompletionItems(true))
 				}
 			} else if (matchers.dotAfterFuncParams && matchers.mappingIds?.length > 0) {
-				const mappingType = document.findTypeInScope(matchers.mappingId) as ParsedStructVariable
-				if (!mappingType) return handleDefault(document, offset)
+				const mappingType = selectedDocument.findTypeInScope(matchers.mappingId) as ParsedStructVariable
+				if (!mappingType) return handleDefault(selectedDocument, offset)
 
 				const { result, isValueType } = typeHelp.mappingOutType(mappingType)
 
-				const type = document.findTypeInScope(result)
+				const type = selectedDocument.findTypeInScope(result)
 
 				if (type instanceof ParsedStruct && !isValueType) {
 					let [lib, member] = type.findExtendedMethodCall(
@@ -84,40 +80,43 @@ export const handleCustomFunctionCompletion = (
 					if (!member?.length && matchers.itemIdsFiltered?.length > 1) {
 						;[lib, member] = type.findExtendedMethodCall(matchers.itemIdsFiltered[matchers.itemIdsFiltered?.length - 2])
 					}
-					if (lib?.length > 0 && member?.length > 0 && member[0].output?.length > 0 && document.selectedContract) {
-						return document.selectedContract.using
+					if (
+						lib?.length > 0 &&
+						member?.length > 0 &&
+						member[0].output?.length > 0 &&
+						selectedDocument.selectedContract
+					) {
+						return selectedDocument.selectedContract.using
 							.filter((u) => {
 								return u.for.name === member[0].output[0].type.name
 							})
 							.flatMap((u) => u.for.getInnerCompletionItems(true))
 					} else {
-						return getLastDot(document, offset, triggers, position, matchers, triggers, triggers.triggers.dotStart)
-							.results
+						return getLastDot(docUtil, triggers, matchers, triggers, triggers.triggers.dotStart).results
 					}
 				}
-				return document.selectedContract.using
+				return selectedDocument.selectedContract.using
 					.filter((u) => {
 						return u.for.name === result
 					})
 					.flatMap((u) => u.for.getInnerCompletionItems(true))
 			} else {
 				if (matchers.dotAfterFuncParams) {
-					return getLastDot(document, offset, triggers, position, matchers, triggers, triggers.triggers.dotStart)
-						.results
+					return getLastDot(docUtil, triggers, matchers, triggers, triggers.triggers.dotStart).results
 				}
-				return handleDefault(document, offset)
+				return handleDefault(selectedDocument, offset)
 			}
 		}
 
 		const { relevantVars, relevantParams } = typeHelp.typesForFuncInput(
 			offset,
-			document.getSelectedFunction(offset),
+			selectedDocument.getSelectedFunction(offset),
 			items[0],
 		)
 		if (items[0] instanceof ParsedContract) {
 			const item = items[0] as ParsedContract
-			if (document.selectedContract) {
-				return document.selectedContract.using
+			if (selectedDocument.selectedContract) {
+				return selectedDocument.selectedContract.using
 					.filter((u) => {
 						return u.for.name === item.name
 					})
@@ -145,32 +144,29 @@ export const handleCustomFunctionCompletion = (
 
 		return result.concat(
 			DotCompletionService.getSelectedDocumentDotCompletionItems(
+				docUtil,
 				triggers.lines,
-				position,
 				triggers.triggers.dotStart,
-				document,
-				offset,
 				matchers.dotAfterFuncParams,
 			),
 		)
 	} catch (e) {
 		// console.error(e);
-		return handleDefault(document, offset)
+		return handleDefault(selectedDocument, offset)
 	}
 }
 
 export const handleCustomMappingCompletion = (
-	document: ParsedDocument,
-	offset: number,
-	position: vscode.Position,
+	docUtil: DocUtil,
 	matchers: ReturnType<typeof dotStartMatchers>,
 	triggers: ReturnType<typeof parsePosition>,
 ) => {
 	let mappingType: ParsedStructVariable | undefined
+	const [, document, offset] = docUtil.getSelected()
 	mappingType = document.findTypeInScope(matchers.mappingId) as ParsedStructVariable
 
 	if (!mappingType) {
-		const items = getFunctionsByNameOffset(matchers.itemIdsFiltered, document, offset)
+		const items = getFunctionsByNameOffset(matchers.itemIdsFiltered, docUtil)
 		if (!items?.length) {
 			return handleDefault(document, offset)
 		}
@@ -210,22 +206,16 @@ export const handleCustomMappingCompletion = (
 		.concat(relevantParams.map((v) => v.createFieldCompletionItem()))
 
 	return result.concat(
-		DotCompletionService.getSelectedDocumentDotCompletionItems(
-			triggers.lines,
-			position,
-			triggers.triggers.dotStart,
-			document,
-			offset,
-		),
+		DotCompletionService.getSelectedDocumentDotCompletionItems(docUtil, triggers.lines, triggers.triggers.dotStart),
 	)
 }
 
-export const handleDotEmit = (document: ParsedDocument, line: string) => {
+export const handleDotEmit = (docUtil: DocUtil, line: string) => {
 	const emitDotResult = emitDotRegexp.exec(line)
 	if (!emitDotResult?.length) return []
-
+	const [, selectedDocument] = docUtil.getSelected()
 	const emitFrom = emitDotResult[1]
-	const contract = document.findContractByName(emitFrom)
+	const contract = selectedDocument.findContractByName(emitFrom)
 	return contract.getAllEventsCompletionItems()
 }
 
@@ -302,43 +292,41 @@ export const handleInnerImportCompletion = (
 }
 
 export const handleFileSearch = (
-	walker: CodeWalkerService,
+	doc: DocUtil,
 	completionItems: vscode.CompletionItem[],
-	document: vscode.TextDocument,
 	trigs: ReturnType<typeof parsePosition>,
-	position: vscode.Position,
 	rootPath: string,
 ) => {
 	const { triggers, line } = trigs
-	const hasSourceDir = walker.resolvedSources !== ""
-	const sourcesDir = `/${walker.resolvedSources}`
+	const hasSourceDir = doc.walker.resolvedSources !== ""
+	const sourcesDir = `/${doc.walker.resolvedSources}`
 	const files = glob.sync(`${rootPath + (hasSourceDir ? sourcesDir : "")}/**/*.sol`)
-	const prefix = line[position.character] === '"' ? "" : '"'
+	const prefix = line[doc.position.character] === '"' ? "" : '"'
 	const fromIndex = line.indexOf('from "')
 	const editRange = vscode.Range.create(
 		{
-			...position,
-			character: fromIndex !== -1 ? fromIndex + (prefix ? 5 : 6) : position.character,
+			...doc.position,
+			character: fromIndex !== -1 ? fromIndex + (prefix ? 5 : 6) : doc.position.character,
 		},
 		{
-			...position,
+			...doc.position,
 			character: line.length,
 		},
 	)
 
 	for (const file of files) {
-		const dependencies = walker.project.libs.map((x) => path.join(rootPath, x))
+		const dependencies = doc.walker.project.libs.map((x) => path.join(rootPath, x))
 
-		const [importPath, select] = getImportPath(file, dependencies, document, walker)
+		const [importPath, select] = getImportPath(file, dependencies, doc.document, doc.walker)
 
 		const completionItem = vscode.CompletionItem.create(importPath)
 		completionItem.textEdit = textEdit(importPath, editRange, prefix)
 		completionItem.kind = vscode.CompletionItemKind.File
 		if (triggers.symbolId) {
-			const doc = walker.parsedDocumentsCache.find((d) => d.sourceDocument.absolutePath === file)
+			const document = doc.walker.parsedDocumentsCache.find((d) => d.sourceDocument.absolutePath === file)
 
-			if (doc) {
-				const symbol = doc.findItem(triggers.symbolId)
+			if (document) {
+				const symbol = document.findItem(triggers.symbolId)
 				if (symbol) {
 					completionItem.preselect = true
 					completionItem.detail = symbol.getContractNameOrGlobal()

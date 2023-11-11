@@ -188,7 +188,7 @@ export class CodeWalkerService {
 
 			this.updateCache(newDocument, sourceDocument)
 		} catch (error) {
-			console.log("parsedDocumentChange", error.message)
+			console.debug("parsedDocumentChange", error.message)
 			/*
         // if we error parsing (cannot cater for all combos) we fix by removing current line.
         const lines = documentText.split(/\r?\n/g);
@@ -258,7 +258,7 @@ export class CodeWalkerService {
 				}
 			})
 		} catch (error) {
-			console.log(error.message)
+			console.debug("GetContracts:", error.message)
 		}
 		return contracts
 	}

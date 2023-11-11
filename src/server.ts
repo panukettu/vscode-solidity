@@ -81,7 +81,7 @@ connection.onExecuteCommand((params) => {
 			range ? vscode.Range.create(range[0], range[1]) : undefined,
 		)
 	} catch (e) {
-		console.log("Unhandled", e.message)
+		console.debug("Unhandled", e.message)
 		return null
 	}
 })

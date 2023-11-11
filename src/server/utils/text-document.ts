@@ -1,4 +1,5 @@
 import { documents } from "@server"
+import { ParsedCode } from "@server/code/ParsedCode"
 import { ParsedDocument } from "@server/code/ParsedDocument"
 import { CodeWalkerService } from "@server/codewalker"
 import { findByParam, getFunctionsByNameOffset } from "@server/providers/utils/functions"
@@ -26,6 +27,7 @@ export class DocUtil {
 	public solFiles: string[]
 	public singleQuotes: boolean
 	public spacesInSymbols: boolean
+	public selections: readonly [ParsedCode, ParsedDocument, number]
 	static positionRange(position: vscode.Position) {
 		return vscode.Range.create(position, position)
 	}
@@ -48,9 +50,12 @@ export class DocUtil {
 		return this.walker.getSelectedDocument(this.document, this.position)
 	}
 	public getSelected() {
-		const selectedDocument = this.getSelectedDocument()
-		const selectedItem = selectedDocument.getSelectedItem(this.currentOffset)
-		return [selectedItem, selectedDocument, this.currentOffset] as const
+		if (!this.selections) {
+			const selectedDocument = this.getSelectedDocument()
+			const selectedItem = selectedDocument.getSelectedItem(this.currentOffset)
+			this.selections = [selectedItem, selectedDocument, this.currentOffset] as const
+		}
+		return this.selections
 	}
 
 	public isCommentLine(line = this.position.line) {
@@ -276,7 +281,7 @@ export class DocUtil {
 		return line.indexOf(this.toText(this.wordRange(range.start))) !== -1
 	}
 
-	public lineRange(line: number, ignoreWhitespace = true) {
+	public lineRange(line: number = this.position.line, ignoreWhitespace = true) {
 		const lineText = this.lines[line]
 		const startIndex = ignoreWhitespace ? lineText.match(/\S/)?.index ?? 0 : 0
 		return vscode.Range.create(vscode.Position.create(line, startIndex), vscode.Position.create(line, lineText.length))
@@ -365,7 +370,7 @@ export class DocUtil {
 		if (!functionNames?.length || isLeavingFunctionParams(line, this.position.character)) return null
 		const index =
 			line.slice(line.indexOf(functionNames[functionNames.length - 1]), this.position.character).split(",").length - 1
-		const functionsFound = getFunctionsByNameOffset(functionNames, this.getSelectedDocument(), this.currentOffset)
+		const functionsFound = getFunctionsByNameOffset(functionNames, this)
 
 		return findByParam(functionsFound, index, undefined)
 	}
