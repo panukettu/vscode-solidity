@@ -106,7 +106,7 @@ export const getTestResults = (
 
 		result = getIndex(keywords.compiler.error)
 		if (result !== -1) {
-			return {
+			return { 
 				status: ExecStatus.CompilerError,
 				out: {
 					summary: [lines[result], " ", infos.compileInfo],
@@ -126,6 +126,6 @@ export const getTestResults = (
 			},
 		}
 	} catch (e) {
-		console.error(e)
+		console.error("Test results", e.message); 
 	}
 }

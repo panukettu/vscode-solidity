@@ -66,23 +66,6 @@ const getMatches = (
 		const includeNativeTypes = !wrapsNative && meta.isType && !meta.isStorageLocation
 		const includeStorageTypes = !wrapsNative && meta.isStorageLocation
 
-		// console.debug({
-		// 	meta,
-		// 	searchStr,
-		// 	wrapsNative,
-		// 	includeFuncs,
-		// 	includeStateVariables,
-		// 	includeErrors,
-		// 	includeEvents,
-		// 	includeEnums,
-		// 	includeStructs,
-		// 	includeStructMembers,
-		// 	includeEnumMembers,
-		// 	includeNativeMembers,
-		// 	includeNativeTypes,
-		// 	includeStorageTypes,
-		// })
-
 		const inherits = from.getExtendedContractsRecursive().flatMap((c) => {
 			return [
 				...(includeFuncs ? c.functions : []),
@@ -152,7 +135,7 @@ const getMatches = (
 			? matches.filter((m, i, a) => a.findIndex((t) => t.match.name === m.match.name) === i)
 			: matches
 	} catch (e) {
-		console.error(e)
+		console.error("Fuzz:", e.message)
 	}
 }
 

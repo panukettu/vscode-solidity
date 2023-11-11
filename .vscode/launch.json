@@ -10,11 +10,12 @@
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
+			"resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
 			"args": ["--extensionDevelopmentPath=${workspaceFolder}", "--disable-extensions"],
 			"outFiles": ["${workspaceFolder}/out/**/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
-				"script": "compile"
+				"script": "compile:watch"
 			},
 			"env": {
 				"NODE_PATH": "out/",

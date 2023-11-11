@@ -2,8 +2,14 @@ import { CompletionItem } from "vscode-languageserver"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
 import { ParsedContract } from "./ParsedContract"
+import { ParsedCustomType } from "./ParsedCustomType"
 import { ParsedDocument } from "./ParsedDocument"
+import { ParsedEnum } from "./ParsedEnum"
 import { ParsedFunction } from "./ParsedFunction"
+import { ParsedImport } from "./ParsedImport"
+import { ParsedStateVariable } from "./ParsedStateVariable"
+import { ParsedStruct } from "./ParsedStruct"
+import { ParsedStructVariable } from "./ParsedStructVariable"
 import { ParsedUsing } from "./ParsedUsing"
 import { getMappingParts, getTypeString, valueTypeReg } from "./utils/ParsedCodeTypeHelper"
 
@@ -13,8 +19,13 @@ export class ParsedDeclarationType extends ParsedCode {
 	public isMapping: boolean
 
 	public isValueType: boolean
+	public isContract = false
+
+	public importRef: ParsedImport | null
 	public parentTypeName: string
 	public type: ParsedCode
+
+	public abiType: string | null
 
 	public getArraySignature(): string {
 		if (!this.isArray) return ""
@@ -65,9 +76,25 @@ export class ParsedDeclarationType extends ParsedCode {
 		return this.name + this.getArraySignature()
 	}
 
-	public static create(literal: any, contract: ParsedContract, document: ParsedDocument): ParsedDeclarationType {
+	public static create(
+		literal: any,
+		contract: ParsedContract,
+		document: ParsedDocument,
+		typeRef?: ParsedStruct | ParsedEnum | ParsedCustomType,
+	): ParsedDeclarationType {
 		const declarationType = new ParsedDeclarationType()
 		declarationType.initialise(literal, document, contract)
+
+		if (typeRef instanceof ParsedStruct) {
+			declarationType.abiType = `(${typeRef.properties.map((p) => p.abiType).join(",")})`
+		} else if (typeRef instanceof ParsedEnum) {
+			declarationType.abiType = `uint8${declarationType.getArraySignature()}`
+		} else if (typeRef instanceof ParsedCustomType) {
+			declarationType.abiType = typeRef.isType + declarationType.getArraySignature()
+		} else {
+			declarationType.abiType = declarationType.isValueType ? declarationType.getTypeSignature() : null
+		}
+
 		return declarationType
 	}
 
@@ -93,6 +120,42 @@ export class ParsedDeclarationType extends ParsedCode {
 			// suffixType = '(' + this.getTypeString(literalType.from) + ' => ' + this.getTypeString(literalType.to) + ')';
 		}
 		this.isValueType = !this.isMapping && valueTypeReg.test(this.name)
+
+		const imported = document.sourceDocument.imports.find(
+			(i) => i.importPath.indexOf(`${this.name}.sol`) !== -1,
+		)?.importPath
+
+		if (imported) {
+			this.abiType = `address${this.getArraySignature()}`
+
+			this.isContract = true
+			this.importRef = document.imports.find((i) => {
+				return i.from.includes(imported)
+			})
+			if (!this.importRef) {
+				const importf = document
+					.getAllContracts()
+					.map((i) => {
+						const found = i.document.imports.find((c) =>
+							c.symbols.find((s) => s.name === this.name || s.alias === this.name),
+						)
+						if (found) return found
+						const innerContracts = i.document.innerContracts.concat(
+							i.document.innerContracts.flatMap((c) => c.getExtendedContractsRecursive()),
+						)
+						const importedInner = i.document.importedDocuments.flatMap((d) => d.getAllContracts())
+						const innerContractIMported = innerContracts
+							.concat(importedInner)
+							.concat(importedInner.flatMap((c) => c.getExtendedContractsRecursive()))
+						const result = innerContractIMported
+							.map((c) => c.document.imports.find((i) => i.symbols.find((d) => d.name === this.name)))
+							.filter((i) => i !== undefined)
+						return result[0]
+					})
+					.filter((i) => i !== undefined)
+				this.importRef = importf[0]
+			}
+		}
 	}
 
 	public override getInnerCompletionItems(skipSelf = false): CompletionItem[] {

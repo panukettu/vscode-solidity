@@ -232,7 +232,10 @@ const importer: ActionDefinition = {
 				const fix = vscode.CodeAction.create(`Import from '${importPath}'`, vscode.CodeActionKind.QuickFix)
 				fix.diagnostics = diagnosticsFixed
 				fix.edit = {
-					changes: docImports[docImports.length - 1].addNewBelow(symbol, importPath),
+					changes:
+						docImports.length > 0
+							? docImports[docImports.length - 1].addNewBelow(symbol, importPath)
+							: doc.addNewImport(symbol, importPath),
 				}
 				fix.isPreferred = i === 0 && internals.length === 0
 				return fix
@@ -249,7 +252,7 @@ const importer: ActionDefinition = {
 				return createFuzzyNameFix(doc, diagnostic, doc.wordRange())
 			}
 		} catch (e) {
-			console.error(e)
+			console.debug("Create fix", e)
 		}
 	},
 }

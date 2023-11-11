@@ -10,7 +10,6 @@ import { ParsedImport } from "./ParsedImport"
 import { ParsedParameter } from "./ParsedParameter"
 import { ParsedStruct } from "./ParsedStruct"
 import { ParsedVariable } from "./ParsedVariable"
-import { Element } from "./types"
 import { getTypeString } from "./utils/ParsedCodeTypeHelper"
 
 export class ParsedStructVariable extends ParsedVariable {
@@ -19,7 +18,6 @@ export class ParsedStructVariable extends ParsedVariable {
 	public abiType: string | null
 	public isContract: boolean
 	public importRef: ParsedImport | null
-	public importRef2: string | null
 
 	public properties: ParsedStructVariable[]
 	public items: string[]
@@ -34,16 +32,12 @@ export class ParsedStructVariable extends ParsedVariable {
 		this.element = element
 		this.name = element.name
 		this.document = document
-		this.type = ParsedDeclarationType.create(element.literal, contract, document)
 
-		this.struct = struct
-
+		this.type = ParsedDeclarationType.create(element.literal, contract, document, typeRef)
 		if (typeRef instanceof ParsedStruct) {
 			this.properties = typeRef.properties
-			this.abiType = `(${this.properties.map((p) => p.abiType).join(",")})`
 		} else if (typeRef instanceof ParsedEnum) {
 			this.items = typeRef.items
-			this.abiType = `uint8${this.type.getArraySignature()}`
 		} else if (typeRef instanceof ParsedCustomType) {
 			this.abiType = typeRef.isType + this.type.getArraySignature()
 		} else {
@@ -56,13 +50,13 @@ export class ParsedStructVariable extends ParsedVariable {
 
 				if (imported) {
 					this.abiType = `address${this.type.getArraySignature()}`
-					this.isContract = true
 					this.importRef = this.document.imports.find((i) => {
 						return i.from.includes(imported)
 					})
 				}
 			}
 		}
+		this.struct = struct
 	}
 	public createCompletionItem(): CompletionItem {
 		if (!this.completionItem) {

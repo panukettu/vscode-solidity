@@ -35,7 +35,7 @@ export namespace Lens {
 	export type Natspec = readonly [vscode.TextDocument, vscode.Range]
 	export type ForgeTestExec = readonly [FunctionName, vscode.TextDocument, vscode.Range]
 }
-
+export type BaseCommandArgs = readonly [vscode.TextDocument, vscode.Range]
 export type ParseStdOutArgs<T, R = T, U = T> = {
 	process: ProcessOut
 	args: readonly [string, ...any[]]

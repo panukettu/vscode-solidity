@@ -2,6 +2,43 @@ import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { errorRegexp, functionRegexp, testFunctionRegexp } from "@shared/regexp"
 import * as vscode from "vscode"
 
+// function extractFunctionBody(startLine: number, codes: string[]) {
+// 	const functionBody = []
+// 	let depth = 0
+// 	let bodyLine = ""
+// 	let isOpened = false
+
+// 	const lines = codes.slice(startLine)
+// 	let currentLine = startLine
+
+// 	for (const line of lines) {
+// 		const openBraces = (line.match(/{/g) || []).length
+// 		const closeBraces = (line.match(/}/g) || []).length
+// 		const isOpener = !isOpened && openBraces > 0
+// 		currentLine++
+
+// 		if (isOpener) {
+// 			isOpened = true
+// 			depth = 1
+// 			continue
+// 		}
+// 		if (openBraces > 0) {
+// 			bodyLine = line
+// 			depth += openBraces
+// 		} else if (depth > 0) {
+// 			bodyLine += `\n${line}`
+// 			depth += openBraces - closeBraces
+// 			if (depth === 0) {
+// 				functionBody.push(bodyLine)
+// 				bodyLine = ""
+// 				return functionBody
+// 			}
+// 		}
+// 	}
+
+// 	return functionBody
+// }
+
 /**
  * CodelensProvider
  */

@@ -1,11 +1,11 @@
 import { getCodeActionFixes } from "@server/actions/server-code-actions"
+import { provideHover } from "@server/providers/hover"
 import { provideSignatureHelp } from "@server/providers/signatures"
 import { DocUtil } from "@server/utils/text-document"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import * as vscode from "vscode-languageserver/node"
 import { getCompletionItems } from "./server/providers/completions"
 import { getDefinition } from "./server/providers/definition"
-import { SolidityHoverProvider } from "./server/providers/hover"
 import { getAllReferencesToItem } from "./server/providers/references"
 import { providerParams } from "./server/providers/utils/common"
 import { executeCommand } from "./server/server-commands"
@@ -52,7 +52,7 @@ connection.onCompletion((handler) => {
 connection.onReferences((handler) => {
 	initCommon(handler.textDocument)
 	const [document, position, walker] = providerParams(handler)
-	return getAllReferencesToItem(walker, walker.getSelectedDocument(document, position), document.offsetAt(position))
+	return getAllReferencesToItem(new DocUtil(document, DocUtil.positionRange(position), walker))
 })
 
 connection.onDefinition((handler) => {
@@ -62,7 +62,7 @@ connection.onDefinition((handler) => {
 
 connection.onHover((handler) => {
 	initCommon(handler.textDocument)
-	return SolidityHoverProvider.provideHover(...providerParams(handler))
+	return provideHover(...providerParams(handler))
 })
 
 connection.onSignatureHelp((handler) => {
@@ -105,9 +105,9 @@ connection.onCodeAction((handler) => {
 
 connection.onDidChangeConfiguration((change) => handleConfigChange(change))
 
-documents.onDidChangeContent((event) => {
+documents.onDidChangeContent(async (event) => {
 	if (!config.validation.onChange || event.document.version < 2 || !compilerInitialized) return
-	validateDocument(event.document)
+	return await validateDocument(event.document)
 })
 
 /* -------------------------------------------------------------------------- */
@@ -123,12 +123,12 @@ documents.onDidClose((event) => {
 })
 documents.onDidOpen(async (event) => {
 	if (!config.validation.onOpen || !compilerInitialized) return
-	validateDocument(event.document)
+	return await validateDocument(event.document)
 })
 
 documents.onDidSave(async (event) => {
 	if (!config.validation.onSave || !compilerInitialized) return
-	validateDocument(event.document)
+	return await validateDocument(event.document)
 })
 
 documents.listen(connection)

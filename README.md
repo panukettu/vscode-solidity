@@ -4,6 +4,13 @@
 
 _Disclaimer_: bugs likely
 
+## LATEST
+
+- Pass all diagnostic through server so all compilation styles get auto fixes
+- Fix auto-import in file with no existing imports in file
+- Improve definition lookup
+- Improve codelens func lookup
+
 ## FEATURES OVERVIEW
 
 - quickfix

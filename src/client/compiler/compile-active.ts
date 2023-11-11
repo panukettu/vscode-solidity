@@ -1,21 +1,17 @@
 import * as path from "path"
-import {
-	Config,
-	getCurrentProjectInWorkspaceRootFsPath,
-	getCurrentWorkspaceRootFolder,
-	getSolidityRemappings,
-} from "@client/client-config"
+import { Config, getCurrentProjectInWorkspaceRootFsPath, getCurrentWorkspaceRootFolder } from "@client/client-config"
 import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
 import { createProject } from "@shared/project/utils"
 import { formatPath } from "@shared/util"
 import * as vscode from "vscode"
 
 import { ClientState } from "@client/client-state"
+import { BaseCommandArgs } from "@client/client-types"
 import { CompilerType } from "@shared/enums"
-import type { SolidityConfig } from "@shared/types"
 
-export function compileActiveFile(
+export async function compileActiveFile(
 	state: ClientState,
+	args: BaseCommandArgs,
 	overrideDefaultCompiler: CompilerType = null,
 ): Promise<Array<string>> {
 	const editor = vscode.window.activeTextEditor
@@ -51,7 +47,7 @@ export function compileActiveFile(
 		const packagesPath = project.libs.map((lib) => formatPath(lib))
 		const compilerOpts = Config.getCompilerOptions(packagesPath, null, overrideDefaultCompiler)
 
-		return state.compilers.compile({
+		return state.compilers.compile(args, {
 			solcInput: contractsCollection.getSolcInput(compilerOpts),
 			state,
 			options: compilerOpts,

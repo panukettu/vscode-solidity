@@ -47,7 +47,7 @@ export async function execForgeTestFunction(
 				),
 			)
 		} catch (e) {
-			console.error(e)
+			console.error("ExecForgeTest", e.message)
 			reject(e)
 			processMap.clear()
 		}
@@ -168,7 +168,7 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 				}
 			},
 			onUnhandled: (result, output, error) => {
-				console.error(error)
+				console.error("Unhandled", error.message)
 				return {
 					status: ExecStatus.Error,
 					ui: {

@@ -32,7 +32,7 @@ const validateDebounced = debounce(validate, configImport.validation.delay, {
 	trailing: true,
 })
 
-export function validateDocument(document: vscode.TextDocument) {
+export async function validateDocument(document: vscode.TextDocument) {
 	const version = versionMap.get(document.uri)
 
 	if (version === document.version) {
@@ -75,7 +75,7 @@ export async function initializeSolc(type: CompilerType) {
 let forgeInfoShown = false
 export const extraDiagnostics = new Map<string, vscode.Diagnostic[]>()
 
-export function validate(document: vscode.TextDocument) {
+export async function validate(document: vscode.TextDocument) {
 	try {
 		initCommon(document)
 		validatingDocument = true

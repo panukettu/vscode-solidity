@@ -7,13 +7,14 @@ import {
 	getSolidityRemappings,
 } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
+import { BaseCommandArgs } from "@client/client-types"
 import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
 import { createProject } from "@shared/project/utils"
 import type { SolidityConfig } from "@shared/types"
 import { formatPath, isPathSubdirectory } from "@shared/util"
 import * as vscode from "vscode"
 
-export function compileAllContracts(state: ClientState) {
+export function compileAllContracts(state: ClientState, commandArgs: BaseCommandArgs) {
 	// Check if is folder, if not stop we need to output to a bin folder on rootPath
 	if (getCurrentWorkspaceRootFolder() === undefined) {
 		vscode.window.showWarningMessage("Please open a folder in Visual Studio Code as a workspace")
@@ -57,7 +58,7 @@ export function compileAllContracts(state: ClientState) {
 	}
 	const compilerOpts = Config.getCompilerOptions(packagesPath, sourceDirPath)
 
-	return state.compilers.compile({
+	return state.compilers.compile(commandArgs, {
 		solcInput: contractsCollection.getSolcInput(compilerOpts),
 		state,
 		options: compilerOpts,

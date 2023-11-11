@@ -1,6 +1,8 @@
 import * as fs from "fs"
 import * as path from "path"
 import { Config, getCurrentProjectInWorkspaceRootFsPath } from "@client/client-config"
+import { BaseCommandArgs } from "@client/client-types"
+import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { Multisolc } from "@shared/compiler/multisolc"
 import { SolcOutput } from "@shared/compiler/types-solc"
 import { getRemoteSolc, peekSolcReleases } from "@shared/compiler/utils"
@@ -113,7 +115,7 @@ export class ClientCompilers {
 		}
 	}
 
-	public async compile(args: CompileArgs): Promise<Array<string>> {
+	public async compile(commandArgs: BaseCommandArgs, args: CompileArgs): Promise<Array<string>> {
 		if (!args.solcInput?.sources) {
 			vscode.window.showWarningMessage("No solidity files (*.sol) found")
 			return
@@ -126,13 +128,13 @@ export class ClientCompilers {
 		try {
 			const output = this.multisolc.compileInputWith(args.solcInput, args.solcType)
 			vscode.window.setStatusBarMessage("Compilation success!", 5000)
-			return this.processCompilationOutput(output, this.outputChannel, args)
+			return this.processCompilationOutput(commandArgs, output, this.outputChannel, args)
 		} catch (e) {
-			console.error(e)
+			console.error("Compile:", e.message)
 			this.initializeSolcs(args.solcType).then(() => {
 				const output = this.multisolc.compileInputWith(args.solcInput, args.solcType)
 				vscode.window.setStatusBarMessage("Compilation success!", 5000)
-				return this.processCompilationOutput(output, this.outputChannel, args)
+				return this.processCompilationOutput(commandArgs, output, this.outputChannel, args)
 			})
 		}
 	}
@@ -194,11 +196,14 @@ export class ClientCompilers {
 		}
 	}
 
-	private processCompilationOutput(
+	private async processCompilationOutput(
+		commandArgs: BaseCommandArgs,
 		output: SolcOutput,
 		outputChannel: vscode.OutputChannel,
 		args: CompileArgs,
-	): Array<string> {
+	): Promise<Array<string>> {
+		await vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"])
+
 		if (Object.keys(output).length === 0) {
 			const noOutputMessage = "Compilation output is empty."
 			vscode.window.showWarningMessage(noOutputMessage)
@@ -207,10 +212,8 @@ export class ClientCompilers {
 			return
 		}
 
-		args.state.diagnostics.clear()
-
 		if (output.errors) {
-			const errorWarningCounts = errorsToDiagnostics(args.state.diagnostics.default, output.errors)
+			const errorWarningCounts = await errorsToDiagnostics(commandArgs, output.errors)
 			this.outputErrorsToChannel(outputChannel, output.errors)
 
 			if (errorWarningCounts.errors > 0) {

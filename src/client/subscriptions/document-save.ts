@@ -2,19 +2,19 @@ import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { LensProvider } from "@client/context/register-code-lens"
 import * as vscode from "vscode"
 
-const versionMap = new Map<string, number>()
+// const versionMap = new Map<string, number>()
 export const executeOnSave = () =>
 	vscode.workspace.onDidSaveTextDocument(async (document) => {
 		if (document.languageId !== "solidity") return
 
-		if (
-			document.fileName.endsWith(".sol") &&
-			!document.fileName.endsWith(".t.sol") &&
-			versionMap.get(document.fileName) !== document.version
-		) {
-			versionMap.set(document.fileName, document.version)
-			vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"], true, document)
-		}
+		// if (
+		// 	document.fileName.endsWith(".sol") &&
+		// 	!document.fileName.endsWith(".t.sol") &&
+		// 	versionMap.get(document.fileName) !== document.version
+		// ) {
+		// 	versionMap.set(document.fileName, document.version)
+		// 	// vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"], true, document)
+		// }
 
 		if (
 			document.fileName.endsWith(".t.sol") &&

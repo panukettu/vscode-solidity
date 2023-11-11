@@ -1,55 +1,10 @@
 import { documents } from "@server"
 import { ParsedDocument } from "@server/code/ParsedDocument"
 import { CodeWalkerService } from "@server/codewalker"
-import { funcDefMetadataRegexp, importFullRegexp, lineMetadataRegexp } from "@shared/regexp"
+import { findByParam, getFunctionsByNameOffset } from "@server/providers/utils/functions"
+import { isLeavingFunctionParams } from "@server/providers/utils/matchers"
+import { funcDefMetadataRegexp, importFullRegexp, lineMetadataRegexp, nameRegexp } from "@shared/regexp"
 import * as vscode from "vscode-languageserver/node"
-
-// const containsText = (line: string, range: vscode.Range, text: string) => {
-// return line.substring(range.start.character, range.end.character).includes(text)
-// }
-// const containsRange = (line: string, range: vscode.Range) => {
-// return line.substring(range.start.character, range.end.character) !== ""
-// }
-// const getLine = (document: vscode.TextDocument, line: number) => {
-// const lines = document.getText().split(/\r?\n/g)
-// return lines[line]
-// }
-
-// const getAllLines = (document: vscode.TextDocument, range: vscode.Range) => {
-// return document.getText().split(/\r?\n/g)
-// }
-// const getLines = (document: vscode.TextDocument, range: vscode.Range) => {
-// const lines = document.getText().split(/\r?\n/g)
-// const startLine = range.start.line
-// const endLine = range.end.line
-// return lines.slice(startLine, endLine + 1)
-// }
-
-// const lineRange = (document: vscode.TextDocument, line: number) => {
-// const lines = document.getText().split(/\r?\n/g)
-// const lineText = lines[line]
-// const firstNonWhitespaceCharacterIndex = lineText.match(/\S/)?.index
-// return vscode.Range.create(
-// vscode.Position.create(line, firstNonWhitespaceCharacterIndex),
-// vscode.Position.create(line, lineText.length),
-// )
-// }
-// const getWordAt = (text: string, pos: number) => {
-// const left = text.slice(0, pos + 1).search(/\S+$/)
-// const right = text.slice(pos).search(/\s/)
-// return {
-// start: left,
-// end: right > -1 ? right + pos : text.length,
-// }
-// }
-// const wordRange = (document: vscode.TextDocument, position: vscode.Position) => {
-// const text = document.getText()
-// const word = getWordAt(text, document.offsetAt(position))
-// if (!word) return
-// const start = document.positionAt(word.start)
-// const end = document.positionAt(word.end)
-// return vscode.Range.create(start, end)
-// }
 
 type DocImport = {
 	range: vscode.Range
@@ -59,6 +14,7 @@ type DocImport = {
 	addSymbol: (symbol: string) => ReturnType<DocUtil["change"]>
 	addNewBelow: (symbol: string, from: string) => ReturnType<DocUtil["change"]>
 }
+
 export class DocUtil {
 	public lines: string[]
 	public document: vscode.TextDocument
@@ -68,21 +24,41 @@ export class DocUtil {
 	public selection: vscode.SelectionRange
 	public currentOffset: number
 	public solFiles: string[]
+	public singleQuotes: boolean
+	public spacesInSymbols: boolean
+	static positionRange(position: vscode.Position) {
+		return vscode.Range.create(position, position)
+	}
 	constructor(document: vscode.TextDocumentIdentifier, range: vscode.Range, walker: CodeWalkerService) {
 		this.document = documents.get(document.uri)
 		if (!this.document) throw new Error(`Document not found: ${document.uri}`)
-
+		const docText = this.document.getText()
 		this.range = range
 		this.position = range.start
 		this.selection = vscode.SelectionRange.create(range)
 		this.currentOffset = this.document.offsetAt(this.position)
-		this.lines = this.document.getText().split(/\r?\n/g)
+		this.lines = docText.split(/\r?\n/g)
 		this.walker = walker
 		this.solFiles = this.walker.project.getProjectSolFiles().concat(this.walker.project.getLibSourceFiles())
+		this.singleQuotes = docText.includes("from '")
+		this.spacesInSymbols = docText.includes("import { ")
 	}
 
 	public getSelectedDocument() {
 		return this.walker.getSelectedDocument(this.document, this.position)
+	}
+	public getSelected() {
+		const selectedDocument = this.getSelectedDocument()
+		const selectedItem = selectedDocument.getSelectedItem(this.currentOffset)
+		return [selectedItem, selectedDocument, this.currentOffset] as const
+	}
+
+	public isCommentLine(line = this.position.line) {
+		return (
+			this.lineText(line).trim().startsWith("//") ||
+			this.lineText(line).trim().startsWith("/*") ||
+			this.lineText(line).trim().startsWith("*")
+		)
 	}
 
 	public findCache<T>(fn: (document: ParsedDocument) => { found: boolean; result: T }): T | undefined {
@@ -126,8 +102,15 @@ export class DocUtil {
 		return strWithFile.replace("file://", "")
 	}
 
-	public toText(range: vscode.Range) {
-		return this.document.getText(range)
+	public toText(range: vscode.Range, trim = false) {
+		return !trim
+			? this.document.getText(range)
+			: this.document
+					.getText(range)
+					.split("\n")
+					.map((s) => s.replace("\n", "").trim())
+					.join("")
+					.trim()
 	}
 
 	public getLineMeta() {
@@ -200,12 +183,77 @@ export class DocUtil {
 	public lineText(line = this.position.line) {
 		return this.document.getText(this.lineRange(line, false))
 	}
+
+	public getExpression() {
+		const word = this.wordRange()
+		const position = word.start
+		const range = vscode.Range.create(position, this.findEndOf(this.position.line, this.position.line, "(", ")"))
+		const text = this.toText(range, true)
+
+		return {
+			range,
+			text,
+			args: this.getExpressionArgs(text),
+		}
+	}
+
+	private getExpressionArgs(text: string) {
+		const argsText = text.slice(text.indexOf("(") + 1, text.lastIndexOf(")"))
+		const args = argsText.split(",").map((s) => s.trim())
+
+		const result: string[] = []
+		let current = ""
+		let depth = 0
+
+		for (const arg of args) {
+			const indexEnd = arg.indexOf(")")
+			const matchIncrRegexp = /\(/g
+			while ((matchIncrRegexp.exec(arg) || []).length > 0) {
+				depth++
+			}
+			const matchDecrRegexp = /\)/g
+
+			while ((matchDecrRegexp.exec(arg) || []).length > 0) {
+				depth--
+			}
+
+			if (depth === 0 && arg.includes("(") && indexEnd !== -1 && arg.lastIndexOf(")") === indexEnd) {
+				result.push(arg)
+				continue
+			}
+
+			if (depth > 0) {
+				current += `${arg},`
+			} else if (!current && depth === 0) {
+				result.push(arg)
+			} else if (current && depth === 0) {
+				current += arg
+				result.push(current)
+				current = ""
+			}
+		}
+		return result
+	}
+
+	private findEndOf(startLine: number, currentLine: number, start: string, end: string): vscode.Position {
+		const lineText = this.lineText(currentLine)
+		const hasInner = startLine !== currentLine && lineText.includes(start)
+		const terminator = lineText.lastIndexOf(end)
+		if (terminator !== -1 && !hasInner) {
+			return vscode.Position.create(currentLine, terminator + 1)
+		} else {
+			return this.findEndOf(startLine, currentLine + 1, start, end)
+		}
+	}
 	public lineTextNoWhitespace(line = this.position.line) {
 		return this.document.getText(this.lineRange(line, true))
 	}
 
 	public getLine(line: number) {
 		return this.lines[line]
+	}
+	public getLineRange(pos: vscode.Position, lineEnd: number) {
+		return vscode.Range.create(pos, vscode.Position.create(lineEnd, this.getLine(lineEnd).length))
 	}
 	public getLines(range: vscode.Range) {
 		const startLine = range.start.line
@@ -214,6 +262,10 @@ export class DocUtil {
 	}
 	public getAllLines() {
 		return this.lines
+	}
+
+	public getLineOf(str: string) {
+		return this.lines.findIndex((l) => l.includes(str))
 	}
 
 	public lineHasText(line: string, range: vscode.Range, text: string) {
@@ -251,6 +303,20 @@ export class DocUtil {
 		return vscode.Range.create(start, end)
 	}
 
+	public addNewImport(symbol: string, from: string) {
+		const pragmaLine = this.getLineOf("pragma solidity")
+		const importLine = this.getLineOf("import ")
+		const targetLine = importLine > -1 ? importLine + 1 : pragmaLine > -1 ? pragmaLine + 1 : 0
+
+		const symbolPart = this.spacesInSymbols ? ` { ${symbol} }` : `{${symbol}}`
+		const fromPart = this.singleQuotes ? ` from '${from}'` : ` from "${from}"`
+		const importText = `import ${symbolPart}${fromPart};\n`
+
+		return this.change({
+			insert: [{ position: vscode.Position.create(targetLine, 0), text: importText }],
+		})
+	}
+
 	public getImports() {
 		let match: RegExpExecArray | null
 		const imports: DocImport[] = []
@@ -260,8 +326,6 @@ export class DocUtil {
 
 			const start = this.document.positionAt(match.index)
 			const end = this.document.positionAt(match.index + match[0].length + 1)
-			const usesDoubleQuotes = match[0].includes('"')
-			const usesSpacesInSymbols = match[0].includes("{ ")
 
 			imports.push({
 				range: vscode.Range.create(start, end),
@@ -279,22 +343,12 @@ export class DocUtil {
 							return this.change({ replace: [{ range: this.lineRange(start.line), text: newLine }] })
 						}
 					} catch (e) {
-						console.error(e)
+						console.error("GetImports", e.message)
 					}
 				},
 				addNewBelow: (symbol: string, from: string) => {
-					let fromPart = ""
-					let symbolPart = symbol
-					if (usesSpacesInSymbols) {
-						symbolPart = ` { ${symbolPart} }`
-					} else {
-						symbolPart = `{${symbolPart}}`
-					}
-					if (usesDoubleQuotes) {
-						fromPart = ` from "${from}"`
-					} else {
-						fromPart = ` from '${from}'`
-					}
+					const symbolPart = this.spacesInSymbols ? `{ ${symbol} }` : `{${symbol}}`
+					const fromPart = this.singleQuotes ? ` from '${from}'` : ` from "${from}"`
 					const hasContentBelow = this.lineText(start.line + 1).trim() !== ""
 					const text = hasContentBelow ? `\nimport ${symbolPart}${fromPart};` : `\nimport ${symbolPart}${fromPart};`
 					return this.change({ insert: [{ position: end, text }] })
@@ -302,5 +356,17 @@ export class DocUtil {
 			})
 		}
 		return imports
+	}
+
+	public getFunction() {
+		const line = this.lineText()
+		const functionNames = line.match(nameRegexp)
+
+		if (!functionNames?.length || isLeavingFunctionParams(line, this.position.character)) return null
+		const index =
+			line.slice(line.indexOf(functionNames[functionNames.length - 1]), this.position.character).split(",").length - 1
+		const functionsFound = getFunctionsByNameOffset(functionNames, this.getSelectedDocument(), this.currentOffset)
+
+		return findByParam(functionsFound, index, undefined)
 	}
 }

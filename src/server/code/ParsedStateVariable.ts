@@ -8,7 +8,7 @@ export class ParsedStateVariable extends ParsedVariable {
 	private completionItem: CompletionItem = null
 
 	public declare element: any
-
+	public isContract = false
 	public initialise(element: any, document: ParsedDocument, contract: ParsedContract) {
 		super.initialise(element, document, contract)
 		this.name = element.name

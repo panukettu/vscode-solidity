@@ -12,16 +12,16 @@ import { LanguageClient, TransportKind, type ServerOptions } from "vscode-langua
 
 function server(context: vscode.ExtensionContext): LanguageClient {
 	const serverModule = path.join(__dirname, "./server.js")
+	const debugOptions = { execArgv: ["--nolazy", "--inspect=6009"] }
 	const serverOptions: ServerOptions = {
-		debug: {
-			module: serverModule,
-			options: {
-				execArgv: ["--nolazy", "--inspect=6009"],
-			},
-			transport: TransportKind.ipc,
-		},
 		run: {
 			module: serverModule,
+			transport: TransportKind.ipc,
+		},
+		debug: {
+			args: ["--debug"],
+			module: serverModule,
+			options: debugOptions,
 			transport: TransportKind.ipc,
 		},
 	}
@@ -32,6 +32,7 @@ function server(context: vscode.ExtensionContext): LanguageClient {
 			{ language: "solidity", scheme: "untitled" },
 		],
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
+		workspaceFolder: vscode.workspace.workspaceFolders[0],
 		synchronize: {
 			// Synchronize the setting section 'solidity' to the server
 			configurationSection: "solidity",
