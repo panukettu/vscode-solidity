@@ -6,6 +6,8 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
+- Improve perf on big contracts
+- Promisify most things
 - Pass all diagnostic through server so all compilation styles get auto fixes
 - Fix auto-import in file with no existing imports in file
 - Improve definition lookup

@@ -43,9 +43,9 @@ connection.onRequest("CompilerError", (params) => {
 /* -------------------------------------------------------------------------- */
 /*                                   Actions                                  */
 /* -------------------------------------------------------------------------- */
-connection.onCompletion((handler) => {
+connection.onCompletion(async (handler) => {
 	initCommon(handler.textDocument)
-	const result = getCompletionItems(...providerParams(handler))
+	const result = await getCompletionItems(...providerParams(handler))
 	return [...new Set(result)]
 })
 

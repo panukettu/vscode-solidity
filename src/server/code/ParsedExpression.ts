@@ -1,5 +1,6 @@
+import { ExpressionType } from "@shared/enums"
 import { CompletionItem } from "vscode-languageserver"
-import { defCtx } from "../providers/definition"
+import { defCtx, handleParsedExpression } from "../providers/definition"
 import { TypeReference } from "../search/TypeReference"
 import { IParsedExpressionContainer } from "./IParsedExpressionContainer"
 import { ParsedCode } from "./ParsedCode"
@@ -11,7 +12,6 @@ import { ParsedFunction } from "./ParsedFunction"
 import { ParsedStruct } from "./ParsedStruct"
 import { ParsedVariable } from "./ParsedVariable"
 import { Element } from "./types"
-import { ExpressionType } from "@shared/enums"
 
 export class ParsedExpression extends ParsedCode {
 	public parent: ParsedExpression = null
@@ -135,7 +135,6 @@ export class ParsedExpression extends ParsedCode {
 					break
 				default:
 					for (const key in statement) {
-						// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 						if (statement.hasOwnProperty(key)) {
 							const element = statement[key]
 							if (Array.isArray(element)) {
@@ -145,7 +144,6 @@ export class ParsedExpression extends ParsedCode {
 								}
 							} else if (element instanceof Object) {
 								// recursively drill down to elements with start/end e.g. literal type
-								// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 								if (element.hasOwnProperty("start") && element.hasOwnProperty("end")) {
 									this.initialiseVariablesMembersEtc(element, statement)
 								}
@@ -287,6 +285,11 @@ export class ParsedExpressionCall extends ParsedExpression {
 				const name = ctx.currentOffset > 0 ? ctx.currentItem.name : this.name
 
 				try {
+					const refs = this.parent.getInnerMembers().filter((x) => x.name === name)
+					if (refs.length > 0) {
+						this.reference = refs[0]
+						return
+					}
 					this.reference = locate(
 						this.parent.document,
 						"getAllContracts",

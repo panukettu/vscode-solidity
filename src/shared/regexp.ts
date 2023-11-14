@@ -20,11 +20,10 @@ export const formatOutput = (stdout: string) =>
 const regexpToCaptureFunctionAndBodyWithinCurlyBRaces = () =>
 	/function\s+(?<name>\w+)\s*\((?<args>.*?)\)\s*(?<modifiers>.*?)\s*\{(?<body>.*?)\}/gs
 export const testFunctionRegexp = () => /function (test.*?)\(/g
-export const errorRegexp = () => /error /g
+export const errorRegexp = () => /error \w+\(/g
 export const functionDefRegexp = () => /function /g
 
-export const functionRegexp = () =>
-	new RegExp(/function\s+(?<name>\w+)\s*\((?<args>.*?)\)\s*(?<modifiers>.*?)(\;|\s*\{(?<body>.*?)\})/gs)
+export const functionRegexp = () => new RegExp(/function\s+(?<name>\w+)\((?<args>.*?)\)\s/gs)
 export const regex2 = (name: string) => new RegExp(`@param\\s${name}\\s(\.*\\w)`, "g")
 export const regexNamed = (name: string) => new RegExp(`@return\\s${name}\\s(\.*\\w)`, "g")
 export const regexUnnamed = (name: string) => new RegExp("@return\\s+(.+\\w)", "g")

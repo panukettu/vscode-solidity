@@ -9,37 +9,39 @@ export const provideSignatureHelp = (
 	document: vscode.TextDocument,
 	position: vscode.Position,
 	walker: CodeWalkerService,
-): vscode.SignatureHelp => {
-	try {
-		const docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
-		const text = docUtil.lineText()
-		const dotStart = text.lastIndexOf(".") !== -1
+) => {
+	return new Promise<vscode.SignatureHelp | null>((resolve) => {
+		try {
+			const docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
+			const text = docUtil.lineText()
+			const dotStart = text.lastIndexOf(".") !== -1
 
-		const functionNames = text.match(nameRegexp)
+			const functionNames = text.match(nameRegexp)
 
-		if (!functionNames?.length || isLeavingFunctionParams(text, position.character)) return null
-		const index =
-			text.slice(text.indexOf(functionNames[functionNames.length - 1]), position.character).split(",").length - 1
-		const functionsFound = getFunctionsByNameOffset(functionNames, docUtil)
+			if (!functionNames?.length || isLeavingFunctionParams(text, position.character)) return null
+			const index =
+				text.slice(text.indexOf(functionNames[functionNames.length - 1]), position.character).split(",").length - 1
+			const functionsFound = getFunctionsByNameOffset(functionNames, docUtil)
 
-		// const skipSelf = functionNames.length === 2 || functionNames.length === 4;
-		const { parameters, inputs, selectedFunction } = findByParam(functionsFound, index, undefined, dotStart)
-		if (!parameters?.length) return null
-		const activeParameter = Math.min(index, parameters.length - 1)
+			// const skipSelf = functionNames.length === 2 || functionNames.length === 4;
+			const { parameters, inputs, selectedFunction } = findByParam(functionsFound, index, undefined, dotStart)
+			if (!parameters?.length) return null
+			const activeParameter = Math.min(index, parameters.length - 1)
 
-		const result = vscode.SignatureInformation.create(
-			inputs[activeParameter].getSignatureInfo(activeParameter, dotStart),
-		)
-		result.parameters = parameters
-		result.activeParameter = activeParameter
+			const result = vscode.SignatureInformation.create(
+				inputs[activeParameter].getSignatureInfo(activeParameter, dotStart),
+			)
+			result.parameters = parameters
+			result.activeParameter = activeParameter
 
-		return {
-			activeParameter: result.activeParameter,
-			signatures: [result],
-			activeSignature: 0,
+			resolve({
+				activeParameter: result.activeParameter,
+				signatures: [result],
+				activeSignature: 0,
+			})
+		} catch (e) {
+			// console.error("SignatureHelp", e);
+			resolve(null)
 		}
-	} catch (e) {
-		// console.error("SignatureHelp", e);
-		return null
-	}
+	})
 }

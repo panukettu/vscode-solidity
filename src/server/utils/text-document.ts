@@ -180,7 +180,8 @@ export class DocUtil {
 
 	public getPreviousWord(position = this.position) {
 		const line = this.lineText(position.line)
-		const lastIndex = position.character - 1
+		const word = this.wordRange()
+		const lastIndex = word.start.character - 1
 		const match = line.slice(0, lastIndex).match(/(\w+)\W*$/)
 		if (!match) return vscode.Range.create(position.line, 0, position.line, 0)
 		return this.wordRange(vscode.Position.create(position.line, match.index))

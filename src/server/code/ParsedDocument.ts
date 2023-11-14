@@ -914,6 +914,7 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 			.concat(this.getAllGlobalConstants())
 			.concat(this.getAllGlobalEnums())
 			.concat(this.getAllGlobalCustomTypes())
+			.concat(this.getAllGlobalStructs())
 		return typesParsed
 	}
 
@@ -926,7 +927,7 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		typesParsed = typesParsed
 			.concat(this.getAllGlobalFunctions(includeExtendedMethods))
 			.concat(this.getAllGlobalErrors())
-			.concat(this.getAllContracts())
+			.concat(this.getAllContracts(true))
 		return typesParsed.filter((x) => x.name === name)
 	}
 
