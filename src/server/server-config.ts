@@ -90,7 +90,7 @@ export function handleInitialize(params: vscode.InitializeParams): vscode.Initia
 	return result
 }
 export async function handleInitialized() {
-	updateConfig(await requestConfig())
+	await updateConfig(await requestConfig())
 
 	if (!settings.hasWorkspaceFolderCapability) return
 
@@ -108,7 +108,7 @@ export async function handleInitialized() {
 	})
 }
 
-export function updateConfig(newConfig: SolidityConfig) {
+export async function updateConfig(newConfig: SolidityConfig) {
 	config = {
 		...newConfig,
 		compiler: {
@@ -128,7 +128,7 @@ export function updateConfig(newConfig: SolidityConfig) {
 		settings.linter.setIdeRules(config.linter.rules)
 	}
 
-	createServerMultisolc(getCurrentMultisolcSettings(config))
+	await createServerMultisolc(getCurrentMultisolcSettings(config))
 }
 
 export async function requestMultisolcSettings(): Promise<MultisolcSettings> {

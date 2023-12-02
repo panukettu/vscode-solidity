@@ -43,7 +43,12 @@ export const initDecorations = (state: ClientState, scope: string) => {
 	})
 }
 
-export const lineDecoration = (state: ClientState, args: DecorArgs) => {
+export const lineDecoration = async (
+	state: ClientState,
+	args: DecorArgs,
+	document: vscode.TextDocument,
+	jump = false,
+) => {
 	const { scope, text, line, type } = args
 	const items = [
 		{
@@ -52,7 +57,11 @@ export const lineDecoration = (state: ClientState, args: DecorArgs) => {
 		},
 	]
 
-	return vscode.window.activeTextEditor.setDecorations(state.decorations.get(scope)[type], items)
+	const editor = await vscode.window.showTextDocument(document, {
+		preserveFocus: true,
+		selection: jump ? new vscode.Range(line, 9999, line, 9999) : undefined,
+	})
+	return editor.setDecorations(state.decorations.get(scope)[type], items)
 }
 
 export const resetDecorations = (state: ClientState, scope: string, types?: ("pending" | "fail" | "success")[]) => {
@@ -77,9 +86,14 @@ type RunArgs<T> = {
 	scope: string
 	line: number
 }
-export const runDecorated = async <T>(state: ClientState, args: RunArgs<T>, text = "Executing..") => {
+export const runDecorated = async <T>(
+	document: vscode.TextDocument,
+	state: ClientState,
+	args: RunArgs<T>,
+	text = "Executing..",
+) => {
 	const { promise, scope, line } = args
-	lineDecoration(state, { scope, text, line, type: "pending" })
+	await lineDecoration(state, { scope, text, line, type: "pending" }, document)
 	try {
 		const result = await promise
 		resetDecorations(state, scope, ["pending"])

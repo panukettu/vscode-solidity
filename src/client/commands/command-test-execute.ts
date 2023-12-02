@@ -2,8 +2,14 @@ import { Config } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
 import { Lens } from "@client/client-types"
 import { execForgeTestFunction } from "@client/lens/foundry/executors/test-executor"
-import { initDecorations, lineDecoration, resetDecorations, runDecorated } from "@client/ui/decorations"
-import { createStatusBarTest } from "@client/ui/statusbar"
+import {
+	initDecorations,
+	lineDecoration,
+	removeAllDecorations,
+	resetDecorations,
+	runDecorated,
+} from "@client/ui/decorations"
+import { clearAllStatusBars, createStatusBarTest } from "@client/ui/statusbar"
 import { ExecStatus } from "@shared/enums"
 import * as vscode from "vscode"
 import { CLIENT_COMMAND_LIST } from "./commands"
@@ -11,9 +17,11 @@ import { CLIENT_COMMAND_LIST } from "./commands"
 // Executes the test function command
 export const commandExecTest = (state: ClientState) => async (...args: Lens.ForgeTestExec) => {
 	const isTracing = Config.getTestVerbosity() > 2
-	const functionName = args[0]
+	const [functionName, document] = args
 	if (!args.length) return
 	const line = args[2].start.line
+	clearAllStatusBars()
+	removeAllDecorations(state)
 
 	initDecorations(state, functionName)
 	const statusBar = createStatusBarTest(functionName, `${functionName}  🟡`)
@@ -22,6 +30,7 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 	/*                                    run                                    */
 	/* ------------------------------------------------------------------------- */
 	const results = await runDecorated(
+		document,
 		state,
 		{
 			promise: execForgeTestFunction(state, args, vscode.workspace.rootPath),
@@ -42,7 +51,12 @@ export const commandExecTest = (state: ClientState) => async (...args: Lens.Forg
 	}
 
 	if (results.ui.decoration) {
-		lineDecoration(state, results.ui.decoration)
+		lineDecoration(
+			state,
+			results.ui.decoration,
+			document,
+			document.uri.fsPath !== vscode.window.activeTextEditor.document.uri.fsPath,
+		)
 	}
 
 	const tooltip = (contracts: number, events: number, calls: number) =>

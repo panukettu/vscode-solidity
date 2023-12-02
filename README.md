@@ -6,9 +6,12 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
+- Do not validate forge-std/safeconsole.sol
+- Enable validation in t.sol and s.sol files
+- Jump to finished test if on another file
+- Clear status bars and decorations on test runs
 - Improve perf on big contracts
-- Promisify most things
-- Pass all diagnostic through server so all compilation styles get auto fixes
+- Pass all diagnostic through server so all compilations get auto fixes
 - Fix auto-import in file with no existing imports in file
 - Improve definition lookup
 - Improve codelens func lookup

@@ -1,11 +1,6 @@
-import { ParsedContract } from "@server/code/ParsedContract"
 import { ParsedDocument } from "@server/code/ParsedDocument"
-import { ParsedExpression, ParsedExpressionIdentifier } from "@server/code/ParsedExpression"
-import { ParsedStateVariable } from "@server/code/ParsedStateVariable"
-import { ParsedStruct } from "@server/code/ParsedStruct"
-import { ParsedStructVariable } from "@server/code/ParsedStructVariable"
+import { ParsedExpression } from "@server/code/ParsedExpression"
 import { ParsedVariable } from "@server/code/ParsedVariable"
-import { getCodeWalkerService } from "@server/server-utils"
 import { DocUtil } from "@server/utils/text-document"
 import * as vscode from "vscode-languageserver/node"
 import { ParsedCode } from "../code/ParsedCode"
@@ -50,52 +45,51 @@ export const handleParsedExpression = (document: ParsedDocument, currentItem: Pa
 }
 
 export const getDefinition = (document: vscode.TextDocument, position: vscode.Position, walker: CodeWalkerService) => {
-	return new Promise<vscode.Location[]>((resolve) => {
-		try {
-			docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
-			if (docUtil.isCommentLine()) return null
+	try {
+		docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
+		if (docUtil.isCommentLine()) return null
 
-			let [currentItem, selectedDoc, currentOffset] = docUtil.getSelected()
+		let [currentItem, selectedDoc, currentOffset] = docUtil.getSelected()
 
-			if (!currentItem) return []
+		if (!currentItem) return []
 
-			if (currentItem instanceof ParsedExpression && currentItem.parent) {
-				const result = handleParsedExpression(selectedDoc, currentItem, docUtil)
-				if (result?.length) {
-					resolve(result.map((x) => x.getLocation()))
-				}
+		if (currentItem instanceof ParsedExpression && currentItem.parent) {
+			const result = handleParsedExpression(selectedDoc, currentItem, docUtil)
+			if (result?.length) {
+				clearCaches()
+				return result.map((x) => x.getLocation())
 			}
-
-			const references = currentItem.getSelectedTypeReferenceLocation(currentOffset)
-
-			const foundLocations = references.filter((x) => x.location != null).map((x) => x.location)
-
-			if (!foundLocations?.length) {
-				for (const imported of selectedDoc.importedDocuments) {
-					const found = imported.findMethodsInScope(currentItem.name).filter((f) => f?.getLocation)
-					if (found?.length) {
-						foundLocations.push(...found.map((x) => x.getLocation()))
-					}
-				}
-				if (!foundLocations.length) {
-					const item = selectedDoc.findTypeInScope(currentItem.name)
-					if (item?.getLocation) {
-						foundLocations.push(item.getLocation())
-					}
-				}
-			}
-			currentOffset = 0
-			currentItem = undefined
-			clearCaches()
-			resolve(removeDuplicates(foundLocations))
-		} catch (e) {
-			clearCaches()
-			currentOffset = 0
-			currentItem = undefined
-			console.error("definition", e.message)
-			return resolve(null)
 		}
-	})
+
+		const references = currentItem.getSelectedTypeReferenceLocation(currentOffset)
+
+		const foundLocations = references.filter((x) => x.location != null).map((x) => x.location)
+
+		if (!foundLocations?.length) {
+			for (const imported of selectedDoc.importedDocuments) {
+				const found = imported.findMethodsInScope(currentItem.name).filter((f) => f?.getLocation)
+				if (found?.length) {
+					foundLocations.push(...found.map((x) => x.getLocation()))
+				}
+			}
+			if (!foundLocations.length) {
+				const item = selectedDoc.findTypeInScope(currentItem.name)
+				if (item?.getLocation) {
+					foundLocations.push(item.getLocation())
+				}
+			}
+		}
+		currentOffset = 0
+		currentItem = undefined
+		clearCaches()
+		return removeDuplicates(foundLocations)
+	} catch (e) {
+		clearCaches()
+		currentOffset = 0
+		currentItem = undefined
+		console.error("definition", e.message)
+		return null
+	}
 }
 
 export const getReferences = (docUtil: DocUtil) => {

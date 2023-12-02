@@ -234,7 +234,6 @@ export const handleCustomMatchers = (
 			insertText: c.insertText ? c.insertText.replace(";", "") : c.insertText,
 		}))
 	}
-
 	return completionItems
 }
 

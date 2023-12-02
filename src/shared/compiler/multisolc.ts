@@ -122,6 +122,7 @@ export class Multisolc {
 	) {
 		if (!this.isRootPathSet()) {
 			const output = this.compileInputWith({
+				language: "Solidity",
 				sources: {
 					[filePath]: {
 						content: documentText,
@@ -139,7 +140,7 @@ export class Multisolc {
 
 			return output.errors?.map(errorToDiagnostic) ?? []
 		} catch (error) {
-			console.error("Unhandled (compileWithDiagnostic):", error)
+			console.debug("Unhandled (compileWithDiagnostic):", error)
 			this.initializeSolc(selectedType).then(() => {
 				const output = this.compileInputWith(contracts.getMinimalSolcInput(), selectedType)
 				return output.errors?.map(errorToDiagnostic) ?? []

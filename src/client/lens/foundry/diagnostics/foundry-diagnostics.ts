@@ -34,18 +34,18 @@ export const createCompilerDiagnostics = (
 	const diagnosticsMap = new Map<string, vscode.Diagnostic[]>()
 	state.diagnostics.clear()
 
-	const functionName = args[0]
+	// const functionName = args[0]
 	// Handle forge errors
 	for (const err of parsedErrors) {
 		const uri = vscode.Uri.file(err.fileName)
 
-		if (err.fileName.includes(".t.sol")) {
-			const scopedUri = toScopedURI(functionName, uri)
+		// if (err.fileName.includes(".t.sol")) {
+		// 	const scopedUri = toScopedURI(functionName, uri)
 
-			const previousDiagnostics = foundryDiagnostics.get(scopedUri) ?? []
-			const diagnostics = [...previousDiagnostics, err.diagnostic]
-			foundryDiagnostics.set(scopedUri, diagnostics)
-		}
+		// 	const previousDiagnostics = foundryDiagnostics.get(scopedUri) ?? []
+		// 	const diagnostics = [...previousDiagnostics, err.diagnostic]
+		// 	foundryDiagnostics.set(scopedUri, diagnostics)
+		// }
 
 		const previousDiagnostics = diagnosticsMap.get(uri.toString()) ?? []
 		diagnosticsMap.set(uri.toString(), [...previousDiagnostics, err.diagnostic])

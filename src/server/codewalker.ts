@@ -34,8 +34,10 @@ export class CodeWalkerService {
 	}
 
 	public initDocuments(initExclude: string[]) {
+		if (!this.project) throw new Error("Project not initialized")
+
 		const sourceDocuments = new SourceDocumentCollection()
-		const files = this.project?.getProjectSolFiles(initExclude) ?? []
+		const files = this.project.getProjectSolFiles(initExclude) ?? []
 
 		for (const path of files) {
 			const existing = sourceDocuments.documents.find((d) => d.absolutePath === path)

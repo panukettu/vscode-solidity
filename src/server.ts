@@ -35,7 +35,7 @@ connection.onInitialize((params) => {
 })
 
 connection.onInitialized((params) => {
-	handleInitialized()
+	return handleInitialized()
 })
 connection.onRequest("CompilerError", (params) => {
 	console.error("CompilerError", params)
@@ -43,10 +43,9 @@ connection.onRequest("CompilerError", (params) => {
 /* -------------------------------------------------------------------------- */
 /*                                   Actions                                  */
 /* -------------------------------------------------------------------------- */
-connection.onCompletion(async (handler) => {
+connection.onCompletion((handler) => {
 	initCommon(handler.textDocument)
-	const result = await getCompletionItems(...providerParams(handler))
-	return [...new Set(result)]
+	return [...new Set(getCompletionItems(...providerParams(handler)))]
 })
 
 connection.onReferences((handler) => {
@@ -105,9 +104,9 @@ connection.onCodeAction((handler) => {
 
 connection.onDidChangeConfiguration((change) => handleConfigChange(change))
 
-documents.onDidChangeContent(async (event) => {
+documents.onDidChangeContent((event) => {
 	if (!config.validation.onChange || event.document.version < 2 || !compilerInitialized) return
-	return await validateDocument(event.document)
+	return validateDocument(event.document)
 })
 
 /* -------------------------------------------------------------------------- */
@@ -121,14 +120,14 @@ documents.onDidClose((event) => {
 		uri: event.document.uri,
 	})
 })
-documents.onDidOpen(async (event) => {
+documents.onDidOpen((event) => {
 	if (!config.validation.onOpen || !compilerInitialized) return
-	return await validateDocument(event.document)
+	return validateDocument(event.document)
 })
 
-documents.onDidSave(async (event) => {
+documents.onDidSave((event) => {
 	if (!config.validation.onSave || !compilerInitialized) return
-	return await validateDocument(event.document)
+	return validateDocument(event.document)
 })
 
 documents.listen(connection)

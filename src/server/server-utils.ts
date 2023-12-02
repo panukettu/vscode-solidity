@@ -31,6 +31,9 @@ export function getCodeWalkerService() {
 }
 
 export function initWorkspaceRootFolder(uri: string) {
+	if (!ServerCompilers) throw new Error("1ServerCompilers not initialized")
+	if (!settings) throw new Error("1settings not initialized")
+
 	if (settings.rootPath) return
 
 	const fullUri = URI.parse(uri)
@@ -49,6 +52,9 @@ export function initWorkspaceRootFolder(uri: string) {
 }
 
 export function initCurrentProjectInWorkspaceRootFsPath(currentDocument: string) {
+	if (!ServerCompilers) throw new Error("2ServerCompilers not initialized")
+	if (!settings) throw new Error("2settings not initialized")
+
 	if (config.project.monorepo) {
 		if (selectedDocument === currentDocument && selectedProjectFolder != null) {
 			return selectedProjectFolder

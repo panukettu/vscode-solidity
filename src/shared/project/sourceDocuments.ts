@@ -32,20 +32,14 @@ export class SourceDocumentCollection {
 		)
 	}
 
-	public getMinimalSolcInput(): SolcInput {
-		const contractsForCompilation = {}
-		for (const contract of this.documents) {
-			contractsForCompilation[contract.absolutePath] = {
-				content: contract.code,
-			}
-		}
+	public getMinimalSolcInput(maxContracts?: number): SolcInput {
 		return {
 			language: "Solidity",
 			settings: {
-				viaIR: true,
+				viaIR: false,
 				optimizer: {
 					enabled: false,
-					runs: 200,
+					runs: 0,
 				},
 				outputSelection: {
 					"*": {
@@ -54,7 +48,7 @@ export class SourceDocumentCollection {
 					},
 				},
 			},
-			sources: this.getSourceCodes(),
+			sources: this.getSourceCodes(true),
 		}
 	}
 
@@ -65,14 +59,28 @@ export class SourceDocumentCollection {
 		}
 	}
 
-	public getSourceCodes(): SolcInput["sources"] {
+	public getSourceCodes(skipConsoleSols = false): SolcInput["sources"] {
 		const contractsForCompilation = {}
 
 		for (const contract of this.documents) {
+			if (skipConsoleSols && contract.absolutePath.includes("/safeconsole.sol")) {
+				contractsForCompilation[contract.absolutePath] = {
+					content: "pragma solidity ^0.8.0; library safeconsole { function log(string memory s) internal pure { } }",
+				}
+				continue
+			}
+			if (skipConsoleSols && contract.absolutePath.includes("/console.sol")) {
+				contractsForCompilation[contract.absolutePath] = {
+					content: "pragma solidity ^0.8.0; library console { function log(string memory s) internal pure { } }",
+				}
+				continue
+			}
+
 			contractsForCompilation[contract.absolutePath] = {
 				content: contract.code,
 			}
 		}
+
 		return contractsForCompilation
 	}
 

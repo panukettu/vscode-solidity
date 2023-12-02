@@ -32,7 +32,7 @@ const validateDebounced = debounce(validate, configImport.validation.delay, {
 	trailing: true,
 })
 
-export async function validateDocument(document: vscode.TextDocument) {
+export function validateDocument(document: vscode.TextDocument) {
 	const version = versionMap.get(document.uri)
 
 	if (version === document.version) {
@@ -72,10 +72,10 @@ export async function initializeSolc(type: CompilerType) {
 
 	compilerInitialized = true
 }
-let forgeInfoShown = false
+
 export const extraDiagnostics = new Map<string, vscode.Diagnostic[]>()
 
-export async function validate(document: vscode.TextDocument) {
+export function validate(document: vscode.TextDocument) {
 	try {
 		initCommon(document)
 		validatingDocument = true
@@ -98,14 +98,6 @@ export async function validate(document: vscode.TextDocument) {
 			}
 		} catch (e) {}
 		if (configImport.validation.onChange || configImport.validation.onOpen || configImport.validation.onSave) {
-			const isFSol = filePath.endsWith(".t.sol") || filePath.endsWith(".s.sol")
-			if (isFSol) {
-				if (!forgeInfoShown) {
-					connection.console.error("Validation not supported for .t.sol or .s.sol yet.")
-					forgeInfoShown = true
-				}
-				return
-			}
 			try {
 				const errors = ServerCompilers.compileWithDiagnostic(
 					filePath,

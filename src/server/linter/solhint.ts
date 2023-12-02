@@ -20,7 +20,12 @@ export default class SolhintService implements Linter {
 	}
 
 	public validate(filePath: string, documentText: string): Diagnostic[] {
-		return linter.processStr(documentText, this.config.build()).messages.map((e) => this.toDiagnostic(e))
+		try {
+			return linter.processStr(documentText, this.config.build()).messages.map((e) => this.toDiagnostic(e))
+		} catch (error) {
+			console.error(error)
+			return []
+		}
 	}
 
 	private toDiagnostic(error) {
