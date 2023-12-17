@@ -1,15 +1,27 @@
 {
 	"name": "vsc-solidity",
 	"description": "Extended solidity support for VSCode - based on vscode-solidity.",
-	"keywords": ["solidity", "ethereum", "blockchain", "compiler", "diamond", "solhint"],
-	"version": "0.8.15",
+	"keywords": [
+		"solidity",
+		"ethereum",
+		"blockchain",
+		"compiler",
+		"diamond",
+		"solhint"
+	],
+	"version": "0.8.16",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
 		"vscode": "^1.84.2"
 	},
-	"files": ["/out"],
-	"contributors": ["Juan Blanco", "panukettu"],
+	"files": [
+		"/out"
+	],
+	"contributors": [
+		"Juan Blanco",
+		"panukettu"
+	],
 	"bugs": {
 		"url": "https://github.com/panukettu/vscode-solidity/issues"
 	},
@@ -18,7 +30,10 @@
 		"type": "git",
 		"url": "https://github.com/panukettu/vscode-solidity"
 	},
-	"categories": ["Programming Languages", "Snippets"],
+	"categories": [
+		"Programming Languages",
+		"Snippets"
+	],
 	"main": "./out/src/extension.js",
 	"bin": {
 		"vscode-solidity-server": "./out/src/server.js"
@@ -90,9 +105,17 @@
 		"what-is-circular": "^1.0.1"
 	},
 	"nyc": {
-		"extension": [".ts"],
-		"include": ["src/**/*.ts"],
-		"exclude": ["**/*.d.ts", "out", "dist"],
+		"extension": [
+			".ts"
+		],
+		"include": [
+			"src/**/*.ts"
+		],
+		"exclude": [
+			"**/*.d.ts",
+			"out",
+			"dist"
+		],
 		"all": true
 	},
 	"contributes": {
@@ -148,11 +171,18 @@
 				"solidity.compiler.location": {
 					"type": "string",
 					"description": "Solc location used by default. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `localSolcVersion`. `NPM` looks from node_modules folder or configured 'npmSolcPackage'",
-					"enum": ["Remote", "File", "NPM", "Extension"],
+					"enum": [
+						"Remote",
+						"File",
+						"NPM",
+						"Extension"
+					],
 					"default": "Extension"
 				},
 				"solidity.compiler.outputSelection": {
-					"type": ["string"],
+					"type": [
+						"string"
+					],
 					"default": [
 						"abi",
 						"devdoc",
@@ -203,7 +233,10 @@
 				},
 				"solidity.project.libs": {
 					"type": "array",
-					"default": ["node_modules", "lib"],
+					"default": [
+						"node_modules",
+						"lib"
+					],
 					"description": "Directories to look for dependencies, eg. ['node_modules', 'lib']."
 				},
 				"solidity.project.monorepo": {
@@ -218,7 +251,10 @@
 				},
 				"solidity.project.libSources": {
 					"type": "array",
-					"default": ["src", "contracts"],
+					"default": [
+						"src",
+						"contracts"
+					],
 					"description": "Directories to look for solidity files within libs."
 				},
 				"solidity.project.remappings": {
@@ -238,19 +274,28 @@
 				},
 				"solidity.linter.type": {
 					"type": "string",
-					"enum": ["", "solhint"],
+					"enum": [
+						"",
+						"solhint"
+					],
 					"default": "solhint",
 					"description": "Enables linting using solhint."
 				},
 				"solidity.linter.rules": {
-					"type": ["object"],
+					"type": [
+						"object"
+					],
 					"default": null,
 					"description": "Solhint validation rules"
 				},
 				"solidity.formatter": {
 					"type": "string",
 					"default": "prettier",
-					"enum": ["none", "prettier", "forge"],
+					"enum": [
+						"none",
+						"prettier",
+						"forge"
+					],
 					"description": "Set the formatter used, prettier (default) or forge fmt (note: forge needs to exist)"
 				}
 			}
@@ -258,8 +303,13 @@
 		"languages": [
 			{
 				"id": "solidity",
-				"aliases": ["Solidity", "solidity"],
-				"extensions": [".sol"],
+				"aliases": [
+					"Solidity",
+					"solidity"
+				],
+				"extensions": [
+					".sol"
+				],
 				"configuration": "./solidity.configuration.json"
 			}
 		],
@@ -660,8 +710,12 @@
 				"language": "solidity",
 				"scopeName": "source.solidity",
 				"path": "./syntaxes/solidity.json",
-				"balancedBracketScopes": ["*"],
-				"unbalancedBracketScopes": ["meta.scope.case-pattern.solidity"]
+				"balancedBracketScopes": [
+					"*"
+				],
+				"unbalancedBracketScopes": [
+					"meta.scope.case-pattern.solidity"
+				]
 			}
 		]
 	}

@@ -34,6 +34,7 @@ export class ParsedStructVariable extends ParsedVariable {
 		this.document = document
 
 		this.type = ParsedDeclarationType.create(element.literal, contract, document, typeRef)
+
 		if (typeRef instanceof ParsedStruct) {
 			this.properties = typeRef.properties
 		} else if (typeRef instanceof ParsedEnum) {

@@ -24,6 +24,7 @@ export class ParsedDeclarationType extends ParsedCode {
 	public importRef: ParsedImport | null
 	public parentTypeName: string
 	public type: ParsedCode
+	public customType: ParsedCustomType
 
 	public abiType: string | null
 
@@ -119,15 +120,19 @@ export class ParsedDeclarationType extends ParsedCode {
 			this.name = "mapping" // do something here
 			// suffixType = '(' + this.getTypeString(literalType.from) + ' => ' + this.getTypeString(literalType.to) + ')';
 		}
-		this.isValueType = !this.isMapping && valueTypeReg.test(this.name)
-
+		// this.isValueType = !this.isMapping && valueTypeReg.test(this.name)
+		this.customType = document.getAllGlobalCustomTypes().find((t) => t.name === this.name)
+		this.isValueType = (!this.isMapping && valueTypeReg.test(this.name)) || !!this.customType
 		const imported = document.sourceDocument.imports.find(
-			(i) => i.importPath.indexOf(`${this.name}.sol`) !== -1,
+			(i) => i.importPath.indexOf(`/${this.name}.sol`) !== -1,
 		)?.importPath
 
-		if (imported) {
-			this.abiType = `address${this.getArraySignature()}`
+		const abiType = this.customType ? this.customType.isType : this.isValueType ? this.name : undefined
 
+		if (imported) {
+			this.abiType = this.customType
+				? `${this.customType.isType}${this.getArraySignature()}`
+				: `address${this.getArraySignature()}`
 			this.isContract = true
 			this.importRef = document.imports.find((i) => {
 				return i.from.includes(imported)
@@ -155,6 +160,9 @@ export class ParsedDeclarationType extends ParsedCode {
 					.filter((i) => i !== undefined)
 				this.importRef = importf[0]
 			}
+		}
+		if (!this.abiType) {
+			this.abiType = `${abiType}${this.getArraySignature()}`
 		}
 	}
 

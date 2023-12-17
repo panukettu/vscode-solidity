@@ -86,7 +86,6 @@ export class ParsedParameter extends ParsedVariable {
 
 	public static createParamsInfo(params: any): string {
 		if (!params || !params.length) return ""
-		// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 		let paramsInfo = params.hasOwnProperty("params") ? params.params : ""
 
 		for (const parameterElement of params) {
@@ -103,7 +102,6 @@ export class ParsedParameter extends ParsedVariable {
 
 	public static createParamsInfoForSig(params: any): string {
 		if (!params || !params.length) return ""
-		// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 		let paramsInfo = params.hasOwnProperty("params") ? params.params : ""
 
 		for (const parameterElement of params) {
@@ -142,7 +140,6 @@ export class ParsedParameter extends ParsedVariable {
 
 		for (const parameterElement of params) {
 			if (skipFirst || parameterElement.id === "self" || parameterElement.id === "_self") {
-				// biome-ignore lint/style/noParameterAssign: <explanation>
 				skipFirst = false
 			} else {
 				counter = counter + 1

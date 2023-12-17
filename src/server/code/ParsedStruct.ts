@@ -81,6 +81,15 @@ export class ParsedStruct extends ParsedCode {
 					}
 
 					const variable = new ParsedStructVariable()
+					// if (!typeRef) {
+					// 	const name =
+					// 		item.literal.members !== undefined && item.literal.members.length > 0
+					// 			? item.literal.members[0]
+					// 			: item.literal
+					// 	if (typeof name === "string") {
+					// 		typeRef = document.getAllGlobalEnums().find((x) => x.name === name)
+					// 	}
+					// }
 					variable.initialiseStructVariable(item, this.contract, this.document, this, typeRef)
 
 					if (isMapping) {

@@ -44,16 +44,8 @@ export class ParsedEnum extends ParsedCode {
 	}
 
 	public override getInfo(): string {
-		return (
-			"### " +
-			this.getParsedObjectType() +
-			": " +
-			this.name +
-			"\n" +
-			"#### " +
-			this.getContractNameOrGlobal() +
-			"\n" +
-			this.getComment()
-		)
+		return `### ${this.getParsedObjectType()}: ${
+			this.name
+		}\n#### ${this.getContractNameOrGlobal()}\n${this.getComment()}`
 	}
 }

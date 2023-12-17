@@ -171,6 +171,10 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		let returnItems: ParsedEnum[] = []
 		returnItems = returnItems.concat(this.enums)
 
+		for (const item of this.innerContracts) {
+			returnItems = this.mergeArrays(returnItems, item.enums)
+		}
+
 		for (const item of this.importedDocuments) {
 			returnItems = this.mergeArrays(returnItems, item.enums)
 		}
@@ -230,13 +234,12 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 					if (x.for.name === type.name || (type.name === "address_payable" && x.for.name === "address")) {
 						validTypeName = true
 					}
-
 					return x.for.isArray === type.isArray && validTypeName && x.for.isMapping === type.isMapping
 				}
 				return false
 			})
-			.filter((v, i) => {
-				return returnItems.map((mapObj) => mapObj.name).indexOf(v.name) === i
+			.filter((v, i, a) => {
+				return a.map((mapObj) => mapObj.name).indexOf(v.name) === i
 			})
 
 		return result
