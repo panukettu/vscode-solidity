@@ -211,6 +211,10 @@ export class ParsedStruct extends ParsedCode {
 		return []
 	}
 
+	public getPropertySemanticTokens() {
+		return this.properties.flatMap((x) => x.getSemanticToken("property.struct.declaration"))
+	}
+
 	public getSelectedProperty(offset: number) {
 		return this.properties.find((x) => x.isCurrentElementedSelected(offset))
 	}

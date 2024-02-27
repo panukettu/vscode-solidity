@@ -6,8 +6,11 @@ import { URI } from "vscode-uri"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedContract } from "./ParsedContract"
 import { ParsedDocument } from "./ParsedDocument"
+import { ParsedExpression } from "./ParsedExpression"
 import { ParsedFunction } from "./ParsedFunction"
 import { BodyElement, Element, ElementParams, InnerElement } from "./types"
+
+const terminators = [".", " ", ":", ";", ")", "]", ""]
 
 export class ParsedCode {
 	public element: Element | InnerElement | BodyElement | ElementParams
@@ -294,6 +297,114 @@ export class ParsedCode {
 			document.uri,
 			Range.create(document.positionAt(this.element.start), document.positionAt(this.element.end)),
 		)
+	}
+
+	public getSemanticToken(type?: string) {
+		try {
+			const uri = URI.file(this.document.sourceDocument.absolutePath).toString()
+			const document = TextDocument.create(uri, null, null, this.document.sourceDocument.unformattedCode)
+			if (!this.name) {
+				return []
+			}
+			const text = document.getText()
+			let offset: number
+			if (this.name.length < 3) {
+				const part = text.substring(this.element.start, this.element.end)
+				for (const terminator of terminators) {
+					const localOffset = part.lastIndexOf(this.name + terminator)
+					if (localOffset !== -1) {
+						offset = this.element.start + localOffset
+						break
+					}
+				}
+			} else {
+				offset = text.indexOf(this.name, this.element.start)
+			}
+			const location = Location.create(
+				document.uri,
+				Range.create(document.positionAt(offset), document.positionAt(offset + this.name.length)),
+			)
+			const item = this.document.getSelectedItem(offset)
+			// console.debug(
+			// 	this.name,
+			// 	"text",
+			// 	this.document.sourceDocument.unformattedCode.substring(offset, offset + this.name.length),
+			// )
+			const result = [
+				{
+					location,
+					name: this.name,
+					info: this.getToken(item, type),
+				},
+			]
+			if ("parent" in item) {
+				// @ts-expect-error
+				if (!item.parent?.element) {
+					return result
+				}
+				// @ts-expect-error
+				const parentItem = this.document.getSelectedItem(item.parent.element.start)
+
+				if (!parentItem) {
+					return result
+				}
+				result.push({
+					location: Location.create(
+						document.uri,
+						// @ts-expect-error
+						Range.create(document.positionAt(item.parent.element.start), document.positionAt(item.parent.element.end)),
+					),
+					// @ts-expect-error
+					name: item.parent.name,
+					info: this.getToken(parentItem),
+				})
+			}
+			return result
+		} catch (e) {
+			console.debug(e)
+		}
+	}
+
+	public getToken(item: ParsedCode, type?: string) {
+		try {
+			const info = item.getInfo()
+			const first = info.indexOf("(")
+			const second = info.indexOf(")", first)
+
+			let declarationIndex = info.indexOf(":", second)
+			if (declarationIndex === -1) {
+				declarationIndex = info.indexOf("(...")
+				if (declarationIndex === -1 && info.indexOf(`${item.name})`) !== -1) {
+					declarationIndex = info.indexOf("(")
+				}
+			}
+
+			const declaration = info.slice(declarationIndex)
+			const isStorage = declaration.indexOf("storage") !== -1
+			const isMemory = declaration.indexOf("memory") !== -1
+			const isMapping = declaration.indexOf("mapping") !== -1
+			const isCalldata = declaration.indexOf("calldata") !== -1
+			const isArray = declaration.indexOf("[]") !== -1
+			let extra = isMapping ? "mapping" : isStorage ? "storage" : isMemory ? "memory" : isCalldata ? "calldata" : null
+
+			if (extra && isArray) {
+				extra = `${extra}.array`
+			} else if (!extra && isArray) {
+				extra = "array"
+			}
+			return {
+				type: type || info.slice(first + 1, second),
+				extra,
+			}
+		} catch (e) {
+			const parsedType = item.getParsedObjectType()
+			if (parsedType) {
+				return {
+					type: parsedType,
+					storageType: null,
+				}
+			}
+		}
 	}
 
 	public getSelectedTypeReferenceLocation(offset: number): TypeReference[] {

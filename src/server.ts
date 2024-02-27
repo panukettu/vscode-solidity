@@ -1,5 +1,6 @@
 import { getCodeActionFixes } from "@server/actions/server-code-actions"
 import { provideHover } from "@server/providers/hover"
+import { computeSemanticTokens } from "@server/providers/semantic"
 import { provideSignatureHelp } from "@server/providers/signatures"
 import { DocUtil } from "@server/utils/text-document"
 import { TextDocument } from "vscode-languageserver-textdocument"
@@ -67,6 +68,32 @@ connection.onHover((handler) => {
 connection.onSignatureHelp((handler) => {
 	initCommon(handler.textDocument)
 	return provideSignatureHelp(...providerParams(handler))
+})
+
+// connection.languages.semanticTokens.onRange((params) => {
+// 	// Implement your logic to provide semantic tokens for the given document here.
+// 	// You should return the semantic tokens as a response.
+// 	const semanticTokens = computeSemanticTokens(
+// 		documents.get(params.textDocument.uri),
+// 		params.range,
+// 		getCodeWalkerService(),
+// 	)
+// 	return semanticTokens
+// })
+
+connection.onRequest("textDocument/semanticTokens/full", (params) => {
+	initCommon(params.textDocument)
+	console.debug("Semantic token requets")
+
+	const handler = {
+		...params,
+		position: { line: 0, character: 0 },
+	}
+	const [document, position, walker] = providerParams(handler)
+	// Implement your logic to provide semantic tokens for the given document here.
+	// You should return the semantic tokens as a response.
+	const semanticTokens = computeSemanticTokens(new DocUtil(document, DocUtil.positionRange(position), walker))
+	return semanticTokens
 })
 
 connection.onExecuteCommand((params) => {

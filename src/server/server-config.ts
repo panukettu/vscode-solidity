@@ -6,6 +6,7 @@ import * as vscode from "vscode-languageserver/node"
 import { connection } from "../server"
 import { replaceRemappings } from "../shared/util"
 import SolhintService from "./linter/solhint"
+import { tokenModifiers, tokenTypes } from "./providers/semantic"
 import { createServerMultisolc } from "./server-compiler"
 import { ExtendedSettings } from "./server-types"
 function defaultConfig() {
@@ -57,6 +58,13 @@ export function handleInitialize(params: vscode.InitializeParams): vscode.Initia
 
 	const result: vscode.InitializeResult = {
 		capabilities: {
+			semanticTokensProvider: {
+				full: true,
+				legend: {
+					tokenTypes: tokenTypes,
+					tokenModifiers: tokenModifiers,
+				},
+			},
 			completionProvider: {
 				resolveProvider: false,
 				triggerCharacters: [".", "/", '"', "'"],

@@ -162,6 +162,59 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 		return results
 	}
 
+	public getAllSemanticTokens(): any[] {
+		let results: any[] = []
+		this.functions.forEach((x) => {
+			const type =
+				this.contractType === ContractType.Contract
+					? "contract"
+					: this.contractType === ContractType.Library
+					? "library"
+					: "interface"
+			results = results.concat(x.getSemanticToken(`function.declaration.${type}`)).concat(x.getAllSemanticTokens())
+		})
+
+		this.contractIsStatements.forEach((x) => {
+			results = results.concat(x.getSemanticToken())
+		})
+
+		this.structs.forEach((x) => {
+			results = results.concat(x.getSemanticToken("struct.contract"))
+		})
+
+		this.enums.forEach((x) => {
+			results = results.concat(x.getSemanticToken())
+		})
+
+		this.errors.forEach((x) => {
+			results = results.concat(x.getSemanticToken())
+		})
+
+		this.events.forEach((x) => {
+			results = results.concat(x.getSemanticToken())
+		})
+
+		this.stateVariables.forEach((x) => {
+			results = results.concat(x.getSemanticToken("variable.declaration.contract"))
+		})
+
+		this.expressions.forEach((x) => {
+			results = results.concat(x.getSemanticToken())
+		})
+
+		this.using.forEach((x) => {
+			results = results.concat(x.getSemanticToken())
+		})
+
+		this.customTypes.forEach((x) => {
+			results = results.concat(x.getSemanticToken())
+		})
+
+		const structMembers = this.structs.flatMap((s) => s.getPropertySemanticTokens())
+
+		return results.flat().concat(structMembers)
+	}
+
 	public override initialise(element: Element, document: ParsedDocument) {
 		super.initialise(element, document, this)
 		this.name = element.name

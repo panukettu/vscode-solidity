@@ -1,3 +1,5 @@
+import type { ParsedCode } from "@server/code/ParsedCode"
+import type { ParsedDocument } from "@server/code/ParsedDocument"
 import { DocUtil } from "@server/utils/text-document"
 import { keccak256Regexp } from "@shared/regexp"
 import { keccak256, toBytes } from "viem"
@@ -26,77 +28,9 @@ export const provideHover = (document: vscode.TextDocument, position: vscode.Pos
 			reset()
 			return null
 		} else if (selectedDocument != null) {
-			// const selectedFunction = selectedDocument.getSelectedFunction(offset)
-			if (!item) {
-				reset()
-				return null
-			} else {
-				if (item.getHover) {
-					reset()
-					return item.getHover()
-				}
-			}
+			const result = getHover(item, selectedDocument, docUtil, reset)
 
-			if (item instanceof ParsedExpression) {
-				const results = handleParsedExpression(selectedDocument, item, docUtil)
-				if (results?.length && results[0].getHover) {
-					reset()
-					return results[0].getHover()
-				}
-			}
-
-			const itemExp = item as ParsedExpressionIdentifier
-			if (itemExp.name === "length") {
-				return {
-					contents: {
-						kind: vscode.MarkupKind.Markdown,
-						value: [
-							"```solidity",
-							`(array property) ${itemExp.parent?.name ? `${itemExp.parent.name}.` : ""}length: uint256`,
-							"```",
-						].join("\n"),
-					},
-				}
-			}
-			const res = itemExp.getHover()
-			// @ts-expect-error
-			if (res.contents?.value) {
-				reset()
-				return res
-			} else if (itemExp.parent) {
-				const parentMapping =
-					// @ts-expect-error
-					item.parent?.reference?.element?.literal?.literal?.to?.literal
-				// const allFound = selectedDocument.brute(item.name, true)
-				const def = getReferences(docUtil)
-				reset()
-				return def[0].getHover()
-
-				// if (allFound.length === 0) {
-				// 	reset()
-				// 	return null
-				// }
-				// for (const found of allFound) {
-				// 	// @ts-expect-error
-				// 	if (found.struct && found.struct?.name === parentMapping) {
-				// 		const res = found.getHover()
-				// 		// @ts-expect-error
-				// 		if (res.contents?.value) {
-				// 			reset()
-				// 			return res
-				// 		}
-				// 	} else {
-				// 		const parentInScope = selectedFunction.findTypeInScope(
-				// 			// @ts-expect-error
-				// 			found.parent?.name,
-				// 		)
-				// 		if (parentInScope) {
-				// 			reset()
-				// 			return found.getHover()
-				// 		}
-				// 	}
-				// }
-			}
+			if (result) return result
 		}
 
 		reset()
@@ -104,5 +38,80 @@ export const provideHover = (document: vscode.TextDocument, position: vscode.Pos
 	} catch (e) {
 		// console.error('hover', e);
 		return null
+	}
+}
+
+const getHover = (item: ParsedCode, selectedDocument: ParsedDocument, docUtil: any, reset?: any) => {
+	if (!item) {
+		reset?.()
+		return null
+	} else {
+		if (item.getHover) {
+			reset?.()
+			return item.getHover()
+		}
+	}
+	return getHoverExpression(item, selectedDocument, docUtil, reset)
+}
+
+const getHoverExpression = (item: any, selectedDocument: ParsedDocument, docUtil: any, reset?: any) => {
+	if (item instanceof ParsedExpression) {
+		const results = handleParsedExpression(selectedDocument, item, docUtil)
+		if (results?.length && results[0].getHover) {
+			reset?.()
+			return results[0].getHover()
+		}
+	}
+
+	const itemExp = item as ParsedExpressionIdentifier
+	if (itemExp.name === "length") {
+		return {
+			contents: {
+				kind: vscode.MarkupKind.Markdown,
+				value: [
+					"```solidity",
+					`(array property) ${itemExp.parent?.name ? `${itemExp.parent.name}.` : ""}length: uint256`,
+					"```",
+				].join("\n"),
+			},
+		}
+	}
+
+	const res = itemExp.getHover()
+	// @ts-expect-error
+	if (res.contents?.value) {
+		reset?.()
+		return res
+	} else if (itemExp.parent) {
+		const parentMapping = item.parent?.reference?.element?.literal?.literal?.to?.literal
+		// const allFound = selectedDocument.brute(item.name, true)
+		const def = getReferences(docUtil)
+		reset()
+		return def[0].getHover()
+
+		// if (allFound.length === 0) {
+		// 	reset()
+		// 	return null
+		// }
+		// for (const found of allFound) {
+		// 	// @ts-expect-error
+		// 	if (found.struct && found.struct?.name === parentMapping) {
+		// 		const res = found.getHover()
+		// 		// @ts-expect-error
+		// 		if (res.contents?.value) {
+		// 			reset()
+		// 			return res
+		// 		}
+		// 	} else {
+		// 		const parentInScope = selectedFunction.findTypeInScope(
+		// 			// @ts-expect-error
+		// 			found.parent?.name,
+		// 		)
+		// 		if (parentInScope) {
+		// 			reset()
+		// 			return found.getHover()
+		// 		}
+		// 	}
+		// }
 	}
 }

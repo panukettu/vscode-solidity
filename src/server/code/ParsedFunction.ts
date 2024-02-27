@@ -107,6 +107,17 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 		return selectedItem
 	}
 
+	public getAllSemanticTokens() {
+		let result: ReturnType<typeof this.getSemanticToken>[] = []
+
+		result = result.concat(this.input.map((i) => i.getSemanticToken()))
+		result = result.concat(this.output.map((i) => i.getSemanticToken()))
+		result = result.concat(this.expressions.map((i) => i.getSemanticToken()))
+		result = result.concat(this.variables.map((i) => i.getSemanticToken()))
+		result = result.concat(this.modifiers.map((i) => i.getSemanticToken()))
+
+		return result.flat()
+	}
 	public override getAllReferencesToObject(parsedCode: ParsedCode): TypeReference[] {
 		const results: TypeReference[] = []
 		if (this.isTheSame(parsedCode)) {

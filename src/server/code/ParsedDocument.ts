@@ -90,6 +90,48 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		}
 	}
 
+	public getAllSemanticTokens() {
+		const results: ReturnType<typeof this.getSemanticToken> = []
+		const allItems: ParsedCode[] = []
+		allItems.push(...this.innerContracts)
+
+		for (const func of this.functions) {
+			results.push(...func.getSemanticToken("function.free"))
+		}
+		for (const err of this.errors) {
+			results.push(...err.getSemanticToken("error.declaration.free"))
+		}
+		for (const event of this.events) {
+			results.push(...event.getSemanticToken("event.declaration.free"))
+		}
+		for (const enm of this.enums) {
+			results.push(...enm.getSemanticToken("enum.declaration.free"))
+		}
+		for (const struct of this.structs) {
+			results.push(...struct.getSemanticToken("struct.declaration.free"))
+		}
+		for (const constant of this.constants) {
+			results.push(...constant.getSemanticToken("constant.declaration.free"))
+		}
+
+		allItems.push(...this.usings)
+		allItems.push(...this.customTypes)
+		allItems.push(...this.imports)
+		allItems.push(...this.expressions)
+
+		for (const item of allItems) {
+			results.push(...item.getSemanticToken())
+		}
+		const items = this.functions.flatMap((f) => f.getAllSemanticTokens())
+		const innerContractItems = this.innerContracts.flatMap((c) => c.getAllSemanticTokens())
+		const structItems = this.structs.flatMap((s) => s.getPropertySemanticTokens())
+		results.push(...items)
+		results.push(...innerContractItems)
+		results.push(...structItems)
+
+		return results
+	}
+
 	public getAllImportables() {
 		const returnItems: ParsedCode[] = []
 		returnItems.push(...this.innerContracts)

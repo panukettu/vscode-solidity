@@ -6,6 +6,7 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
+- add semantic tokens
 - Fix custom type using for star
 - Do not validate forge-std/safeconsole.sol
 - Enable validation in t.sol and s.sol files

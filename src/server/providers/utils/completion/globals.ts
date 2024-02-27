@@ -90,7 +90,7 @@ export function GeCompletionUnits(): CompletionItem[] {
 	etherUnits.forEach((unit) => {
 		const completionItem = CompletionItem.create(unit)
 		completionItem.kind = CompletionItemKind.Unit
-		completionItem.detail = unit + ": ether unit"
+		completionItem.detail = `${unit}: ether unit`
 		completionItems.push(completionItem)
 	})
 
@@ -100,15 +100,75 @@ export function GeCompletionUnits(): CompletionItem[] {
 		completionItem.kind = CompletionItemKind.Unit
 
 		if (unit !== "years") {
-			completionItem.detail = unit + ": time unit"
+			completionItem.detail = `${unit}: time unit`
 		} else {
-			completionItem.detail = "DEPRECATED: " + unit + ": time unit"
+			completionItem.detail = `DEPRECATED: ${unit}: time unit`
 		}
 		completionItems.push(completionItem)
 	})
 
 	return completionItems
 }
+
+const visibility = ["internal", "external"].map((i) => ({
+	name: i,
+	type: "modifier",
+	modifier: "visibility.".concat(i),
+}))
+const payable = ["payable", "virtual", "override"].map((i) => ({ name: i, type: "modifier", modifier: i }))
+const state = ["view", "pure"].map((i) => ({ name: i, type: "modifier", modifier: "mutability.".concat(i) }))
+const ret = ["returns"].map((i) => ({ name: i, type: "keyword", modifier: i }))
+const keywords = ["length", "selector", "interfaceId", "min", "max"].map((i) => ({
+	name: i,
+	type: "property",
+	modifier: i,
+}))
+
+export const globalNames = (): { type: string; name: string; modifier?: string }[] =>
+	GetGlobalVariables()
+		.map((item) => ({
+			type: "variable",
+			name: item.label,
+		}))
+		.concat(
+			GetGlobalFunctions().map((item) => ({
+				type: "function",
+				name: item.label,
+			})),
+		)
+		.concat(
+			getBlockCompletionItems().map((item) => ({
+				type: "property",
+				modifier: "block",
+				name: item.label,
+			})),
+		)
+		.concat(
+			getMsgCompletionItems().map((item) => ({
+				type: "property",
+				modifier: "transaction",
+				name: item.label,
+			})),
+		)
+		.concat(
+			getTxCompletionItems().map((item) => ({
+				type: "property",
+				modifier: "transaction",
+				name: item.label,
+			})),
+		)
+		.concat(
+			getAbiCompletionItems().map((item) => ({
+				type: "function",
+				modifier: "abi",
+				name: item.label,
+			})),
+		)
+		.concat(visibility)
+		.concat(payable)
+		.concat(state)
+		.concat(ret)
+		.concat(keywords)
 
 export function GetGlobalVariables(): CompletionItem[] {
 	return [
@@ -190,7 +250,7 @@ export function GetGlobalFunctions(): CompletionItem[] {
 		},
 		{
 			detail: "revert Error(..): abort execution with custom error",
-			insertText: `revert \${1:Error};`,
+			insertText: "revert ${1:Error};",
 			insertTextFormat: 2,
 			kind: CompletionItemKind.Method,
 			label: "revert",
@@ -204,7 +264,7 @@ export function GetGlobalFunctions(): CompletionItem[] {
 		},
 		{
 			detail: "revert(string reason): abort execution and revert state changes",
-			insertText: `revert(\${1:reason});`,
+			insertText: "revert(${1:reason});",
 			insertTextFormat: 2,
 			kind: CompletionItemKind.Method,
 			label: "revert",
@@ -310,6 +370,11 @@ export function getBlockCompletionItems(): CompletionItem[] {
 			detail: "(uint): current block number",
 			kind: CompletionItemKind.Property,
 			label: "number",
+		},
+		{
+			detail: "(uint): chain id",
+			kind: CompletionItemKind.Property,
+			label: "chainid",
 		},
 		{
 			detail: "(uint): current block timestamp as seconds since unix epoch",
