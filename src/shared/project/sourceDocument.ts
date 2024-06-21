@@ -55,10 +55,9 @@ export class SourceDocument {
 	 * @returns {string} the absolute path of the imported file
 	 */
 	public resolveImportPath(importPath: string, files: string[], returnEmpty = false): string {
-		if (resolveCache.has(importPath)) {
-			return resolveCache.get(importPath)
-		}
+		if (resolveCache.has(importPath)) return resolveCache.get(importPath)
 		let result = ""
+
 		if (importPath[0] === ".") {
 			result = path.resolve(path.dirname(this.absolutePath), importPath)
 		}

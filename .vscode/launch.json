@@ -15,7 +15,6 @@
 				"!**/node_modules/**"
 			],
 			"args": [
-				"--stdio",
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"--disable-extensions"
 			],

@@ -23,7 +23,6 @@ export class Project {
 	private glob: InstanceType<typeof GlobSync>
 	private globPath: string
 	private absoluteSources: string
-	private exclusions: string[] = []
 
 	constructor(config: SolidityConfig, rootPath: string) {
 		this.foundryConfig = getFoundryConfig(rootPath)
@@ -43,10 +42,9 @@ export class Project {
 
 		this.absoluteSources = this.projectPackage.getSolSourcesAbsolutePath()
 		this.globPath = `${this.absoluteSources}/**/*.sol`
-		this.exclusions = this.getDefaultExclusions()
 
 		this.glob = new GlobSync(this.globPath, {
-			ignore: this.exclusions,
+			ignore: ["node_modules/**/"],
 		})
 	}
 
@@ -97,22 +95,22 @@ export class Project {
 		return filesCache
 	}
 	public _getProjectSolFiles() {
+		const exclusions = this.getDefaultExclusions()
 		if (this.rootPath !== this.absoluteSources) {
-			this.exclusions = this.getDefaultExclusions()
-			this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: this.exclusions })
+			this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: exclusions })
 
 			return (filesCache = this.glob.found)
 		}
 		for (const libFolder of this.libs) {
-			this.exclusions.push(path.join(this.rootPath, libFolder, "**"))
+			exclusions.push(path.join(this.rootPath, libFolder, "**"))
 		}
 
-		this.exclusions.push(path.join(this.rootPath, this.projectPackage.build_dir, "**"))
+		exclusions.push(path.join(this.rootPath, this.projectPackage.build_dir, "**"))
 
 		for (const x of this.getAllRelativeLibrariesAsExclusionsFromRemappings()) {
-			this.exclusions.push(x)
+			exclusions.push(x)
 		}
-		this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: this.exclusions })
+		this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: exclusions })
 		return (filesCache = this.glob.found)
 	}
 
