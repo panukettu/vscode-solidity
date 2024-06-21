@@ -244,9 +244,6 @@ const importer: ActionDefinition = {
 			const result = [...internals, ...externals.filter((e) => !internals.find((i) => i.title === e.title))].filter(
 				Boolean,
 			)
-			console.debug({
-				result: result.map((r) => r.title),
-			})
 			if (result.length) {
 				return result.concat(
 					createFuzzyNameFix(doc, diagnostic, doc.wordRange(), config.fuzzLevel.suggestionsWithImport, false),

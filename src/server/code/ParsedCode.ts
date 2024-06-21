@@ -258,12 +258,6 @@ export class ParsedCode {
 	}
 	public getRemappedOrRelativeImportPath(from: string): string {
 		if (!this.document) return ""
-		console.debug({
-			from,
-			rel: path.relative(path.dirname(from), this.document.sourceDocument.absolutePath),
-			rel2: path.relative(from, this.document.sourceDocument.absolutePath),
-			abs: this.document.sourceDocument.absolutePath,
-		})
 		const remapping = this.document.sourceDocument.project.findRemappingForFile(
 			this.document.sourceDocument.absolutePath,
 		)
@@ -274,7 +268,6 @@ export class ParsedCode {
 				from,
 				this.document.sourceDocument.absolutePath,
 			)
-			console.debug("result", result)
 			if (result) return result
 		}
 

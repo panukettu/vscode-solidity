@@ -46,7 +46,6 @@ export class RemoteSolc extends SolcLoader {
 		try {
 			const resolvedVersion = await parseReleaseVersion(this.version)
 			this.solc = await this.loadRemoteWithRetries(resolvedVersion, 1, 3)
-			console.debug("Initialized", !!this.solc)
 		} catch (error) {
 			this.solc = null
 			throw error
