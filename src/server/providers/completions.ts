@@ -37,10 +37,8 @@ export const getCompletionItems = (
 	try {
 		const offset = document.offsetAt(position)
 		ctx.pos = parsePosition(document, position)
-		console.count("completion")
 		if (ctx.pos.triggers.declaration) return []
-
-		if (ctx.pos.triggers.dotStart > 0) {
+		if (ctx.pos.triggers.dotStart) {
 			// console.debug("dot handler")
 			try {
 				ctx.matchers = dotStartMatchers(ctx.pos.line, position, ctx.pos.triggers.dotStart)

@@ -1,10 +1,11 @@
 import { getCodeActionFixes } from "@server/actions/server-code-actions"
 import { provideHover } from "@server/providers/hover"
-import { computeSemanticTokens } from "@server/providers/semantic"
 import { provideSignatureHelp } from "@server/providers/signatures"
 import { DocUtil } from "@server/utils/text-document"
+import { resolveCache } from "@shared/project/project"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import * as vscode from "vscode-languageserver/node"
+import { DidChangeConfigurationNotification } from "vscode-languageserver/node"
 import { getCompletionItems } from "./server/providers/completions"
 import { getDefinition } from "./server/providers/definition"
 import { getAllReferencesToItem } from "./server/providers/references"
@@ -22,7 +23,12 @@ import { getCodeWalkerService, initCommon } from "./server/server-utils"
 
 export const documents = new vscode.TextDocuments(TextDocument)
 
-export const connection = vscode.createConnection(vscode.ProposedFeatures.all)
+let hasConfigurationCapability = false
+export const connection = vscode.createConnection(
+	vscode.ProposedFeatures.all,
+	new vscode.IPCMessageReader(process),
+	new vscode.IPCMessageWriter(process),
+)
 console.log = connection.console.log.bind(connection.console)
 console.error = connection.console.error.bind(connection.console)
 
@@ -32,11 +38,15 @@ console.error = connection.console.error.bind(connection.console)
 connection.onInitialize((params) => {
 	const result = handleInitialize(params)
 	configureServerCachePath(params.initializationOptions.solcCachePath)
+	hasConfigurationCapability = !!(params.capabilities.workspace && !!params.capabilities.workspace.configuration)
 	return result
 })
 
-connection.onInitialized((params) => {
-	return handleInitialized()
+connection.onInitialized(async (params) => {
+	await handleInitialized()
+	if (hasConfigurationCapability) {
+		connection.client.register(DidChangeConfigurationNotification.type, undefined)
+	}
 })
 connection.onRequest("CompilerError", (params) => {
 	console.error("CompilerError", params)
@@ -61,8 +71,12 @@ connection.onDefinition((handler) => {
 })
 
 connection.onHover((handler) => {
-	initCommon(handler.textDocument)
-	return provideHover(...providerParams(handler))
+	try {
+		initCommon(handler.textDocument)
+		return provideHover(...providerParams(handler))
+	} catch (e: any) {
+		console.debug("Unhandled", e)
+	}
 })
 
 connection.onSignatureHelp((handler) => {
@@ -81,20 +95,20 @@ connection.onSignatureHelp((handler) => {
 // 	return semanticTokens
 // })
 
-connection.onRequest("textDocument/semanticTokens/full", (params) => {
-	initCommon(params.textDocument)
-	console.debug("Semantic token requets")
+// connection.onRequest("textDocument/semanticTokens/full", (params) => {
+// 	initCommon(params.textDocument)
+// 	console.debug("Semantic token requets")
 
-	const handler = {
-		...params,
-		position: { line: 0, character: 0 },
-	}
-	const [document, position, walker] = providerParams(handler)
-	// Implement your logic to provide semantic tokens for the given document here.
-	// You should return the semantic tokens as a response.
-	const semanticTokens = computeSemanticTokens(new DocUtil(document, DocUtil.positionRange(position), walker))
-	return semanticTokens
-})
+// 	const handler = {
+// 		...params,
+// 		position: { line: 0, character: 0 },
+// 	}
+// 	const [document, position, walker] = providerParams(handler)
+// 	// Implement your logic to provide semantic tokens for the given document here.
+// 	// You should return the semantic tokens as a response.
+// 	const semanticTokens = computeSemanticTokens(new DocUtil(document, DocUtil.positionRange(position), walker))
+// 	return semanticTokens
+// })
 
 connection.onExecuteCommand((params) => {
 	const [document, range] = params.arguments as CommandParamsBase
@@ -120,7 +134,12 @@ connection.onDidChangeWatchedFiles((_change) => {
 	if (settings.linter != null) {
 		settings.linter.loadFileConfig(settings.rootPath)
 	}
-	validateAllDocuments()
+	const hasFoundryChange = _change.changes.some((change) => change.uri.includes("foundry.toml"))
+	if (hasFoundryChange) {
+		handleConfigChange({} as any)
+		resolveCache.clear()
+		return validateAllDocuments()
+	}
 })
 
 connection.onCodeAction((handler) => {
@@ -129,11 +148,15 @@ connection.onCodeAction((handler) => {
 	return getCodeActionFixes(docUtil, handler.context.diagnostics)
 })
 
-connection.onDidChangeConfiguration((change) => handleConfigChange(change))
+connection.onDidChangeConfiguration((change) => {
+	resolveCache.clear()
+	return handleConfigChange(change)
+})
 
-documents.onDidChangeContent((event) => {
-	if (!config.validation.onChange || event.document.version < 2 || !compilerInitialized) return
-	return validateDocument(event.document)
+documents.onDidChangeContent(async (event) => {
+	if (!config.validation.onChange || event.document.version < 1 || !compilerInitialized) return
+	const validated = await validateDocument(event.document)
+	return validated
 })
 
 /* -------------------------------------------------------------------------- */
@@ -147,14 +170,14 @@ documents.onDidClose((event) => {
 		uri: event.document.uri,
 	})
 })
-documents.onDidOpen((event) => {
+documents.onDidOpen(async (event) => {
 	if (!config.validation.onOpen || !compilerInitialized) return
-	return validateDocument(event.document)
+	return await validateDocument(event.document)
 })
 
-documents.onDidSave((event) => {
+documents.onDidSave(async (event) => {
 	if (!config.validation.onSave || !compilerInitialized) return
-	return validateDocument(event.document)
+	return await validateDocument(event.document)
 })
 
 documents.listen(connection)

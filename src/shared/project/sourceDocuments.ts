@@ -5,6 +5,8 @@ import { formatPath } from "../util"
 import { Project } from "./project"
 import { SourceDocument } from "./sourceDocument"
 
+const mockContent = (content: string) => `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0; ${content}`
+
 export class SourceDocumentCollection {
 	public documents: Array<SourceDocument>
 
@@ -20,10 +22,6 @@ export class SourceDocumentCollection {
 		this.documents = new Array<SourceDocument>()
 	}
 
-	public isDocumentPathTheSame(contract: SourceDocument, contractPath: string) {
-		return contract.absolutePath === contractPath
-	}
-
 	public containsSourceDocument(contractPath: string) {
 		return (
 			this.documents.findIndex((contract: SourceDocument) => {
@@ -32,7 +30,7 @@ export class SourceDocumentCollection {
 		)
 	}
 
-	public getMinimalSolcInput(maxContracts?: number): SolcInput {
+	public getMinimalSolcInput(): SolcInput {
 		return {
 			language: "Solidity",
 			settings: {
@@ -48,30 +46,39 @@ export class SourceDocumentCollection {
 					},
 				},
 			},
-			sources: this.getSourceCodes(true),
+			sources: this.getSourceCodes(true, 325000),
 		}
 	}
 
 	public getSolcInput(args: MultisolcSettings) {
 		return {
 			...args.compilerConfig,
-			sources: this.getSourceCodes(),
+			sources: this.getSourceCodes(false, 325000),
 		}
 	}
 
-	public getSourceCodes(skipConsoleSols = false): SolcInput["sources"] {
+	public getSourceCodes(skipConsoleSols = false, sizeLimit = 0): SolcInput["sources"] {
 		const contractsForCompilation = {}
-
 		for (const contract of this.documents) {
-			if (skipConsoleSols && contract.absolutePath.includes("/safeconsole.sol")) {
+			if (
+				skipConsoleSols &&
+				(contract.absolutePath.includes("safeconsole.sol") ||
+					contract.absolutePath.includes("onsole.sol") ||
+					contract.absolutePath.includes("onsole2.sol"))
+			) {
 				contractsForCompilation[contract.absolutePath] = {
-					content: "pragma solidity ^0.8.0; library safeconsole { function log(string memory s) internal pure { } }",
+					content:
+						"pragma solidity ^0.8.0; library safeconsole { function log(string memory s) internal pure { } } library console2 { function log(string memory s) internal pure { } } library console { function log(string memory s) internal pure { } }",
 				}
 				continue
 			}
-			if (skipConsoleSols && contract.absolutePath.includes("/console.sol")) {
-				contractsForCompilation[contract.absolutePath] = {
-					content: "pragma solidity ^0.8.0; library console { function log(string memory s) internal pure { } }",
+
+			if (sizeLimit && contract.code.length > sizeLimit) {
+				const identifier = contract.unformattedCode.match(/(contract|library|interface)\s(.*?)\s{/g)
+				if (identifier.length) {
+					contractsForCompilation[contract.absolutePath] = {
+						content: mockContent(identifier.map((id) => `${id} }`).join("\n")),
+					}
 				}
 				continue
 			}
@@ -145,28 +152,12 @@ export class SourceDocumentCollection {
 		contract: SourceDocument,
 		project: Project,
 	) {
-		// find re-mapping
-		const remapping = project.findImportRemapping(dependencyImport)
-		if (remapping != null) {
-			const importPath = this.formatContractPath(remapping.resolveImport(dependencyImport))
-			this.addSourceDocumentAndResolveDependencyImportFromContractFullPath(
-				importPath,
-				project,
-				contract,
-				dependencyImport,
-			)
-		} else {
-			const depPack = project.findDependencyPackage(dependencyImport)
-			if (depPack != null) {
-				const depImportPath = this.formatContractPath(depPack.resolveImport(dependencyImport))
-				this.addSourceDocumentAndResolveDependencyImportFromContractFullPath(
-					depImportPath,
-					project,
-					contract,
-					dependencyImport,
-				)
-			}
-		}
+		this.addSourceDocumentAndResolveDependencyImportFromContractFullPath(
+			this.formatContractPath(contract.resolveImportPath(dependencyImport, project.getIncludePathFiles(), true)),
+			project,
+			contract,
+			dependencyImport,
+		)
 	}
 
 	private addSourceDocumentAndResolveDependencyImportFromContractFullPath(
@@ -175,6 +166,7 @@ export class SourceDocumentCollection {
 		contract: SourceDocument,
 		dependencyImport: string,
 	) {
+		if (!importPath) return
 		if (!this.containsSourceDocument(importPath)) {
 			const importContractCode = this.readContractCode(importPath)
 			if (importContractCode != null) {

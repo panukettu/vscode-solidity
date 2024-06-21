@@ -3,6 +3,7 @@
 // 	/(error|Error |Note|Warning)(?:.\s|\s?)(\((.*?)\))?:\s?(.*?)\n.*-->\W+(.*?):(\d+):(\d+):.*?\n.*?\n.*?\S+\s+(?=\w)(.*?(?=\W))\n/g;
 // const functionRegexp = () => new RegExp(/(function.*?\()/g);
 
+export const remapRegexp = () => /((?<context>[\S]+)\:)?(?<prefix>[\S]+)=(?<target>.+)/g
 export const solcErrorRegexp = () => /Error.*?\((\d+)\).*?:.*?(.+)\n.*?\S+.(.+):(\d+):(\d+)/gm
 
 export const solcOutputRegexp = () =>
@@ -33,7 +34,11 @@ export const innerImportRegexp = new RegExp(/(import\s\{)/s)
 export const emitRegexp = new RegExp(/(emit\s)/s)
 export const importRegexp = new RegExp(/(import\s)(?!\{)/s)
 export const fromRegexp = new RegExp(/(import\s\{.*?\}\sfrom)/s)
-export const importFullRegexp = new RegExp(/import\s*({(?<symbols>.*?)}\s*from\s*)?["'](?<from>.*?)["']/, "gm")
+// export const importFullRegexp = new RegExp(/import\s*({(?<symbols>.*?)}\s*from\s*)?["'](?<from>.*?)["']/, "gm")
+export const importFullRegexp = new RegExp(
+	/import\s\{?(?<symbols>.*?(?=\}))?([^'"]*['"](?<from>.*)['"])\s*(?:as\s)?(?<as>\w+)?/,
+	"gm",
+)
 export const symbolIdRegexp = new RegExp(/import\s\{(.*?)\W/s)
 // function\s+(?<name>\w+)\s*\((?<args>.*?)\)\s*(?<modifiers>.*?)\s*\{(?<body>.*?)\}
 

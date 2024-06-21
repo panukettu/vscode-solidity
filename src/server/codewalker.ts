@@ -6,7 +6,6 @@ import { documentMap } from "@server/providers/utils/caches"
 import { Project } from "@shared/project/project"
 import { SourceDocument } from "@shared/project/sourceDocument"
 import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
-import { createProject } from "@shared/project/utils"
 import { SolidityConfig } from "@shared/types"
 import * as solparse from "solparse-exp-jb"
 import { ParsedContract } from "./code/ParsedContract"
@@ -18,26 +17,24 @@ export class CodeWalkerService {
 	public project: Project
 	public rootPath: string
 	public config: SolidityConfig
-	public resolvedSources: string
 	public parsedDocumentsCache: ParsedDocument[] = []
 
 	constructor(rootPath: string, config: SolidityConfig) {
 		this.rootPath = rootPath
 		this.config = config
 		if (this.rootPath != null) {
-			const { project, sources } = createProject(this.rootPath, this.config)
-			this.project = project
-			this.resolvedSources = sources
+			this.project = new Project(this.config, this.rootPath)
+			this.config = this.project.cfg
 		}
 
-		this.initDocuments(this.config.project.exclude)
+		this.initDocuments()
 	}
 
-	public initDocuments(initExclude: string[]) {
+	public initDocuments() {
 		if (!this.project) throw new Error("Project not initialized")
 
 		const sourceDocuments = new SourceDocumentCollection()
-		const files = this.project.getProjectSolFiles(initExclude) ?? []
+		const files = this.project.getProjectSolFiles() ?? []
 
 		for (const path of files) {
 			const existing = sourceDocuments.documents.find((d) => d.absolutePath === path)

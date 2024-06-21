@@ -1,3 +1,4 @@
+import type { EVMVersion } from "@shared/types"
 import type { ABI, AST } from "@shared/types-abi-ast"
 
 /**
@@ -369,18 +370,7 @@ export interface SolcInput {
 		}
 	}
 	settings?: {
-		evmVersion?:
-			| "homestead"
-			| "tangerineWhistle"
-			| "spuriousDragon"
-			| "byzantium"
-			| "constantinople"
-			| "petersburg"
-			| "istanbul"
-			| "berlin"
-			| "london"
-			| "paris"
-			| "shanghai"
+		evmVersion?: EVMVersion
 		stopAfter?: "parsing"
 		remappings?: string[]
 		// Optional: Change compilation pipeline to go through the Yul intermediate representation.

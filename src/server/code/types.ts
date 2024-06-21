@@ -47,10 +47,17 @@ export type ElementParams = {
 	start: number
 	end: number
 }
-
+export type ImportElement = {
+	type: "ImportStatement"
+	from: string
+	symbols: { type: "Symbol"; name: string; alias: string; start: number; end: number }[]
+	start: number
+	end: number
+}
 export type BodyElement = {
 	type: string
-	name: string
+	name?: string
+	from?: string
 	id?: {
 		type: string
 		name: string

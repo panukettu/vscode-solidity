@@ -1,4 +1,5 @@
 import { CompilerType } from "@shared/enums"
+import { resolveCache } from "@shared/project/project"
 import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import type { MultisolcSettings, SolidityConfig } from "@shared/types"
 import packageJson from "package.json"
@@ -6,7 +7,6 @@ import * as vscode from "vscode-languageserver/node"
 import { connection } from "../server"
 import { replaceRemappings } from "../shared/util"
 import SolhintService from "./linter/solhint"
-import { tokenModifiers, tokenTypes } from "./providers/semantic"
 import { createServerMultisolc } from "./server-compiler"
 import { ExtendedSettings } from "./server-types"
 function defaultConfig() {
@@ -58,13 +58,13 @@ export function handleInitialize(params: vscode.InitializeParams): vscode.Initia
 
 	const result: vscode.InitializeResult = {
 		capabilities: {
-			semanticTokensProvider: {
-				full: true,
-				legend: {
-					tokenTypes: tokenTypes,
-					tokenModifiers: tokenModifiers,
-				},
-			},
+			// semanticTokensProvider: {
+			// 	full: true,
+			// 	legend: {
+			// 		tokenTypes: tokenTypes,
+			// 		tokenModifiers: tokenModifiers,
+			// 	},
+			// },
 			completionProvider: {
 				resolveProvider: false,
 				triggerCharacters: [".", "/", '"', "'"],
@@ -117,6 +117,10 @@ export async function handleInitialized() {
 }
 
 export async function updateConfig(newConfig: SolidityConfig) {
+	// const foundryCfg = getFoundryConfig(settings.rootPath)?.profile
+	// const sources = newConfig.project.sources ?? foundryCfg?.src ?? getHardhatSourceFolder(settings.rootPath)
+	// const includePaths = Array.from(new Set((config.project.includePaths ?? []).concat(foundryCfg.include_paths ?? [])))
+
 	config = {
 		...newConfig,
 		compiler: {
@@ -124,7 +128,10 @@ export async function updateConfig(newConfig: SolidityConfig) {
 			location: newConfig.compiler.location || CompilerType.Extension,
 		},
 		project: {
+			...config.project,
 			...newConfig.project,
+			// sources,
+			// includePaths,
 			remappings: replaceRemappings(
 				newConfig.project.remappings,
 				process.platform === "win32" ? newConfig.project.remappingsWindows : newConfig.project.remappingsUnix,

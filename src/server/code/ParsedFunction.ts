@@ -402,7 +402,7 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 			const completionItem = this.initCompletionItem()
 			completionItem.kind = CompletionItemKind.Function
 			const paramsSnippet = ParsedParameter.createFunctionParamsSnippet(this.element.params, skipFirstParamSnipppet)
-			if (this.element.returnParams?.params?.length > 0) {
+			if (this.element.returnParams?.params?.length) {
 				let returnParamsInfo = ParsedParameter.createParamsInfo(this.element.returnParams)
 				if (returnParamsInfo !== "") {
 					returnParamsInfo = ` returns (${returnParamsInfo})`

@@ -1,10 +1,13 @@
+import { readFileSync } from "node:fs"
 import * as path from "path"
+import type { Callbacks } from "@shared/compiler/types-solc"
 import { formatPath } from "../util"
-import { Project } from "./project"
+import { Project, resolveCache } from "./project"
 
 type Import = {
 	importPath: string
 	symbols?: string[]
+	isAs?: string
 }
 
 export class SourceDocument {
@@ -51,21 +54,44 @@ export class SourceDocument {
 	 * @param {SourceDocument} contract the contract where the import statement belongs
 	 * @returns {string} the absolute path of the imported file
 	 */
-	public resolveImportPath(importPath: string): string {
-		if (importPath[0] === ".") {
-			return this.formatDocumentPath(path.resolve(path.dirname(this.absolutePath), importPath))
-		} else if (this.project) {
-			const remapping = this.project.findImportRemapping(importPath)
-			if (remapping != null) {
-				return this.formatDocumentPath(remapping.resolveImport(importPath))
-			} else {
-				const depPack = this.project.findDependencyPackage(importPath)
-				if (depPack != null) {
-					return this.formatDocumentPath(depPack.resolveImport(importPath))
-				}
-			}
+	public resolveImportPath(importPath: string, files: string[], returnEmpty = false): string {
+		if (resolveCache.has(importPath)) {
+			return resolveCache.get(importPath)
 		}
-		return importPath
+		let result = ""
+		if (importPath[0] === ".") {
+			result = path.resolve(path.dirname(this.absolutePath), importPath)
+		}
+
+		if (!result || result === importPath) {
+			result =
+				this.project?.findImportRemapping(importPath)?.resolveImport(importPath) ??
+				this.project?.findDependencyPackage(importPath)?.resolveImport(importPath)
+		}
+
+		if (!result || result === importPath) {
+			const normalized = importPath.replace(/['"]+/g, "")
+			result = files.find((x) => x.includes(normalized))
+		}
+
+		const out = result && result !== importPath ? this.formatDocumentPath(result) : returnEmpty ? null : importPath
+		if (out && out !== importPath) resolveCache.set(importPath, out)
+		return out
+	}
+
+	public getImportCallback(): Callbacks {
+		this.project.checkCache()
+		const solFiles = this.project.getIncludePathFiles()
+		return {
+			import: (path: string) => {
+				const resolved = this.resolveImportPath(path, solFiles, true)
+				if (!resolved) return { error: `File not found: ${path}` }
+				resolveCache.set(path, resolved)
+				return {
+					contents: readFileSync(resolved).toString(),
+				}
+			},
+		}
 	}
 
 	public getAllImportFromPackages() {
@@ -99,11 +125,16 @@ export class SourceDocument {
 	}
 
 	public resolveImports() {
-		// const importRegEx = /^\s?import\s+[^'"]*['"](.*)['"]\s*/gm;
-		const importRegEx = /import\s\{?(.*?(?=\}))?([^'"]*['"](.*)['"])\s*/gm
+		// const importRegExDunno = /^\s?import\s+[^'"]*['"](.*)['"]\s*/gm;
+		// const importRegExPrev = /import\s\{?(.*?(?=\}))?([^'"]*['"](.*)['"])\s*/gm
+		const importRegEx = /import\s\{?(.*?(?=\}))?([^'"]*['"](.*)['"])\s*(?:as\s)?(\w+)?/gm
 		let foundImport = importRegEx.exec(this.code)
+
 		while (foundImport != null) {
-			const symbols = foundImport[1] ? foundImport[1].split(",").map((s) => s.trim()) : undefined
+			let symbols = foundImport[1] ? foundImport[1].split(",").map((s) => s.trim()) : undefined
+
+			const isAs = !symbols?.length && foundImport[4]
+			if (isAs) symbols = [foundImport[4]]
 			const importPath = foundImport[3]
 
 			if (this.isImportLocal(importPath)) {
@@ -111,11 +142,13 @@ export class SourceDocument {
 				this.imports.push({
 					importPath: importFullPath,
 					symbols: symbols,
+					isAs,
 				})
 			} else {
 				this.imports.push({
 					importPath: importPath,
 					symbols: symbols,
+					isAs,
 				})
 			}
 
@@ -123,3 +156,6 @@ export class SourceDocument {
 		}
 	}
 }
+// import\s+(:{[^{}]+}|.*?)\s*(?:from)?\s*['"](.*?)['"]|import\(.*?\)
+
+// import\s\{?(.*?(?=\}))?([^'"]*['"](.*)['"])\s*(?:as\s)(\w+)

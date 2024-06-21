@@ -6,14 +6,13 @@ import { URI } from "vscode-uri"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedContract } from "./ParsedContract"
 import { ParsedDocument } from "./ParsedDocument"
-import { ParsedExpression } from "./ParsedExpression"
 import { ParsedFunction } from "./ParsedFunction"
-import { BodyElement, Element, ElementParams, InnerElement } from "./types"
+import { BodyElement, Element, ElementParams, ImportElement, InnerElement } from "./types"
 
 const terminators = [".", " ", ":", ";", ")", "]", ""]
 
 export class ParsedCode {
-	public element: Element | InnerElement | BodyElement | ElementParams
+	public element: Element | InnerElement | BodyElement | ElementParams | ImportElement
 	public name = ""
 	public document: ParsedDocument
 	public contract: ParsedContract
@@ -22,14 +21,16 @@ export class ParsedCode {
 	public comment: string
 
 	public initialise(
-		element: Element | BodyElement | InnerElement | ElementParams,
+		element: Element | BodyElement | InnerElement | ElementParams | ImportElement,
 		document: ParsedDocument,
 		contract: ParsedContract = null,
 		isGlobal = false,
 	) {
 		this.contract = contract
 		this.element = element
-		this.name = element.name
+		if ("name" in element) {
+			this.name = element.name
+		}
 		this.document = document
 		this.isGlobal = isGlobal // need to remove is global
 		if (contract != null && isGlobal === false) {
@@ -257,30 +258,47 @@ export class ParsedCode {
 	}
 	public getRemappedOrRelativeImportPath(from: string): string {
 		if (!this.document) return ""
+		console.debug({
+			from,
+			rel: path.relative(path.dirname(from), this.document.sourceDocument.absolutePath),
+			rel2: path.relative(from, this.document.sourceDocument.absolutePath),
+			abs: this.document.sourceDocument.absolutePath,
+		})
 		const remapping = this.document.sourceDocument.project.findRemappingForFile(
 			this.document.sourceDocument.absolutePath,
 		)
 		if (remapping) {
 			return remapping.createImportFromFile(this.document.sourceDocument.absolutePath)
-		} else {
-			return path.relative(path.dirname(from), this.document.sourceDocument.absolutePath)
+		} else if (this.document.sourceDocument.project.includePaths.length) {
+			const result = this.document.sourceDocument.project.findShortestImport(
+				from,
+				this.document.sourceDocument.absolutePath,
+			)
+			console.debug("result", result)
+			if (result) return result
 		}
+
+		return path.relative(path.dirname(from), this.document.sourceDocument.absolutePath)
 	}
 	public initCompletionItem(): CompletionItem {
 		const completionItem = CompletionItem.create(this.name)
-		const remapping = this.document.sourceDocument.project.findRemappingForFile(
-			this.document.sourceDocument.absolutePath,
-		)
+		const absolutePath = this.document.sourceDocument.absolutePath
+		const remapping = this.document.sourceDocument.project.findRemappingForFile(absolutePath)
 
 		if (remapping) {
 			completionItem.data = {
-				absolutePath: this.document.sourceDocument.absolutePath,
+				absolutePath,
 				remappedPath: remapping.createImportFromFile(this.document.sourceDocument.absolutePath),
+			}
+		} else if (this.document.sourceDocument.project.includePaths.length) {
+			completionItem.data = {
+				absolutePath,
+				remappedPath: this.document.sourceDocument.project.findDirectImport(absolutePath),
 			}
 		} else {
 			completionItem.data = {
-				absolutePath: this.document.sourceDocument.absolutePath,
-				remappedPath: this.document.sourceDocument.absolutePath,
+				absolutePath: absolutePath,
+				remappedPath: path.relative(path.dirname(absolutePath), this.document.sourceDocument.absolutePath),
 			}
 		}
 		return completionItem

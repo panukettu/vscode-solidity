@@ -6,6 +6,7 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
+- include paths, fix compiler issues and disable semantic tokens (too ugly perf)
 - add semantic tokens
 - Fix custom type using for star
 - Do not validate forge-std/safeconsole.sol

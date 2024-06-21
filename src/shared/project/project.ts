@@ -1,7 +1,13 @@
 import * as path from "path"
-import { glob } from "glob"
-import { Package } from "./package"
-import { Remapping, importRemappingArray } from "./remapping"
+import type { FoundryConfigParsed, SolidityConfig } from "@shared/types"
+import { GlobSync, glob } from "glob"
+import { createLibPackages } from "./dependency-utils"
+import { Package, createDefaultPackage } from "./package"
+import { getFoundryConfig, getHardhatSourceFolder, loadRemappings } from "./project-utils"
+import { Remapping, parseRemappings } from "./remapping"
+
+export const resolveCache: Map<string, string> = new Map()
+export let filesCache: string[] = []
 
 export class Project {
 	public projectPackage: Package
@@ -9,23 +15,51 @@ export class Project {
 	public libs: string[]
 	public remappings: Remapping[]
 	public rootPath: string
+	public foundryConfig: FoundryConfigParsed
+	public includePaths: string[]
+	public cfg: SolidityConfig
+	public cacheTime = Date.now()
 
-	constructor(
-		projectPackage: Package,
-		dependencies: Array<Package>,
-		libs: string[],
-		remappings: string[],
-		rootPath: string,
-	) {
-		this.projectPackage = projectPackage
-		this.dependencies = dependencies
-		this.libs = libs
-		this.remappings = importRemappingArray(remappings, this)
+	private glob: InstanceType<typeof GlobSync>
+	private globPath: string
+	private absoluteSources: string
+	private exclusions: string[] = []
+
+	constructor(config: SolidityConfig, rootPath: string) {
+		this.foundryConfig = getFoundryConfig(rootPath)
+		config.project.sources =
+			config.project.sources ?? this.foundryConfig?.profile?.src ?? getHardhatSourceFolder(rootPath)
+		this.cfg = config
+
+		this.includePaths = Array.from(
+			new Set((config.project?.includePaths ?? []).concat(this.foundryConfig.profile.include_paths ?? [])),
+		)
+
+		this.projectPackage = createDefaultPackage(rootPath, config.project.sources, config.compiler.outDir)
+		this.dependencies = createLibPackages(config.project.libs, rootPath, this.projectPackage, config.project.libSources)
+		this.libs = config.project.libs
 		this.rootPath = rootPath
+		this.remappings = parseRemappings(loadRemappings(this), this)
+
+		this.absoluteSources = this.projectPackage.getSolSourcesAbsolutePath()
+		this.globPath = `${this.absoluteSources}/**/*.sol`
+		this.exclusions = this.getDefaultExclusions()
+
+		this.glob = new GlobSync(this.globPath, {
+			ignore: this.exclusions,
+		})
 	}
+
 	// This will need to add the current package as a parameter to resolve version dependencies
-	public findDependencyPackage(contractDependencyImport: string) {
-		return this.dependencies.find((depPack: Package) => depPack.isImportForThis(contractDependencyImport))
+	public findDependencyPackage(dependencyImport: string) {
+		return this.dependencies.find((depPack: Package) => depPack.isImportForThis(dependencyImport))
+	}
+	private getDefaultExclusions() {
+		return (
+			this.cfg.project.exclude?.length
+				? this.cfg.project.exclude.map((item) => path.join(this.absoluteSources, "**", item, "/**/*.sol"))
+				: []
+		).concat(["node_modules/**/"])
 	}
 	public getLibSourceFiles() {
 		return Array.from(
@@ -37,27 +71,49 @@ export class Project {
 			),
 		)
 	}
-	public getProjectSolFiles(extraExcludes?: string[]) {
-		const sourcesPath = this.projectPackage.getSolSourcesAbsolutePath()
 
-		const exclusions: string[] =
-			extraExcludes?.length > 0 ? extraExcludes.map((item) => path.join(sourcesPath, "**", item, "/**/*.sol")) : []
+	public getIncludePathFiles() {
+		if (!this.includePaths.length) return []
+		const dir = this.includePaths.length > 1 ? `{${this.includePaths.join(",")}}` : this.includePaths[0]
+		if (dir === this.cfg.project.sources) return this.getProjectSolFiles()
 
-		const projectFiles = `${sourcesPath}/**/*.sol`
-		if (this.rootPath !== sourcesPath) {
-			return glob.sync(projectFiles, { ignore: exclusions })
+		return new GlobSync(`${this.rootPath}/${dir}/**/*.sol`, {
+			ignore: ["node_modules/**/"],
+		}).found
+	}
+
+	public checkCache() {
+		if (Date.now() - this.cacheTime > 10000) {
+			filesCache = []
+			this.cacheTime = Date.now()
+		}
+	}
+
+	public getProjectSolFiles() {
+		this.checkCache()
+		if (filesCache.length === 0) {
+			return this._getProjectSolFiles()
+		}
+		return filesCache
+	}
+	public _getProjectSolFiles() {
+		if (this.rootPath !== this.absoluteSources) {
+			this.exclusions = this.getDefaultExclusions()
+			this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: this.exclusions })
+
+			return (filesCache = this.glob.found)
 		}
 		for (const libFolder of this.libs) {
-			exclusions.push(path.join(sourcesPath, libFolder, "**"))
+			this.exclusions.push(path.join(this.rootPath, libFolder, "**"))
 		}
 
-		exclusions.push(path.join(sourcesPath, this.projectPackage.build_dir, "**"))
+		this.exclusions.push(path.join(this.rootPath, this.projectPackage.build_dir, "**"))
 
 		for (const x of this.getAllRelativeLibrariesAsExclusionsFromRemappings()) {
-			exclusions.push(x)
+			this.exclusions.push(x)
 		}
-
-		return glob.sync(projectFiles, { ignore: exclusions })
+		this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: this.exclusions })
+		return (filesCache = this.glob.found)
 	}
 
 	public getAllRelativeLibrariesAsExclusionsFromRemappings(): string[] {
@@ -67,7 +123,6 @@ export class Project {
 	public getAllRelativeLibrariesRootDirsFromRemappings(): string[] {
 		const results: string[] = []
 
-		// biome-ignore lint/complexity/noForEach: <explanation>
 		this.remappings.forEach((mapping) => {
 			const dirLib = mapping.getLibraryPathIfRelative(this.projectPackage.getSolSourcesAbsolutePath())
 			if (dirLib != null && results.find((x) => x === dirLib) == null) {
@@ -83,35 +138,36 @@ export class Project {
 		)
 	}
 
-	public findImportRemapping(contractDependencyImport: string): Remapping {
+	public findImportRemapping(importPath: string): Remapping {
 		// const remappings = importRemappings("@openzeppelin/=lib/openzeppelin-contracts//\r\nds-test/=lib/ds-test/src/", this);
-		const foundRemappings = []
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		this.remappings.forEach((mapping) => {
-			if (mapping.isImportForThis(contractDependencyImport)) {
-				foundRemappings.push(mapping)
-			}
-		})
+		const remappings = this.remappings.filter((mapping) => mapping.isImportForThis(importPath))
+		if (!remappings?.length) return null
+		return this.sortByLength(remappings)[remappings.length - 1]
+	}
 
-		if (foundRemappings.length > 0) {
-			return this.sortByLength(foundRemappings)[foundRemappings.length - 1]
+	public findDirectImport(absolutePath: string): string {
+		for (const includePath of this.includePaths.concat([...this.cfg.project.libs])) {
+			const includePathResolved = path.resolve(this.rootPath, includePath)
+			if (absolutePath.startsWith(includePathResolved)) {
+				const result = absolutePath.replace(`${includePathResolved}`, "")
+				return result.startsWith("/") ? result.substring(1) : result
+			}
 		}
-		return null
+		return absolutePath
+	}
+
+	public findShortestImport(from: string, importPath: string): string {
+		let result = this.findImportRemapping(importPath)?.createImportFromFile(importPath)
+		if (!result) result = this.findRemappingForFile(importPath)?.createImportFromFile(importPath)
+		if (!result) result = this.findDirectImport(importPath)
+		if (result && result !== importPath) return result
+		return path.relative(path.dirname(from), importPath)
 	}
 
 	public findRemappingForFile(filePath: string): Remapping {
-		const foundRemappings = []
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		this.remappings.forEach((remapping) => {
-			if (remapping.isFileForThis(filePath)) {
-				foundRemappings.push(remapping)
-			}
-		})
-
-		if (foundRemappings.length > 0) {
-			return this.sortByLength(foundRemappings)[foundRemappings.length - 1]
-		}
-		return null
+		const remappings = this.remappings.filter((mapping) => mapping.isFileForThis(filePath))
+		if (!remappings?.length) return null
+		return this.sortByLength(remappings)[remappings.length - 1]
 	}
 
 	private sortByLength(array: any[]) {

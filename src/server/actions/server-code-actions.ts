@@ -218,7 +218,7 @@ const importer: ActionDefinition = {
 
 			const internals = selectedDocumentImports.map((imp, i) => {
 				const importPath = imp.isRelative ? imp.relativePath : imp.import.from
-				const fix = vscode.CodeAction.create(`Import from '${importPath}'`, vscode.CodeActionKind.QuickFix)
+				const fix = vscode.CodeAction.create(`import from '${importPath}'`, vscode.CodeActionKind.QuickFix)
 				fix.diagnostics = diagnosticsFixed
 				fix.edit = {
 					changes: docImports[imp.index].addSymbol(symbol),
@@ -229,7 +229,7 @@ const importer: ActionDefinition = {
 			/* ----------------------------- externals ---------------------------- */
 			const externals = imports.map((imp, i) => {
 				const importPath = imp.importPath ? imp.importPath : imp.isRelative ? imp.relativePath : imp.import.from
-				const fix = vscode.CodeAction.create(`Import from '${importPath}'`, vscode.CodeActionKind.QuickFix)
+				const fix = vscode.CodeAction.create(`import from '${importPath}'`, vscode.CodeActionKind.QuickFix)
 				fix.diagnostics = diagnosticsFixed
 				fix.edit = {
 					changes:
@@ -244,6 +244,9 @@ const importer: ActionDefinition = {
 			const result = [...internals, ...externals.filter((e) => !internals.find((i) => i.title === e.title))].filter(
 				Boolean,
 			)
+			console.debug({
+				result: result.map((r) => r.title),
+			})
 			if (result.length) {
 				return result.concat(
 					createFuzzyNameFix(doc, diagnostic, doc.wordRange(), config.fuzzLevel.suggestionsWithImport, false),

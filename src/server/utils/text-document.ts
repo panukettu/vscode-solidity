@@ -337,14 +337,13 @@ export class DocUtil {
 				range: vscode.Range.create(start, end),
 				line: this.getLine(start.line),
 				from: fromMatch,
-				symbols: symbolMatch?.split(",").map((s) => s.trim()) ?? [],
-				addSymbol: (symbol: string) => {
+				symbols: (symbolMatch?.split(",").map((s) => s.trim()) ?? []) as string[],
+				addSymbol(symbol: string) {
 					try {
 						if (!symbolMatch) return
-						const symbols = symbolMatch.split(",").map((s) => s.trim())
-						if (!symbols.includes(symbol)) {
-							symbols.push(symbol)
-							const newSymbols = symbols.sort((a, b) => a.localeCompare(b)).join(", ")
+						if (!this.symbols.includes(symbol)) {
+							this.symbols.push(symbol)
+							const newSymbols = this.symbols.sort((a, b) => a.localeCompare(b)).join(", ")
 							const newLine = this.lineText(start.line).replace(symbolMatch, newSymbols)
 							return this.change({ replace: [{ range: this.lineRange(start.line), text: newLine }] })
 						}

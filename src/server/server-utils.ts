@@ -1,6 +1,6 @@
 import { deepEqual } from "fast-equals"
 import { URI } from "vscode-uri"
-import { findFirstRootProjectFile } from "../shared/project/utils"
+import { findFirstRootProjectFile } from "../shared/project/project-utils"
 import { CodeWalkerService } from "./codewalker"
 import { ServerCompilers } from "./server-compiler"
 import { config, settings } from "./server-config"

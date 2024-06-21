@@ -156,7 +156,7 @@ export class EtherscanContractDownloader {
 				}
 				const sourceInfo = JSON.parse(sourceInfoString)
 				const fileNames = Object.keys(sourceInfo.sources)
-				// biome-ignore lint/complexity/noForEach: <explanation>
+
 				fileNames.forEach((fileName) => {
 					const fullPathContractFile = path.join(subfolderFullPath, fileName)
 					fse.ensureDirSync(path.dirname(fullPathContractFile))

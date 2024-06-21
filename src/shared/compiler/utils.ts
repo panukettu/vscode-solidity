@@ -1,6 +1,8 @@
 import * as fs from "fs"
 import * as https from "https"
-export function peekSolcReleases(): Promise<object> {
+import type { SolcList } from "@shared/types"
+
+export function getSolcReleases(): Promise<SolcList["releases"]> {
 	const url = "https://binaries.soliditylang.org/bin/list.json"
 	return new Promise((resolve, reject) => {
 		https
@@ -11,7 +13,9 @@ export function peekSolcReleases(): Promise<object> {
 				})
 				res.on("end", () => {
 					try {
-						const binList = JSON.parse(body)
+						const binList = JSON.parse(body) as SolcList
+						const latestPrelease = binList.builds[binList.builds.length - 1]
+						binList.releases[latestPrelease.version] = latestPrelease.path
 						resolve(binList.releases)
 					} catch (error) {
 						reject(error.message)
@@ -63,7 +67,7 @@ export function parseReleaseVersion(version: string): Promise<string> {
 			resolve(version)
 		}
 		try {
-			const releases = await peekSolcReleases()
+			const releases = await getSolcReleases()
 			// tslint:disable-next-line:forin
 			for (const release in releases) {
 				const fullVersion = getVersionFromFilename(releases[release])

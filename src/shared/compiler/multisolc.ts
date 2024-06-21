@@ -1,7 +1,7 @@
 import { errorToDiagnostic } from "@server/providers/utils/diagnostics"
 import { CompilerType } from "@shared/enums"
+import { Project } from "@shared/project/project"
 import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
-import { createProject } from "@shared/project/utils"
 import { MultisolcSettings, SolidityConfig } from "@shared/types"
 import { ExtensionSolc } from "./location/solc-default"
 import { LocalSolc } from "./location/solc-local"
@@ -71,10 +71,21 @@ export class Multisolc {
 		await compiler.initializeSolc()
 	}
 
-	public compileInputWith(input: SolcInput, type: CompilerType = null) {
+	public async compileInputWith(
+		input: SolcInput,
+		type: CompilerType = null,
+		callbacks: any = undefined,
+	): Promise<SolcOutput> {
 		try {
 			const compiler = this.getCompiler(type)
-			return JSON.parse(compiler.solc.compile(JSON.stringify(input))) as SolcOutput
+			if (!compiler?.solc?.compile) {
+				return this.initializeSolc(type).then(() => {
+					return this.compileInputWith(input, type, callbacks)
+				})
+			}
+			const result = JSON.parse(compiler.solc.compile(JSON.stringify(input), callbacks)) as SolcOutput
+			if (result?.errors?.length) result.errors = result.errors.filter((error) => error.errorCode !== "3805")
+			return result
 		} catch (e) {
 			console.error("Unhandled (compile):", e)
 		}
@@ -114,14 +125,14 @@ export class Multisolc {
 		}
 	}
 
-	public compileWithDiagnostic(
+	public async compileWithDiagnostic(
 		filePath: string,
 		documentText: string,
 		config: SolidityConfig,
 		selectedType: CompilerType = null,
 	) {
 		if (!this.isRootPathSet()) {
-			const output = this.compileInputWith({
+			const output = await this.compileInputWith({
 				language: "Solidity",
 				sources: {
 					[filePath]: {
@@ -132,17 +143,22 @@ export class Multisolc {
 			return output.errors?.map(errorToDiagnostic) ?? []
 		}
 		const contracts = new SourceDocumentCollection()
-		const project = createProject(this.rootPath, config).project
-		contracts.addSourceDocumentAndResolveImports(filePath, documentText, project)
+		const project = new Project(config, this.rootPath)
+
+		const doc = contracts.addSourceDocumentAndResolveImports(filePath, documentText, project)
 
 		try {
-			const output = this.compileInputWith(contracts.getMinimalSolcInput(), selectedType)
+			const output = await this.compileInputWith(contracts.getMinimalSolcInput(), selectedType, doc.getImportCallback())
 
 			return output.errors?.map(errorToDiagnostic) ?? []
 		} catch (error) {
 			console.debug("Unhandled (compileWithDiagnostic):", error)
-			this.initializeSolc(selectedType).then(() => {
-				const output = this.compileInputWith(contracts.getMinimalSolcInput(), selectedType)
+			this.initializeSolc(selectedType).then(async () => {
+				const output = await this.compileInputWith(
+					contracts.getMinimalSolcInput(),
+					selectedType,
+					doc.getImportCallback(),
+				)
 				return output.errors?.map(errorToDiagnostic) ?? []
 			})
 		}

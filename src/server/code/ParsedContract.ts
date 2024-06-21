@@ -737,6 +737,7 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 			const path = this.document.sourceDocument.absolutePath.split("/")
 			const fileName = path[path.length - 1]
 			const folderNames = `${(path.length > 3 ? path.slice(-3, -1) : path.slice(-2, -1)).join("/")}/${fileName}`
+
 			completionItem.detail = `${folderNames}`
 			completionItem.documentation = this.getMarkupInfo(true)
 			this.completionItem = completionItem

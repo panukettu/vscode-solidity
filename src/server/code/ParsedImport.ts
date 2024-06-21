@@ -4,10 +4,13 @@ import { URI } from "vscode-uri"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
 import { ParsedDocument } from "./ParsedDocument"
+import type { ImportElement } from "./types"
+
 export class ParsedImport extends ParsedCode {
 	public from: string
 	public documentReference: ParsedDocument = null
-	public symbols: { name: string; alias: string }[] = []
+	public symbols: ImportElement["symbols"] = []
+	public isFullAs = false
 
 	public override getInfo(): string {
 		return this.createInfo(
@@ -24,12 +27,23 @@ export class ParsedImport extends ParsedCode {
 		return "import"
 	}
 
-	public initialise(element: any, document: ParsedDocument) {
+	public initialise(element: ImportElement, document: ParsedDocument) {
 		this.document = document
 		this.element = element
 		this.from = element.from
 		this.symbols = element.symbols
 		this.name = (<string>element.from)?.split("/").pop()
+
+		if (!this.symbols.length) {
+			const symbols = this.document.sourceDocument.imports.find((x) => x.importPath === this.from)?.symbols
+			if (!symbols?.length) return
+			this.symbols = symbols.map((s) => {
+				const start = this.document.sourceDocument.unformattedCode.indexOf(s)
+				return { type: "Symbol", name: s, alias: s, start: start, end: start + s.length }
+			})
+
+			this.isFullAs = true
+		}
 	}
 
 	public override getSelectedTypeReferenceLocation(offset: number): TypeReference[] {
@@ -42,7 +56,13 @@ export class ParsedImport extends ParsedCode {
 	public initialiseDocumentReference(parsedDocuments: ParsedDocument[]) {
 		for (let index = 0; index < parsedDocuments.length; index++) {
 			const element = parsedDocuments[index]
-			if (element.sourceDocument.absolutePath === this.document.sourceDocument.resolveImportPath(this.from)) {
+			if (
+				element.sourceDocument.absolutePath ===
+				this.document.sourceDocument.resolveImportPath(
+					this.from,
+					this.document.sourceDocument.project.getProjectSolFiles(),
+				)
+			) {
 				this.documentReference = element
 				if (this.document.importedDocuments.indexOf(element) === -1) {
 					this.document.addImportedDocument(element)
@@ -66,15 +86,24 @@ export class ParsedImport extends ParsedCode {
 	}
 
 	public getRelativePath(from: string): string {
-		if (!this.document) return ""
-		const result = path.relative(path.dirname(from), this.document.sourceDocument.resolveImportPath(this.from))
+		if (!this.document?.sourceDocument) return ""
+		const result = path.relative(
+			path.dirname(from),
+			this.document.sourceDocument.resolveImportPath(
+				this.from,
+				this.document.sourceDocument.project.getProjectSolFiles(),
+			),
+		)
 		if (result.startsWith(".")) return result
 		return `./${result}`
 	}
 
 	public getReferenceLocation(): Location {
 		if (!this.document) return null
-		const path = this.document.sourceDocument.resolveImportPath(this.from)
+		const path = this.document.sourceDocument.resolveImportPath(
+			this.from,
+			this.document.sourceDocument.project.getProjectSolFiles(),
+		)
 		// note: we can use the path to find the referenced source document too.
 		return Location.create(URI.file(path).toString(), Range.create(0, 0, 0, 0))
 	}

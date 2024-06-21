@@ -10,13 +10,18 @@
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
-			"resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-			"args": ["--extensionDevelopmentPath=${workspaceFolder}", "--disable-extensions"],
-			"outFiles": ["${workspaceFolder}/out/**/**/*.js"],
-			"preLaunchTask": {
-				"type": "npm",
-				"script": "compile:watch"
-			},
+			"resolveSourceMapLocations": [
+				"${workspaceFolder}/**",
+				"!**/node_modules/**"
+			],
+			"args": [
+				"--stdio",
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"--disable-extensions"
+			],
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			],
 			"env": {
 				"NODE_PATH": "out/",
 				"NODE_ENV": "development"
@@ -29,13 +34,18 @@
 			"name": "Attach to Server",
 			"port": 6009,
 			"restart": true,
-			"outFiles": ["${workspaceRoot}/out/**/*.js"]
+			"outFiles": [
+				"${workspaceRoot}/out/**/*.js"
+			]
 		}
 	],
 	"compounds": [
 		{
 			"name": "Client + Server",
-			"configurations": ["Extension", "Attach to Server"],
+			"configurations": [
+				"Extension",
+				"Attach to Server"
+			],
 			"stopAll": true
 		}
 	]

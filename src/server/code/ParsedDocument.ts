@@ -17,7 +17,7 @@ import { ParsedFunction } from "./ParsedFunction"
 import { ParsedImport } from "./ParsedImport"
 import { ParsedStruct } from "./ParsedStruct"
 import { ParsedUsing } from "./ParsedUsing"
-import { Element } from "./types"
+import { Element, type ImportElement } from "./types"
 
 type ParsedType = ParsedContract | ParsedFunction | ParsedStruct | ParsedCode
 
@@ -393,7 +393,7 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 
 			if (element.type === "ImportStatement") {
 				const importDocument = new ParsedImport()
-				importDocument.initialise(element, this)
+				importDocument.initialise(element as any, this)
 
 				if (this.matchesElement(this.selectedElement, element)) {
 					this.selectedImport = importDocument

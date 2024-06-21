@@ -1,26 +1,32 @@
 import * as fs from "fs"
 import * as path from "path"
+export function createDefaultPackage(packagePath: string, sources = "", outDir = "bin"): Package {
+	const defaultPackage = new Package(sources, outDir)
+	defaultPackage.absolutePath = packagePath
+	defaultPackage.name = path.basename(packagePath)
+	return defaultPackage
+}
 
 export class Package {
 	public name: string
 	public version: string
 	public sol_sources: string
 	public build_dir: string
-	public absoluletPath: string
+	public absolutePath: string
 
 	public dependencies: any
 	public sol_sources_alternative_directories: string[] = []
 
-	constructor(solidityDirectory: string, outDir: string) {
+	constructor(solSources: string, outDir: string) {
 		this.build_dir = outDir
-		this.sol_sources = solidityDirectory
+		this.sol_sources = solSources
 	}
 
 	public getSolSourcesAbsolutePath() {
 		if (this.sol_sources !== undefined || this.sol_sources === "") {
-			return path.join(this.absoluletPath, this.sol_sources)
+			return path.join(this.absolutePath, this.sol_sources)
 		}
-		return this.absoluletPath
+		return this.absolutePath
 	}
 
 	public isImportForThis(contractDependencyImport: string) {
@@ -44,7 +50,7 @@ export class Package {
 					const directory = this.sol_sources_alternative_directories[index]
 					if (directory !== undefined || directory === "") {
 						const fullpath = path.join(
-							this.absoluletPath,
+							this.absolutePath,
 							directory,
 							contractDependencyImport.substring(this.name.length),
 						)

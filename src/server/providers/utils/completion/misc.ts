@@ -4,7 +4,7 @@ import * as vscode from "vscode-languageserver/node"
 import { CodeWalkerService } from "../../../codewalker"
 
 export const textEdit = (path: string, range: vscode.Range, prefix: string) => {
-	return vscode.InsertReplaceEdit.create(prefix + path + '";', range, range)
+	return vscode.InsertReplaceEdit.create(`${prefix + path}";`, range, range)
 }
 
 export const getImportPath = (

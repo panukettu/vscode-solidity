@@ -5,7 +5,7 @@ import { BaseCommandArgs } from "@client/client-types"
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { Multisolc } from "@shared/compiler/multisolc"
 import { SolcOutput } from "@shared/compiler/types-solc"
-import { getRemoteSolc, peekSolcReleases } from "@shared/compiler/utils"
+import { getRemoteSolc, getSolcReleases } from "@shared/compiler/utils"
 import { CompilerType } from "@shared/enums"
 import type { CompileArgs } from "@shared/types"
 import * as fsex from "fs-extra"
@@ -50,7 +50,7 @@ export class ClientCompilers {
 
 	public async downloadRemoteVersion(folderPath: string): Promise<string> {
 		try {
-			const releases = await this.peekSolcReleases()
+			const releases = await getSolcReleases()
 			const releasesToSelect: string[] = []
 			// tslint:disable-next-line: forin
 			for (const release in releases) {
@@ -64,6 +64,7 @@ export class ClientCompilers {
 				version = value.replace("soljson-", "")
 				version = version.replace(".js", "")
 			}
+			console.log("Version: ", version)
 			const pathVersion = path.resolve(path.join(folderPath, `soljson-${version}.js`))
 			await getRemoteSolc(version, pathVersion)
 			vscode.window.showInformationMessage(`Compiler downloaded: ${pathVersion}`)
@@ -74,7 +75,7 @@ export class ClientCompilers {
 	}
 
 	public async selectRemoteVersion(target: vscode.ConfigurationTarget) {
-		const releases = await this.peekSolcReleases()
+		const releases = await getSolcReleases()
 		const releasesToSelect: string[] = ["none", "latest"]
 		// tslint:disable-next-line: forin
 		for (const release in releases) {
@@ -97,16 +98,11 @@ export class ClientCompilers {
 		})
 	}
 
-	public peekSolcReleases(): Promise<any> {
-		return peekSolcReleases()
-	}
-
 	public async printSolcReleases() {
 		this.outputChannel.clear()
 		this.outputChannel.appendLine("Retrieving solc versions ..")
 		try {
-			const releases = await this.peekSolcReleases()
-			// tslint:disable-next-line: forin
+			const releases = await getSolcReleases()
 			for (const release in releases) {
 				this.outputChannel.appendLine(`${release}: ${releases[release]}`)
 			}
@@ -117,7 +113,7 @@ export class ClientCompilers {
 
 	public async compile(commandArgs: BaseCommandArgs, args: CompileArgs): Promise<Array<string>> {
 		if (!args.solcInput?.sources) {
-			vscode.window.showWarningMessage("No solidity files (*.sol) found")
+			vscode.window.showWarningMessage("No solidity sources to compile!")
 			return
 		} else {
 			const message = `Compiling ${Object.keys(args.solcInput.sources)?.length} files`
@@ -126,19 +122,35 @@ export class ClientCompilers {
 		}
 
 		try {
-			const output = this.multisolc.compileInputWith(args.solcInput, args.solcType)
-			vscode.window.setStatusBarMessage("Compilation success!", 5000)
+			const output = await this.multisolc.compileInputWith(
+				args.solcInput,
+				args.solcType,
+				args.contract.getImportCallback(),
+			)
+
+			this.handleOutputFeedback(output)
 			return this.processCompilationOutput(commandArgs, output, this.outputChannel, args)
 		} catch (e) {
 			console.error("Compile:", e.message)
-			this.initializeSolcs(args.solcType).then(() => {
-				const output = this.multisolc.compileInputWith(args.solcInput, args.solcType)
-				vscode.window.setStatusBarMessage("Compilation success!", 5000)
+			this.initializeSolcs(args.solcType).then(async () => {
+				const output = await this.multisolc.compileInputWith(
+					args.solcInput,
+					args.solcType,
+					args.contract.getImportCallback(),
+				)
+				this.handleOutputFeedback(output)
 				return this.processCompilationOutput(commandArgs, output, this.outputChannel, args)
 			})
 		}
 	}
-
+	private handleOutputFeedback(output: SolcOutput) {
+		if (output.errors?.length) {
+			vscode.window.setStatusBarMessage(`Compiled with ${output.errors.length} errors`, 5000)
+			vscode.window.showErrorMessage(JSON.stringify(output.errors, null, 2))
+		} else {
+			vscode.window.setStatusBarMessage("Compiled succesfully.", 5000)
+		}
+	}
 	private outputErrorsToChannel(outputChannel: vscode.OutputChannel, errors: any[]) {
 		for (const error of errors) {
 			outputChannel.appendLine(error.formattedMessage)
@@ -212,7 +224,7 @@ export class ClientCompilers {
 			return
 		}
 
-		if (output.errors) {
+		if (output.errors?.length) {
 			const errorWarningCounts = await errorsToDiagnostics(commandArgs, output.errors)
 			this.outputErrorsToChannel(outputChannel, output.errors)
 
@@ -229,7 +241,7 @@ export class ClientCompilers {
 					args.options.outDir,
 					args.options.sourceDir,
 					args.options.excludePaths,
-					args.contractPath,
+					args.contract.absolutePath,
 				)
 				const compilationWithWarningsMessage = `Compiled with ${errorWarningCounts.warnings} warnings.`
 				vscode.window.showWarningMessage(compilationWithWarningsMessage)
@@ -244,7 +256,7 @@ export class ClientCompilers {
 					args.options.outDir,
 					args.options.sourceDir,
 					args.options.excludePaths,
-					args.contractPath,
+					args.contract.absolutePath,
 				)
 				const compilationSuccessMessage = "Compiled succesfully."
 				vscode.window.showInformationMessage(compilationSuccessMessage)

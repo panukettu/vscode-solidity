@@ -1,7 +1,7 @@
 import * as vscode from "vscode"
 import type { ContractLevelSolcOutput, SolcInput } from "../shared/compiler/types-solc"
 import { CompilerType } from "../shared/enums"
-import { findFirstRootProjectFile } from "../shared/project/utils"
+import { findFirstRootProjectFile } from "../shared/project/project-utils"
 import type { MultisolcSettings, SolidityConfig } from "../shared/types"
 import { replaceRemappings } from "../shared/util"
 
@@ -9,6 +9,10 @@ import { replaceRemappings } from "../shared/util"
 export class Config {
 	public static getConfig() {
 		return vscode.workspace.getConfiguration().get<SolidityConfig>("solidity")
+	}
+
+	public static getFullConfig() {
+		return { ...Config.getConfig(), ...Config.getCompiler() }
 	}
 
 	public static getProject() {
