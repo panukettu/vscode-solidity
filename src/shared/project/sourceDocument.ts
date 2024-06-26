@@ -62,6 +62,8 @@ export class SourceDocument {
 			result = path.resolve(path.dirname(this.absolutePath), importPath)
 		}
 
+		if (!result) result = this.project.projectPackage.resolveImport(importPath)
+
 		if (!result || result === importPath) {
 			result =
 				this.project?.findImportRemapping(importPath)?.resolveImport(importPath) ??

@@ -68,7 +68,7 @@ export const setDiagnostics = (
 			connection.sendDiagnostics({ uri, diagnostics })
 		})
 	} catch (e) {
-		console.error("Set diagnostics", e.message)
+		console.debug("Set diagnostics", e.message)
 		throw new Error(`lens.server.diagnostic.set failed: ${e.message}`)
 	}
 }
@@ -78,7 +78,7 @@ export const clearDiagnostic = (walker: CodeWalkerService) => {
 			connection.sendDiagnostics({ uri: doc.sourceDocument.absolutePath, diagnostics: [] })
 		})
 	} catch (e) {
-		console.error("Clear diagnostics", e.message)
+		console.debug("Clear diagnostics", e.message)
 		throw new Error(`lens.server.diagnostic.clear failed: ${e.message}`)
 	}
 }

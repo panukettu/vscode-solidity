@@ -131,7 +131,7 @@ export class ClientCompilers {
 			this.handleOutputFeedback(output)
 			return this.processCompilationOutput(commandArgs, output, this.outputChannel, args)
 		} catch (e) {
-			console.error("Compile:", e.message)
+			console.debug("Compile:", e.message)
 			this.initializeSolcs(args.solcType).then(async () => {
 				const output = await this.multisolc.compileInputWith(
 					args.solcInput,

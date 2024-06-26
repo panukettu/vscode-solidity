@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.19",
+	"version": "0.8.20",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -123,125 +123,151 @@
 			"type": "object",
 			"title": "Solidity",
 			"properties": {
-				"solidity.fuzzLevel.suggestions": {
-					"type": "number",
-					"default": 0.25,
-					"description": "Fuzzy search threshold. 0 = no suggestions, 1 = all suggestions."
-				},
-				"solidity.fuzzLevel.suggestionsLoose": {
-					"type": "number",
-					"default": 0.39,
-					"description": "Next fuzz threshold when no search results are found. set equal/less than fuzzLevel.suggestions to disable."
-				},
-				"solidity.fuzzLevel.suggestionsWithImport": {
-					"type": "number",
-					"default": 0.025,
-					"description": "Fuzzy search threshold when import also exists. 0 = no suggestions, 1 = all suggestions."
-				},
-				"solidity.test.verbosity": {
-					"type": "number",
-					"default": 3,
-					"description": "Basically just sets matching forge verbosity, eg. default 3 = -vvv so traces on fails. Some experimental tracing overview is available."
-				},
-				"solidity.test.executeOnSave": {
-					"type": "boolean",
-					"default": true,
-					"description": "Run forge test in cursor position on file save."
-				},
-				"solidity.compiler.outDir": {
-					"type": "string",
-					"default": "bin",
-					"description": "The output directory for extension compilation results eg. 'bin'"
-				},
-				"solidity.compiler.version.npm": {
-					"type": "string",
-					"default": "solc",
-					"description": "npm package to look for a solc compiler"
-				},
-				"solidity.compiler.version.remote": {
-					"type": "string",
-					"default": "latest",
-					"description": "Remote solc version used, downloaded from 'https://binaries.soliditylang.org/'. 'latest', 'v0.4.3+commit.2353da71'. See: 'Get solidity releases'"
-				},
-				"solidity.compiler.version.local": {
-					"type": "string",
-					"default": "",
-					"description": "Local solc path, eg. 'C://v0.4.3+commit.2353da71.js'"
-				},
-				"solidity.compiler.location": {
-					"type": "string",
-					"description": "Solc location used by default. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `localSolcVersion`. `NPM` looks from node_modules folder or configured 'npmSolcPackage'",
-					"enum": [
-						"Remote",
-						"File",
-						"NPM",
-						"Extension"
-					],
-					"default": "Extension"
-				},
-				"solidity.compiler.outputSelection": {
-					"type": [
-						"string"
-					],
-					"default": [
-						"abi",
-						"devdoc",
-						"userdoc",
-						"evm.methodIdentifiers",
-						"evm.gasEstimates",
-						"evm.bytecode.object",
-						"evm.deployedBytecode.object"
-					],
-					"description": "Select output items (contract level) from compilation"
-				},
-				"solidity.compiler.settings": {
+				"solidity.fuzzLevel": {
 					"type": "object",
-					"default": {
-						"viaIR": true,
-						"evmVersion": "paris",
-						"optimizer": {
-							"enabled": true,
-							"runs": 1000
+					"description": "Fuzzy search settings",
+					"additionalProperties": false,
+					"properties": {
+						"suggestions": {
+							"type": "number",
+							"description": "Fuzzy search threshold. 0 = no suggestions, 1 = all suggestions."
+						},
+						"suggestionsLoose": {
+							"type": "number",
+							"description": "Next fuzz threshold when no search results are found. set equal/less than fuzzLevel.suggestions to disable."
+						},
+						"suggestionsWithImport": {
+							"type": "number",
+							"description": "Fuzzy search threshold when import also exists. 0 = no suggestions, 1 = all suggestions."
 						}
 					},
-					"description": "Compiler settings used. Overrides other configuration values if clashing. (https://docs.soliditylang.org/en/latest/using-the-compiler.html#input-description) "
+					"default": {
+						"suggestions": 0.25,
+						"suggestionsLoose": 0.39,
+						"suggestionsWithImport": 0.025
+					}
 				},
-				"solidity.validation.onChange": {
-					"type": "boolean",
-					"default": false,
-					"description": "Compile and provide validations on file changes."
+				"solidity.test": {
+					"type": "object",
+					"description": "Forge test settings",
+					"additionalProperties": false,
+					"properties": {
+						"verbosity": {
+							"type": "number",
+							"description": "Basically just sets matching forge verbosity, eg. default 3 = -vvv so traces on fails. Some experimental tracing overview is available."
+						},
+						"executeOnSave": {
+							"type": "boolean",
+							"description": "Run forge test in cursor position on file save."
+						}
+					},
+					"default": {
+						"executeOnSave": true,
+						"verbosity": 3
+					}
 				},
-				"solidity.validation.onSave": {
-					"type": "boolean",
-					"default": true,
-					"description": "Compile and provide validations on file save."
+				"solidity.compiler": {
+					"type": "object",
+					"description": "Select the solidity compiler type and versions.",
+					"additionalProperties": false,
+					"properties": {
+						"outDir": {
+							"type": "string",
+							"description": "The output directory for extension compilation results eg. 'bin'"
+						},
+						"npm": {
+							"type": "string",
+							"description": "npm package to look for a solc compiler"
+						},
+						"remote": {
+							"type": "string",
+							"description": "Remote solc version used, downloaded from 'https://binaries.soliditylang.org/'. 'latest', 'v0.4.3+commit.2353da71'. See: 'Get solidity releases'"
+						},
+						"local": {
+							"type": "string",
+							"description": "Local solc path, eg. 'C://v0.4.3+commit.2353da71.js'"
+						},
+						"type": {
+							"type": "string",
+							"description": "Solc type used by default. Remote version is set with 'remoteSolcVersion' (https://binaries.soliditylang.org/). `File` version is set with `localSolcVersion`. `NPM` looks from node_modules folder or configured 'npmSolcPackage'",
+							"enum": [
+								"Remote",
+								"File",
+								"NPM",
+								"Extension"
+							]
+						}
+					},
+					"default": {
+						"outDir": "bin",
+						"type": "Extension",
+						"npm": "solc",
+						"remote": "latest",
+						"local": ""
+					}
 				},
-				"solidity.validation.onOpen": {
-					"type": "boolean",
-					"default": false,
-					"description": "Compile and provide validations on file open. Will not validate on initial project open."
+				"solidity.compilerSettings": {
+					"type": "object",
+					"description": "Compiler input/output settings",
+					"additionalProperties": false,
+					"properties": {
+						"output": {
+							"type": "array",
+							"description": "Select output items (contract level) from compilation"
+						},
+						"input": {
+							"type": "object",
+							"description": "Compiler settings used. Overrides other configuration values if clashing. (https://docs.soliditylang.org/en/latest/using-the-compiler.html#input-description) "
+						}
+					},
+					"default": {
+						"input": {
+							"viaIR": true,
+							"evmVersion": "paris",
+							"optimizer": {
+								"enabled": true,
+								"runs": 1000
+							}
+						},
+						"output": [
+							"abi",
+							"devdoc",
+							"userdoc",
+							"evm.methodIdentifiers",
+							"evm.gasEstimates",
+							"evm.bytecode.object",
+							"evm.deployedBytecode.object"
+						]
+					}
 				},
-				"solidity.validation.delay": {
-					"type": "number",
-					"default": 350,
-					"description": "Delay (debounce) for triggering validation after file changes (in ms)"
-				},
-				"solidity.project.exclude": {
-					"type": "array",
-					"default": [],
-					"description": "Folders to exclude from sources, i.e: ['temp', 'test']"
-				},
-				"solidity.project.libs": {
-					"type": "array",
-					"default": [
-						"lib"
-					],
-					"description": "Directories to look for dependencies, eg. ['node_modules', 'lib']."
-				},
-				"solidity.project.includePaths": {
-					"type": "array",
-					"default": [],
-					"description": "solc include paths, combined with foundry.toml settings"
+				"solidity.validation": {
+					"type": "object",
+					"description": "Solidity file validation settings",
+					"additionalProperties": false,
+					"properties": {
+						"onChange": {
+							"type": "boolean",
+							"description": "Compile and provide validations on file changes."
+						},
+						"onSave": {
+							"type": "boolean",
+							"description": "Compile and provide validations on file save."
+						},
+						"onOpen": {
+							"type": "boolean",
+							"description": "Compile and provide validations on file open. Will not validate on initial project open."
+						},
+						"delay": {
+							"type": "number",
+							"description": "Delay (debounce) for triggering validation after file changes (in ms)"
+						}
+					},
+					"default": {
+						"onChange": false,
+						"onSave": true,
+						"onOpen": false,
+						"delay": 350
+					}
 				},
 				"solidity.project.monorepo": {
 					"type": "boolean",
@@ -253,26 +279,69 @@
 					"default": "",
 					"description": "Folder containing the solidity sources eg. 'src'. If not specified looks for folder set in foundry.toml or hardhat.config.js (NOT-ts), if not found defaults to project root."
 				},
+				"solidity.project.exclude": {
+					"type": "array",
+					"description": "Folders to exclude from sources, i.e: ['temp', 'test']",
+					"uniqueItems": true,
+					"items": {
+						"type": "string"
+					},
+					"default": []
+				},
+				"solidity.project.libs": {
+					"type": "array",
+					"description": "Directories to look for dependencies, eg. ['node_modules', 'lib'].",
+					"uniqueItems": true,
+					"items": {
+						"type": "string"
+					},
+					"default": [
+						"lib"
+					]
+				},
 				"solidity.project.libSources": {
 					"type": "array",
+					"description": "Directories to look for solidity files within libs.",
+					"uniqueItems": true,
+					"items": {
+						"type": "string"
+					},
 					"default": [
 						"src",
 						"contracts"
-					],
-					"description": "Directories to look for solidity files within libs."
+					]
+				},
+				"solidity.project.includePaths": {
+					"type": "array",
+					"description": "solc include paths, combined with foundry.toml settings",
+					"uniqueItems": true,
+					"items": {
+						"type": "string"
+					},
+					"default": []
 				},
 				"solidity.project.remappings": {
 					"type": "array",
-					"default": [],
+					"uniqueItems": true,
+					"items": {
+						"type": "string"
+					},
 					"description": "Remappings to resolve contracts to local files / directories, i.e: [\"@openzeppelin/=lib/openzeppelin-contracts\",\"ds-test/=lib/ds-test/src/\"]"
 				},
 				"solidity.project.remappingsWindows": {
 					"type": "array",
-					"default": [],
+					"uniqueItems": true,
+					"items": {
+						"type": "string"
+					},
 					"description": "Windows Remappings to resolve contracts to local Windows files / directories (Note this overrides the generic remapping settings if the OS is Windows) , i.e: [\"@openzeppelin/=C:/lib/openzeppelin-contracts\",\"ds-test/=C:/lib/ds-test/src/\"]"
 				},
 				"solidity.project.remappingsUnix": {
 					"type": "array",
+					"uniqueItems": true,
+					"items": {
+						"type": "string"
+					},
 					"default": [],
 					"description": "Unix Remappings to resolve contracts to local Unix files / directories (Note this overrides the generic remapping settings if the OS is Unix based), i.e: [\"@openzeppelin/=/opt/lib/openzeppelin-contracts\",\"ds-test/=/opt/lib/ds-test/src/\"]"
 				},

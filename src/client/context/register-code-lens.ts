@@ -23,7 +23,7 @@ const errorWrapper = (fn: (...args: any[]) => any) => (...args: any[]) => {
 	try {
 		return fn(...args)
 	} catch (e) {
-		console.error("Command", e.message)
+		console.debug("Command", e.message)
 	}
 }
 

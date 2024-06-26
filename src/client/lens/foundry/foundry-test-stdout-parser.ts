@@ -126,6 +126,6 @@ export const getTestResults = (
 			},
 		}
 	} catch (e) {
-		console.error("Test results", e.message); 
+		console.debug("Test results", e.message); 
 	}
 }

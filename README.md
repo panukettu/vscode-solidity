@@ -6,6 +6,7 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
+- rename config, fix incorrect enum usage
 - include paths, fix compiler issues and disable semantic tokens (too ugly perf)
 - add semantic tokens
 - Fix custom type using for star
@@ -146,9 +147,12 @@ _probably moving this extension to some more comfy fork later buuut this works f
 - solidity.test.verbosity
   - forge verbosity setting
   - default: 3 (traces on failed tests)
-- solidity.compiler.outputSelection
+- solidity.compiler.outDir
+  - output for compilation artifacts generated from this extension.
+  - default: 'bin'
+- solidity.compilerSettings.output
   - configure contract output items.
-- solidity.compiler.settings
+- solidity.compilerSettings.input
   - configure all solcjs supported settings for the compiler. ![Reference](https://github.com/panukettu/vscode-solidity/blob/master/src/shared/compiler/types-solc.ts#L371)
 - solidity.validation.onSave:
   - validate file on save.
@@ -159,14 +163,11 @@ _probably moving this extension to some more comfy fork later buuut this works f
 - solidity.validation.onOpen
   - validate file on open.
   - default: true
-- solidity.compiler.outDir
-  - output for compilation artifacts generated from this extension.
-  - default: 'bin'
 - solidity.project.sources (string):
   - your solidity source folder.
   - tries to get from foundry.toml or hardhat.config.js if not set.
   - default: ""
-- solidity.initExclude (string[]):
+- solidity.project.exclude (string[]):
 
   - exclude some folders from initial parsing. eg. ["temp", "test"]
   - default: []
@@ -176,16 +177,16 @@ _probably moving this extension to some more comfy fork later buuut this works f
 - solidity.sources -> solidity.project.sources
 - solidity.defaultCompiler -> solidity.compiler.location
   - default: "Default"
-- solidity.nodemodulespackage -> solidity.compiler.version.npm
+- solidity.nodemodulespackage -> solidity.compiler.npm
   - default: "solc"
 - solidity.packageDefaultDependenciesDirectory -> solidity.project.libs
   - default: ["node_modules", "lib"]
 - solidity.packageDefaultDependenciesContractsDirectory -> solidity.project.libSources
   - default: ["src", "contracts"]
-- remote solc -> solidity.compiler.version.remote
-- local solc -> solidity.compiler.version.local
-- npm solc -> solidity.compiler.version.npm
-- compiler -> solidity.compiler.location
+- remote solc -> solidity.compiler.remote
+- local solc -> solidity.compiler.local
+- npm solc -> solidity.compiler.npm
+- compiler -> solidity.compiler.type
 
 ## _DISCLAIMER_ no idea how many things below are not supported by this version
 

@@ -135,7 +135,7 @@ const getMatches = (
 			? matches.filter((m, i, a) => a.findIndex((t) => t.match.name === m.match.name) === i)
 			: matches
 	} catch (e) {
-		console.error("Fuzz:", e.message)
+		console.debug("Fuzz:", e.message)
 	}
 }
 

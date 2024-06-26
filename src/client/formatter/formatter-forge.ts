@@ -18,7 +18,7 @@ async function formatDocumentInternal(documentText: string, rootPath: string): P
 	return await new Promise<string>((resolve, reject) => {
 		const forge = cp.execFile("forge", ["fmt", "--raw", "-"], { cwd: rootPath }, (err, stdout) => {
 			if (err != null) {
-				console.error("forge-fmt", err.message)
+				console.debug("forge-fmt", err.message)
 				return reject(err)
 			}
 

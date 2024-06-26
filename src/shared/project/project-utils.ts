@@ -3,7 +3,7 @@ import * as os from "os"
 import * as path from "path"
 import * as toml from "@iarna/toml"
 import * as yaml from "yaml-js"
-import type { FoundryConfig, FoundryConfigParsed, FoundryCoreConfig } from "../types"
+import type { FoundryConfig, FoundryConfigParsed, FoundryCoreConfig, SolidityConfig } from "../types"
 import * as util from "../util"
 import { Project } from "./project"
 
@@ -58,7 +58,7 @@ export function getFoundryConfig(rootPath: string): FoundryConfigParsed | null {
 			rpc_endpoints: cfg?.rpc_endpoints,
 		}
 	} catch (error) {
-		console.error("Unhandled (foundry config)", error.message)
+		console.debug("Unhandled (foundry config)", error.message)
 		return null
 	}
 }
@@ -108,12 +108,16 @@ function getRemappingsTxt(rootPath: string) {
 		}
 		return remappings
 	} catch (e) {
-		console.error("Unhandled (remappings.txt)", e.message)
+		console.debug("Unhandled (remappings.txt)", e.message)
 		return null
 	}
 }
 
-export function loadRemappings(project: Project): string[] {
+export function loadRemappings(project: {
+	rootPath: string
+	foundryConfig?: FoundryConfigParsed
+	cfg?: Partial<SolidityConfig>
+}): string[] {
 	return (
 		project.foundryConfig?.profile.remappings ??
 		project.cfg.project.remappings ??

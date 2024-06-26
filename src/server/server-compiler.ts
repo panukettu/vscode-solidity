@@ -63,12 +63,12 @@ export async function initializeSolc(type: CompilerType) {
 		await ServerCompilers.initializeSolc(type)
 		connection.console.info(`${id} solc ready (${ServerCompilers.getCompiler().getVersion()})`)
 	} catch (reason) {
-		connection.console.error(`${id} solc initialization fail: ${reason}. Falling back to embedded..`)
+		connection.console.debug(`${id} solc initialization fail: ${reason}. Falling back to embedded..`)
 		try {
 			ServerCompilers.initExternalCompilers(getCurrentMultisolcSettings(config), CompilerType.Extension)
 			await ServerCompilers.initializeSolc(CompilerType.Extension)
 		} catch (e) {
-			connection.console.error(`Unhandled: ${e}`)
+			connection.console.debug(`Unhandled: ${e}`)
 			return
 		}
 	}
@@ -99,42 +99,43 @@ export async function validate(document: vscode.TextDocument) {
 			if (settings.linter != null) {
 				linterDiagnostics = settings.linter.validate(filePath, documentText)
 			}
-		} catch (e) {}
+		} catch (e) {
+			console.debug("Unhandled:", e)
+		}
 		if (configImport.validation.onChange || configImport.validation.onOpen || configImport.validation.onSave) {
 			try {
-				return ServerCompilers.compileWithDiagnostic(
-					filePath,
-					documentText,
-					configImport,
-					configImport.compiler.location,
-				).then((errors) => {
-					for (const errorItem of errors) {
-						const uriCompileError = URI.file(errorItem.fileName)
-						if (uriCompileError.toString() === uri) {
-							compileErrorDiagnostics.push(errorItem.diagnostic)
-						}
-						if (!errorItem.extraDiagnostics) continue
+				return ServerCompilers.compileWithDiagnostic(filePath, documentText, configImport)
+					.then((errors) => {
+						for (const errorItem of errors) {
+							const uriCompileError = URI.file(errorItem.fileName)
+							if (uriCompileError.toString() === uri) {
+								compileErrorDiagnostics.push(errorItem.diagnostic)
+							}
+							if (!errorItem.extraDiagnostics) continue
 
-						for (const extra of errorItem.extraDiagnostics) {
-							const extraURI = URI.file(extra.fileName)
-							if (extraURI.toString() === uri) {
-								compileErrorDiagnostics.push(extra.diagnostic)
-							} else {
-								const diagnostics = extraDiagnostics.get(extraURI.toString()) ?? []
-								extraDiagnostics.set(extraURI.toString(), [...diagnostics, extra.diagnostic])
+							for (const extra of errorItem.extraDiagnostics) {
+								const extraURI = URI.file(extra.fileName)
+								if (extraURI.toString() === uri) {
+									compileErrorDiagnostics.push(extra.diagnostic)
+								} else {
+									const diagnostics = extraDiagnostics.get(extraURI.toString()) ?? []
+									extraDiagnostics.set(extraURI.toString(), [...diagnostics, extra.diagnostic])
+								}
 							}
 						}
-					}
 
-					const allDiagnostics = linterDiagnostics.concat(compileErrorDiagnostics)
-					connection.sendDiagnostics({ uri: document.uri, diagnostics: allDiagnostics })
+						const allDiagnostics = linterDiagnostics.concat(compileErrorDiagnostics)
+						connection.sendDiagnostics({ uri: document.uri, diagnostics: allDiagnostics })
 
-					extraDiagnostics.forEach((extras, uri) => {
-						connection.sendDiagnostics({ uri, diagnostics: extras })
+						extraDiagnostics.forEach((extras, uri) => {
+							connection.sendDiagnostics({ uri, diagnostics: extras })
+						})
 					})
-				})
+					.catch((e) => {
+						console.debug("Unhandled:", e)
+					})
 			} catch (e) {
-				console.error("Unhandled:", e)
+				console.debug("Unhandled:", e)
 			}
 		}
 	} finally {

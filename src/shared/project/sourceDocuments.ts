@@ -46,14 +46,14 @@ export class SourceDocumentCollection {
 					},
 				},
 			},
-			sources: this.getSourceCodes(true, 325000),
+			sources: this.getSourceCodes(true, 300000),
 		}
 	}
 
 	public getSolcInput(args: MultisolcSettings) {
 		return {
 			...args.compilerConfig,
-			sources: this.getSourceCodes(false, 325000),
+			sources: this.getSourceCodes(true, 300000),
 		}
 	}
 

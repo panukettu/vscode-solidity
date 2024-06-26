@@ -14,6 +14,10 @@
 				"${workspaceFolder}/**",
 				"!**/node_modules/**"
 			],
+			"preLaunchTask": {
+				"type": "npm",
+				"script": "compile"
+			},
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"--disable-extensions"

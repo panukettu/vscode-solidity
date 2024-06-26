@@ -151,7 +151,7 @@ export const handleCustomFunctionCompletion = (
 			),
 		)
 	} catch (e) {
-		// console.error(e);
+		// console.debug(e);
 		return handleDefault(selectedDocument, offset)
 	}
 }

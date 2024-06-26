@@ -78,16 +78,17 @@ export class Multisolc {
 	): Promise<SolcOutput> {
 		try {
 			const compiler = this.getCompiler(type)
+
 			if (!compiler?.solc?.compile) {
-				return this.initializeSolc(type).then(() => {
-					return this.compileInputWith(input, type, callbacks)
-				})
+				await this.initializeSolc(type)
+				return await this.compileInputWith(input, type, callbacks)
 			}
+
 			const result = JSON.parse(compiler.solc.compile(JSON.stringify(input), callbacks)) as SolcOutput
 			if (result?.errors?.length) result.errors = result.errors.filter((error) => error.errorCode !== "3805")
 			return result
 		} catch (e) {
-			console.error("Unhandled (compile):", e)
+			console.debug("Unhandled (compile):", e)
 		}
 	}
 
@@ -125,12 +126,7 @@ export class Multisolc {
 		}
 	}
 
-	public async compileWithDiagnostic(
-		filePath: string,
-		documentText: string,
-		config: SolidityConfig,
-		selectedType: CompilerType = null,
-	) {
+	public async compileWithDiagnostic(filePath: string, documentText: string, config: SolidityConfig) {
 		if (!this.isRootPathSet()) {
 			const output = await this.compileInputWith({
 				language: "Solidity",
@@ -146,19 +142,14 @@ export class Multisolc {
 		const project = new Project(config, this.rootPath)
 
 		const doc = contracts.addSourceDocumentAndResolveImports(filePath, documentText, project)
-
+		const input = contracts.getMinimalSolcInput()
 		try {
-			const output = await this.compileInputWith(contracts.getMinimalSolcInput(), selectedType, doc.getImportCallback())
-
+			const output = await this.compileInputWith(input, config.compiler.type, doc.getImportCallback())
 			return output.errors?.map(errorToDiagnostic) ?? []
 		} catch (error) {
 			console.debug("Unhandled (compileWithDiagnostic):", error)
-			this.initializeSolc(selectedType).then(async () => {
-				const output = await this.compileInputWith(
-					contracts.getMinimalSolcInput(),
-					selectedType,
-					doc.getImportCallback(),
-				)
+			this.initializeSolc(config.compiler.type).then(async () => {
+				const output = await this.compileInputWith(input, config.compiler.type, doc.getImportCallback())
 				return output.errors?.map(errorToDiagnostic) ?? []
 			})
 		}

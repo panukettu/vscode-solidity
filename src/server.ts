@@ -49,7 +49,7 @@ connection.onInitialized(async (params) => {
 	}
 })
 connection.onRequest("CompilerError", (params) => {
-	console.error("CompilerError", params)
+	console.debug("CompilerError", params)
 })
 /* -------------------------------------------------------------------------- */
 /*                                   Actions                                  */
@@ -148,15 +148,18 @@ connection.onCodeAction((handler) => {
 	return getCodeActionFixes(docUtil, handler.context.diagnostics)
 })
 
-connection.onDidChangeConfiguration((change) => {
+connection.onDidChangeConfiguration(async (change) => {
+	await handleConfigChange(change)
+	if (settings.linter != null) {
+		settings.linter.loadFileConfig(settings.rootPath)
+	}
 	resolveCache.clear()
-	return handleConfigChange(change)
+	await validateAllDocuments()
 })
 
 documents.onDidChangeContent(async (event) => {
 	if (!config.validation.onChange || event.document.version < 1 || !compilerInitialized) return
-	const validated = await validateDocument(event.document)
-	return validated
+	return await validateDocument(event.document)
 })
 
 /* -------------------------------------------------------------------------- */

@@ -87,7 +87,7 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 		clearCaches()
 		currentOffset = 0
 		currentItem = undefined
-		console.error("definition", e.message)
+		console.debug("definition", e.message)
 		return null
 	}
 }

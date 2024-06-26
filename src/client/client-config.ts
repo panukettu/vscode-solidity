@@ -28,17 +28,22 @@ export class Config {
 		}>("project")
 	}
 	public static getCompiler() {
-		return vscode.workspace.getConfiguration("solidity").get<{
+		const _compiler = vscode.workspace.getConfiguration("solidity").get<{
 			outDir: string
-			outputSelection: ContractLevelSolcOutput[]
-			settings: Partial<SolcInput["settings"]>
-			version: {
-				npm: string
-				remote: string
-				local: string
-			}
-			location: CompilerType
+			npm: string
+			remote: string
+			local: string
+			type: CompilerType
 		}>("compiler")
+		const _compilerSettings = vscode.workspace.getConfiguration("solidity").get<{
+			output: ContractLevelSolcOutput[]
+			input: Partial<SolcInput["settings"]>
+		}>("compilerSettings")
+
+		return {
+			compiler: _compiler,
+			compilerSettings: _compilerSettings,
+		}
 	}
 	public static getTestVerbosity() {
 		return vscode.workspace.getConfiguration("solidity").get<number>("test.verbosity")
@@ -48,7 +53,7 @@ export class Config {
 	}
 
 	public static getCompilerType(): CompilerType {
-		return CompilerType[vscode.workspace.getConfiguration("solidity").get<string>("compiler.location")]
+		return CompilerType[vscode.workspace.getConfiguration("solidity").get<string>("compiler.type")]
 	}
 
 	public static getCompilerOptions(
@@ -56,11 +61,11 @@ export class Config {
 		sourceDir?: string | null,
 		overrideType?: CompilerType,
 	): MultisolcSettings {
-		const compiler = Config.getCompiler()
-		compiler.settings.outputSelection
-			? compiler.settings.outputSelection
-			: (compiler.settings.outputSelection = {
-					"*": { "*": compiler.outputSelection, "": [] },
+		const cfg = Config.getCompiler()
+		cfg.compilerSettings.input.outputSelection
+			? cfg.compilerSettings.input.outputSelection
+			: (cfg.compilerSettings.input.outputSelection = {
+					"*": { "*": cfg.compilerSettings.output, "": [] },
 			  })
 		const project = Config.getProject()
 
@@ -71,12 +76,12 @@ export class Config {
 			outDir: Config.getOutDir(),
 			compilerConfig: {
 				language: "Solidity",
-				settings: compiler.settings,
+				settings: cfg.compilerSettings.input,
 			},
-			remoteSolcVersion: compiler.version.remote,
-			localSolcVersion: compiler.version.local,
-			npmSolcPackage: compiler.version.npm,
-			selectedType: overrideType || compiler.location,
+			remoteSolcVersion: cfg.compiler.remote,
+			localSolcVersion: cfg.compiler.local,
+			npmSolcPackage: cfg.compiler.npm,
+			selectedType: overrideType || cfg.compiler.type,
 		}
 	}
 

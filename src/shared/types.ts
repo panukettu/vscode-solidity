@@ -112,7 +112,6 @@ export interface ErrorWarningCounts {
 }
 
 export interface SolidityConfig {
-	// option for backward compatibilities, please use "linter" option instead
 	linter: {
 		type: boolean | string
 		rules?: object
@@ -134,15 +133,15 @@ export interface SolidityConfig {
 	}
 	compiler: {
 		outDir: string
-		remappings: string[]
-		outputSelection: ContractLevelSolcOutput[]
-		settings: Partial<SolcInput["settings"]>
-		version: {
-			npm: string
-			remote: string
-			local: string
-		}
-		location: CompilerType
+		npm: string
+		remote: string
+		local: string
+		type: CompilerType
+	}
+	compilerSettings: {
+		remappings?: string[]
+		input: Partial<SolcInput["settings"]>
+		output: ContractLevelSolcOutput[]
 	}
 	project: {
 		exclude: string[]

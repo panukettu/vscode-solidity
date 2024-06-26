@@ -36,7 +36,7 @@ export const provideHover = (document: vscode.TextDocument, position: vscode.Pos
 		reset()
 		return null
 	} catch (e) {
-		// console.error('hover', e);
+		// console.debug('hover', e);
 		return null
 	}
 }

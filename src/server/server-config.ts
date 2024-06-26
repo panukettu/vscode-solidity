@@ -1,5 +1,7 @@
 import { CompilerType } from "@shared/enums"
 import { resolveCache } from "@shared/project/project"
+import { getFoundryConfig, loadRemappings } from "@shared/project/project-utils"
+import { parseRemappings } from "@shared/project/remapping"
 import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import type { MultisolcSettings, SolidityConfig } from "@shared/types"
 import packageJson from "package.json"
@@ -9,15 +11,16 @@ import { replaceRemappings } from "../shared/util"
 import SolhintService from "./linter/solhint"
 import { createServerMultisolc } from "./server-compiler"
 import { ExtendedSettings } from "./server-types"
+
 function defaultConfig() {
 	const result = {} as SolidityConfig
+	let defaultCompilerType = CompilerType.Extension
 
-	let defaultCompiler = CompilerType.Extension
 	for (const key in packageJson.contributes.configuration.properties) {
 		const keys = key.split(".")
 		if (keys[0] === "solidity") {
-			if (key === "solidity.compiler.location") {
-				defaultCompiler = CompilerType[packageJson.contributes.configuration.properties[key].default]
+			if (key === "solidity.compiler.type") {
+				defaultCompilerType = +CompilerType[packageJson.contributes.configuration.properties[key].default]
 			} else {
 				result[keys[1]] = packageJson.contributes.configuration.properties[key].default
 			}
@@ -28,7 +31,6 @@ function defaultConfig() {
 		...result,
 		compiler: {
 			...result.compiler,
-			location: defaultCompiler,
 		},
 	}
 }
@@ -42,7 +44,7 @@ export const settings: ExtendedSettings = {
 export let config = defaultConfig()
 
 export const handleConfigChange = async (change: vscode.DidChangeConfigurationParams) => {
-	updateConfig({
+	await updateConfig({
 		...config,
 		...(await requestConfig()),
 	})
@@ -123,19 +125,9 @@ export async function updateConfig(newConfig: SolidityConfig) {
 
 	config = {
 		...newConfig,
-		compiler: {
-			...newConfig.compiler,
-			location: newConfig.compiler.location || CompilerType.Extension,
-		},
 		project: {
 			...config.project,
 			...newConfig.project,
-			// sources,
-			// includePaths,
-			remappings: replaceRemappings(
-				newConfig.project.remappings,
-				process.platform === "win32" ? newConfig.project.remappingsWindows : newConfig.project.remappingsUnix,
-			),
 		},
 	}
 	if (config.linter.type === "solhint") {
@@ -162,15 +154,16 @@ export function getCurrentMultisolcSettings(_config?: SolidityConfig): Multisolc
 					enabled: false,
 					runs: 200,
 				},
+				...config.compilerSettings.input,
 			},
 		},
 		rootPath: settings.rootPath,
 		excludePaths: config.project.exclude,
 		sourceDir: config.project.sources,
-		localSolcVersion: config.compiler.version.local,
-		remoteSolcVersion: config.compiler.version.remote,
-		npmSolcPackage: config.compiler.version.npm,
-		selectedType: config.compiler.location,
+		localSolcVersion: config.compiler.local,
+		remoteSolcVersion: config.compiler.remote,
+		npmSolcPackage: config.compiler.npm,
+		selectedType: config.compiler.type,
 	}
 }
 
@@ -179,15 +172,39 @@ async function requestConfig() {
 		const params: vscode.ConfigurationParams = {
 			items: [{ section: "solidity" }],
 		}
-		const [configuration] = (await connection.sendRequest("workspace/configuration", params)) as [
-			Partial<SolidityConfig>,
-		]
+		const cfg = (await connection.sendRequest("workspace/configuration", params)) as [Partial<SolidityConfig>]
+		const [configuration] = cfg
+		const forgetoml = getFoundryConfig(settings.rootPath)
 		return {
 			...configuration,
-			compilerType: CompilerType[configuration.compiler.location] || CompilerType.Extension,
+			project: {
+				...configuration.project,
+				sources: configuration.project.sources ?? forgetoml?.profile?.src,
+				libs: Array.from(new Set((configuration.project?.libs ?? []).concat(forgetoml?.profile?.libs ?? []))),
+				includePaths: Array.from(
+					new Set((configuration.project?.includePaths ?? []).concat(forgetoml?.profile?.include_paths ?? [])),
+				),
+				remappings: loadRemappings({
+					rootPath: settings.rootPath,
+					cfg: {
+						project: {
+							...configuration.project,
+							remappings: replaceRemappings(
+								configuration.project.remappings,
+								configuration.project.remappingsWindows ?? configuration.project.remappingsUnix ?? [],
+							),
+						},
+					},
+					foundryConfig: getFoundryConfig(settings.rootPath),
+				}),
+			},
+			compiler: {
+				...configuration.compiler,
+				type: CompilerType[configuration.compiler.type] || CompilerType.Extension,
+			},
 		} as SolidityConfig
 	} catch (e) {
-		console.error("No config received:", e.message)
+		console.debug("No config received:", e.message)
 		return defaultConfig()
 	}
 }

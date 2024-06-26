@@ -23,7 +23,7 @@ export default class SolhintService implements Linter {
 		try {
 			return linter.processStr(documentText, this.config.build()).messages.map((e) => this.toDiagnostic(e))
 		} catch (error) {
-			console.error(error)
+			console.debug(error)
 			return []
 		}
 	}

@@ -26,19 +26,43 @@ export class Project {
 
 	constructor(config: SolidityConfig, rootPath: string) {
 		this.foundryConfig = getFoundryConfig(rootPath)
+		this.rootPath = rootPath
+
 		config.project.sources =
-			config.project.sources ?? this.foundryConfig?.profile?.src ?? getHardhatSourceFolder(rootPath)
+			config.project.sources || this.foundryConfig?.profile?.src || getHardhatSourceFolder(rootPath)
+
 		this.cfg = config
 
 		this.includePaths = Array.from(
 			new Set((config.project?.includePaths ?? []).concat(this.foundryConfig.profile.include_paths ?? [])),
 		)
 
-		this.projectPackage = createDefaultPackage(rootPath, config.project.sources, config.compiler.outDir)
+		this.projectPackage = createDefaultPackage(
+			rootPath,
+			config.project.sources,
+			config.compiler.outDir,
+			this.includePaths,
+		)
+
 		this.dependencies = createLibPackages(config.project.libs, rootPath, this.projectPackage, config.project.libSources)
+
+		this.projectPackage.dependencies = this.dependencies
 		this.libs = config.project.libs
-		this.rootPath = rootPath
+
 		this.remappings = parseRemappings(loadRemappings(this), this)
+
+		// console.debug(
+		// 	this.foundryConfig,
+		// 	"root",
+		// 	rootPath,
+		// 	"Project sources:",
+		// 	config.project.sources,
+		// 	"set",
+		// 	config.project.sources.trim(),
+		// 	"foundry",
+		// 	this.foundryConfig?.profile?.src,
+		// 	this.projectPackage,
+		// )
 
 		this.absoluteSources = this.projectPackage.getSolSourcesAbsolutePath()
 		this.globPath = `${this.absoluteSources}/**/*.sol`
@@ -99,6 +123,7 @@ export class Project {
 		if (this.rootPath !== this.absoluteSources) {
 			this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: exclusions })
 
+			console.debug("Exclusions", exclusions, this.globPath, this.glob.found.length)
 			return (filesCache = this.glob.found)
 		}
 		for (const libFolder of this.libs) {

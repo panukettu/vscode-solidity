@@ -348,7 +348,7 @@ export class DocUtil {
 							return this.change({ replace: [{ range: this.lineRange(start.line), text: newLine }] })
 						}
 					} catch (e) {
-						console.error("GetImports", e.message)
+						console.debug("GetImports", e.message)
 					}
 				},
 				addNewBelow: (symbol: string, from: string) => {

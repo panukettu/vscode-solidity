@@ -52,6 +52,6 @@ export async function compileActiveFile(
 			solcType: compilerOverride || Config.getCompilerType(),
 		})
 	} catch (e) {
-		console.error("Unhandled:", e.message)
+		console.debug("Unhandled:", e.message)
 	}
 }

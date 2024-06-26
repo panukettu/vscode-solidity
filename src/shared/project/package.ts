@@ -1,9 +1,10 @@
 import * as fs from "fs"
 import * as path from "path"
-export function createDefaultPackage(packagePath: string, sources = "", outDir = "bin"): Package {
+export function createDefaultPackage(packagePath: string, sources = "", outDir = "bin", libs: string[] = []): Package {
 	const defaultPackage = new Package(sources, outDir)
 	defaultPackage.absolutePath = packagePath
 	defaultPackage.name = path.basename(packagePath)
+	defaultPackage.sol_sources_alternative_directories = libs
 	return defaultPackage
 }
 
