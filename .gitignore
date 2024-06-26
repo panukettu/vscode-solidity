@@ -9,4 +9,4 @@ tmp
 coverage
 *.vsix
 
-soljson-v*.js
+soljson-v0.*.js
