@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.21",
+	"version": "0.8.22",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -222,8 +222,8 @@
 					},
 					"default": {
 						"input": {
-							"viaIR": true,
-							"evmVersion": "paris",
+							"viaIR": false,
+							"evmVersion": "cancun",
 							"optimizer": {
 								"enabled": true,
 								"runs": 1000
@@ -265,7 +265,7 @@
 					"default": {
 						"onChange": false,
 						"onSave": true,
-						"onOpen": false,
+						"onOpen": true,
 						"delay": 350
 					}
 				},
