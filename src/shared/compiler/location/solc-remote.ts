@@ -27,7 +27,6 @@ export class RemoteSolc extends SolcLoader {
 	}
 
 	public initializeConfig(version: string) {
-		console.debug("initializeConfig.remote", version, this.version, this.version !== version)
 		if (!this.matchesConfiguration(version)) {
 			this.version = version
 			this.solc = null
@@ -43,14 +42,12 @@ export class RemoteSolc extends SolcLoader {
 	}
 
 	public async initializeSolc(): Promise<void> {
-		console.debug("initializeSolc.remote", this.version, !this.hasValidConfig())
 		if (this.isSolcInitialized(this.version) || !this.hasValidConfig()) return
 		try {
 			const resolvedVersion = await parseReleaseVersion(this.version)
-			console.debug("Resolved remote version", resolvedVersion)
 			this.solc = await this.loadRemoteWithRetries(resolvedVersion, 1, 3)
 		} catch (error) {
-			console.debug("Error initializing remote solc", error)
+			console.debug("Error initializing remote solc:", error)
 			this.solc = null
 			throw error
 		}

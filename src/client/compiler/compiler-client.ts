@@ -7,11 +7,12 @@ import { Multisolc } from "@shared/compiler/multisolc"
 import { SolcOutput } from "@shared/compiler/types-solc"
 import { getRemoteSolc, getSolcReleases } from "@shared/compiler/utils"
 import { CompilerType } from "@shared/enums"
-import type { CompileArgs } from "@shared/types"
+import type { CompileArgs, SolidityConfig } from "@shared/types"
 import * as fsex from "fs-extra"
 import * as vscode from "vscode"
 import { errorsToDiagnostics } from "./compiler-diagnostics"
 
+const getCompiler = () => vscode.workspace.getConfiguration("solidity").get("compiler") as SolidityConfig["compiler"]
 export class ClientCompilers {
 	private solcCachePath: string
 	public outputChannel: vscode.OutputChannel
@@ -36,7 +37,9 @@ export class ClientCompilers {
 				CompilerType[CompilerType.Extension],
 			]
 			const selectedCompiler: string = await vscode.window.showQuickPick(compilers)
-			vscode.workspace.getConfiguration("solidity").update("compiler.location", selectedCompiler, target)
+			vscode.workspace
+				.getConfiguration("solidity")
+				.update("compiler", { ...getCompiler(), type: CompilerType[selectedCompiler] }, target)
 			vscode.window.showInformationMessage(`Compiler changed to: ${selectedCompiler}`)
 		} catch (e) {
 			vscode.window.showErrorMessage(`Error changing default compiler: ${e}`)
@@ -45,7 +48,7 @@ export class ClientCompilers {
 
 	public async downloadSolcAndSetAsLocal(target: vscode.ConfigurationTarget, folderPath: string) {
 		const downloadPath = await this.downloadRemoteVersion(folderPath)
-		vscode.workspace.getConfiguration("solidity").update("compiler.version.local", downloadPath, target)
+		vscode.workspace.getConfiguration("solidity").update("compiler", { ...getCompiler(), local: downloadPath }, target)
 	}
 
 	public async downloadRemoteVersion(folderPath: string): Promise<string> {
@@ -64,7 +67,7 @@ export class ClientCompilers {
 				version = value.replace("soljson-", "")
 				version = version.replace(".js", "")
 			}
-			console.log("Version: ", version)
+
 			const pathVersion = path.resolve(path.join(folderPath, `soljson-${version}.js`))
 			await getRemoteSolc(version, pathVersion)
 			vscode.window.showInformationMessage(`Compiler downloaded: ${pathVersion}`)
@@ -94,7 +97,9 @@ export class ClientCompilers {
 					}
 				}
 			}
-			vscode.workspace.getConfiguration("solidity").update("compiler.version.remote", updateValue, target)
+			vscode.workspace
+				.getConfiguration("solidity")
+				.update("compiler", { ...getCompiler(), remote: updateValue }, target)
 		})
 	}
 

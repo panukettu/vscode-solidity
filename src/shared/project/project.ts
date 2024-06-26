@@ -123,7 +123,6 @@ export class Project {
 		if (this.rootPath !== this.absoluteSources) {
 			this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: exclusions })
 
-			console.debug("Exclusions", exclusions, this.globPath, this.glob.found.length)
 			return (filesCache = this.glob.found)
 		}
 		for (const libFolder of this.libs) {

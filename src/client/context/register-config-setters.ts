@@ -43,7 +43,6 @@ export function registerConfigSetters(state: ClientState): void {
 			vscode.workspace.getConfiguration("solidity").update("validation", { ...getValidation(), onOpen: true }, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableValidateOnOpen"], () => {
-			vscode.workspace.getConfiguration("solidity.validation").update("onOpen", false, false)
 			vscode.workspace.getConfiguration("solidity").update("validation", { ...getValidation(), onOpen: false }, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableAllValidation"], () => {
