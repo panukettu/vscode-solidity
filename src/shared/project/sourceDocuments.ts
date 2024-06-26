@@ -75,6 +75,7 @@ export class SourceDocumentCollection {
 
 			if (sizeLimit && contract.code.length > sizeLimit) {
 				const identifier = contract.unformattedCode.match(/(contract|library|interface)\s(.*?)\s{/g)
+				console.debug("Skipped contract", contract.absolutePath, "due to size limit")
 				if (identifier.length) {
 					contractsForCompilation[contract.absolutePath] = {
 						content: mockContent(identifier.map((id) => `${id} }`).join("\n")),

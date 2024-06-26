@@ -55,6 +55,10 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 
 		if (currentItem instanceof ParsedExpression && currentItem.parent) {
 			const result = handleParsedExpression(selectedDoc, currentItem, docUtil)
+			console.debug({
+				currentItem: result,
+				refs: currentItem?.getSelectedTypeReferenceLocation(currentOffset),
+			})
 			if (result?.length) {
 				clearCaches()
 				return result.map((x) => x.getLocation())
@@ -119,20 +123,24 @@ export const getReferences = (docUtil: DocUtil) => {
 
 export const getParentRef = (docUtil: DocUtil) => {
 	const offset = docUtil.document.offsetAt(docUtil.getPreviousWord().start) + 1
-	const selectedDoc = docUtil.getSelected()[1]
-	const parentItem = selectedDoc.getSelectedItem(offset)
+	const [, doc] = docUtil.getSelected()
+	const parentItem = doc.getSelectedItem(offset)
 	const references = parentItem.getSelectedTypeReferenceLocation(offset)
-	const foundLocations = references.filter((x) => x.location != null).map((x) => x.reference)
 
+	const foundLocations = references.filter((x) => x.location != null).map((x) => x.reference)
+	const item = (parentItem as any)?.reference
+	if (item) {
+		foundLocations.push(item)
+	}
 	if (!foundLocations?.length) {
-		for (const imported of selectedDoc.importedDocuments) {
+		for (const imported of doc.importedDocuments) {
 			const found = imported.findMethodsInScope(parentItem.name).filter((f) => f?.getLocation)
 			if (found?.length) {
 				foundLocations.push(...found.map((x) => x))
 			}
 		}
 		if (!foundLocations.length) {
-			const item = selectedDoc.findTypeInScope(parentItem.name)
+			const item = doc.findTypeInScope(parentItem.name)
 			if (item?.getLocation) {
 				foundLocations.push(item)
 			}
