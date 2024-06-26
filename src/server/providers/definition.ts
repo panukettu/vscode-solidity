@@ -55,10 +55,6 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 
 		if (currentItem instanceof ParsedExpression && currentItem.parent) {
 			const result = handleParsedExpression(selectedDoc, currentItem, docUtil)
-			console.debug({
-				currentItem: result,
-				refs: currentItem?.getSelectedTypeReferenceLocation(currentOffset),
-			})
 			if (result?.length) {
 				clearCaches()
 				return result.map((x) => x.getLocation())

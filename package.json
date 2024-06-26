@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.23",
+	"version": "0.8.24",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
