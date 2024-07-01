@@ -5,8 +5,9 @@ import { formatPath } from "../util"
 import { Project } from "./project"
 import { SourceDocument } from "./sourceDocument"
 
-const mockContent = (content: string) => `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0; ${content}`
-
+const mockContent = (content: string) => `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n${content}`
+export const mockConsoleSol =
+	"// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\nlibrary safeconsole { function log(string memory s) internal pure { } }\nlibrary console2 { function log(string memory) internal pure { } }\nlibrary console { function log(string memory) internal pure { } }"
 export class SourceDocumentCollection {
 	public documents: Array<SourceDocument>
 
@@ -67,8 +68,7 @@ export class SourceDocumentCollection {
 					contract.absolutePath.includes("onsole2.sol"))
 			) {
 				contractsForCompilation[contract.absolutePath] = {
-					content:
-						"pragma solidity ^0.8.0; library safeconsole { function log(string memory s) internal pure { } } library console2 { function log(string memory s) internal pure { } } library console { function log(string memory s) internal pure { } }",
+					content: mockConsoleSol,
 				}
 				continue
 			}
@@ -94,22 +94,18 @@ export class SourceDocumentCollection {
 
 	public addSourceDocumentAndResolveImports(contractPath: string, code: string, project: Project) {
 		const contract = this.addSourceDocument(contractPath, code, project)
-		if (contract) {
-			contract.resolveImports()
+		if (!contract) return null
+		contract.resolveImports()
 
-			for (const imported of contract.imports) {
-				if (fs.existsSync(imported.importPath)) {
-					if (!this.containsSourceDocument(imported.importPath)) {
-						const importContractCode = this.readContractCode(imported.importPath)
-						if (importContractCode) {
-							this.addSourceDocumentAndResolveImports(imported.importPath, importContractCode, project)
-						}
-					}
-				} else {
-					this.addSourceDocumentAndResolveDependencyImport(imported.importPath, contract, project)
-				}
+		for (const imported of contract.imports) {
+			if (!this.containsSourceDocument(imported.importPath)) {
+				const importContractCode = this.readContractCode(imported.importPath)
+				if (importContractCode)
+					this.addSourceDocumentAndResolveImports(imported.importPath, importContractCode, project)
+				else this.addSourceDocumentAndResolveDependencyImport(imported.importPath, contract, project)
 			}
 		}
+
 		return contract
 	}
 

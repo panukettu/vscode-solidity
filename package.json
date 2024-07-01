@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.8.24",
+	"version": "0.8.25",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -70,8 +70,9 @@
 		"prettier": "^3.0.2",
 		"prettier-plugin-solidity": "^1.1.3",
 		"solhint": "^3.6.2",
-		"solparse-exp-jb": "3.0.3",
+		"@pkxp/solparse-exp-jb": "3.0.3",
 		"viem": "^1.19.11",
+		"solc": "^0.8.26",
 		"vscode-languageclient": "^9.0.1",
 		"vscode-languageserver": "^9.0.1",
 		"vscode-languageserver-textdocument": "^1.0.11",
@@ -80,7 +81,6 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.3.1",
-		"@enio.ai/data-ferret": "^2.0.1",
 		"@types/glob": "^8.1.0",
 		"@types/lodash.debounce": "^4.0.7",
 		"@types/lodash.throttle": "^4.1.8",
@@ -92,17 +92,12 @@
 		"esbuild-plugin-copy": "^2.1.1",
 		"fuse.js": "^7.0.0",
 		"lodash.unset": "^4.5.2",
-		"obj-walker": "^1.7.0",
-		"reftools": "^1.1.9",
-		"safe-clone-deep": "^1.1.5",
-		"solc": "^0.8.26",
 		"ts-node": "^7.0.1",
 		"ts-node-dev": "^2.0.0",
 		"tsconfig-paths": "^4.2.0",
 		"tslint": "^5.20.1",
 		"tsup": "^7.2.0",
-		"typescript": "^5.0.4",
-		"what-is-circular": "^1.0.1"
+		"typescript": "^5.0.4"
 	},
 	"nyc": {
 		"extension": [

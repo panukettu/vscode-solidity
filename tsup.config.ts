@@ -31,7 +31,7 @@ export default defineConfig(async (opts) => {
 					"prettier",
 					"fuse.js",
 					"prettier-plugin-solidity",
-					"solparse-exp-jb",
+					"@pkxp/solparse-exp-jb",
 					"vscode-languageclient",
 					"vscode-languageserver",
 					"vscode-languageserver-textdocument",

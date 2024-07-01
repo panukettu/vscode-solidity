@@ -51,19 +51,6 @@ export class Project {
 
 		this.remappings = parseRemappings(loadRemappings(this), this)
 
-		// console.debug(
-		// 	this.foundryConfig,
-		// 	"root",
-		// 	rootPath,
-		// 	"Project sources:",
-		// 	config.project.sources,
-		// 	"set",
-		// 	config.project.sources.trim(),
-		// 	"foundry",
-		// 	this.foundryConfig?.profile?.src,
-		// 	this.projectPackage,
-		// )
-
 		this.absoluteSources = this.projectPackage.getSolSourcesAbsolutePath()
 		this.globPath = `${this.absoluteSources}/**/*.sol`
 
@@ -79,9 +66,9 @@ export class Project {
 	private getDefaultExclusions() {
 		return (
 			this.cfg.project.exclude?.length
-				? this.cfg.project.exclude.map((item) => path.join(this.absoluteSources, "**", item, "/**/*.sol"))
+				? this.cfg.project.exclude.map((item) => path.join(this.rootPath, "**", item, "/**/*.sol"))
 				: []
-		).concat(["node_modules/**/"])
+		).concat(["**/node_modules/**/"])
 	}
 	public getLibSourceFiles() {
 		return Array.from(
@@ -100,7 +87,7 @@ export class Project {
 		if (dir === this.cfg.project.sources) return this.getProjectSolFiles()
 
 		return new GlobSync(`${this.rootPath}/${dir}/**/*.sol`, {
-			ignore: ["node_modules/**/"],
+			ignore: ["**/node_modules/**/"],
 		}).found
 	}
 

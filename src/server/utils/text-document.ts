@@ -24,7 +24,6 @@ export class DocUtil {
 	public position: vscode.Position
 	public selection: vscode.SelectionRange
 	public currentOffset: number
-	public solFiles: string[]
 	public singleQuotes: boolean
 	public spacesInSymbols: boolean
 	public selections: readonly [ParsedCode, ParsedDocument, number]
@@ -41,7 +40,6 @@ export class DocUtil {
 		this.currentOffset = this.document.offsetAt(this.position)
 		this.lines = docText.split(/\r?\n/g)
 		this.walker = walker
-		this.solFiles = this.walker.project.getProjectSolFiles().concat(this.walker.project.getLibSourceFiles())
 		this.singleQuotes = docText.includes("from '")
 		this.spacesInSymbols = docText.includes("import { ")
 	}
@@ -50,7 +48,7 @@ export class DocUtil {
 		return this.walker.getSelectedDocument(this.document, this.position)
 	}
 	public getSelected() {
-		if (!this.selections) {
+		if (!this.selections?.length) {
 			const selectedDocument = this.getSelectedDocument()
 			const selectedItem = selectedDocument.getSelectedItem(this.currentOffset)
 			this.selections = [selectedItem, selectedDocument, this.currentOffset] as const

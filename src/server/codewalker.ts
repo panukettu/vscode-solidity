@@ -2,15 +2,13 @@ import * as vscode from "vscode-languageserver"
 import { URI } from "vscode-uri"
 
 import * as fs from "fs"
+import * as solparse from "@pkxp/solparse-exp-jb"
 import { documentMap } from "@server/providers/utils/caches"
 import { Project } from "@shared/project/project"
 import { SourceDocument } from "@shared/project/sourceDocument"
-import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
+import { SourceDocumentCollection, mockConsoleSol } from "@shared/project/sourceDocuments"
 import { SolidityConfig } from "@shared/types"
-import * as solparse from "solparse-exp-jb"
-import { ParsedContract } from "./code/ParsedContract"
 import { ParsedDocument } from "./code/ParsedDocument"
-import { Element } from "./code/types"
 
 export class CodeWalkerService {
 	public initialized: boolean
@@ -26,17 +24,13 @@ export class CodeWalkerService {
 			this.project = new Project(this.config, this.rootPath)
 			this.config = this.project.cfg
 		}
-
 		this.initDocuments()
 	}
 
 	public initDocuments() {
 		if (!this.project) throw new Error("Project not initialized")
-
 		const sourceDocuments = new SourceDocumentCollection()
-		const files = this.project.getProjectSolFiles() ?? []
-
-		for (const path of files) {
+		for (const path of this.project.getProjectSolFiles() ?? []) {
 			const existing = sourceDocuments.documents.find((d) => d.absolutePath === path)
 
 			if (!existing) {
@@ -46,23 +40,21 @@ export class CodeWalkerService {
 					this.project,
 				)
 
-				this.parseDocument(item.unformattedCode, false, item)
+				this.parseDocumentAsync(item.unformattedCode, false, item)
 			} else {
-				this.parseDocument(existing.unformattedCode, false, existing)
+				this.parseDocumentAsync(existing.unformattedCode, false, existing)
 			}
 		}
-		const libFiles = this.project.getLibSourceFiles()
-
-		for (const path of libFiles) {
+		for (const path of this.project.getLibSourceFiles()) {
 			const existing = sourceDocuments.documents.find((d) => d.absolutePath === path)
-			if (!existing) continue
-
-			this.parseDocument(existing.unformattedCode, true, existing)
+			if (existing) this.parseDocumentAsync(existing.unformattedCode, false, existing)
 		}
-		this.parsedDocumentsCache.forEach((element) => {
-			element.initialiseDocumentReferences(this.parsedDocumentsCache)
+		queueMicrotask(() => {
+			this.parsedDocumentsCache.forEach((element) => {
+				element.initialiseDocumentReferences(this.parsedDocumentsCache)
+			})
+			this.initialized = true
 		})
-		this.initialized = true
 	}
 
 	public initialiseChangedDocuments() {
@@ -107,6 +99,7 @@ export class CodeWalkerService {
 			selectedSourceDocument = sourceDocuments.documents[0]
 
 			selectedDocument = this.parseSelectedDocument(documentText, offset, position.line, false, selectedSourceDocument)
+			selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache)
 		}
 		return selectedDocument
 	}
@@ -200,19 +193,19 @@ export class CodeWalkerService {
 		return newDocument
 	}
 
+	public parseDocumentAsync(documentText: string, fixedSource: boolean, sourceDocument: SourceDocument): void {
+		queueMicrotask(() => this.parseDocument(documentText, fixedSource, sourceDocument))
+	}
 	public parseDocument(documentText: string, fixedSource: boolean, sourceDocument: SourceDocument): ParsedDocument {
 		const foundDocument = this.parsedDocumentsCache.find(
 			(x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath,
 		)
 		const newDocument = new ParsedDocument()
 		if (foundDocument != null) {
-			this.parsedDocumentsCache = this.parsedDocumentsCache.filter((x) => x !== foundDocument)
-
 			if (foundDocument.sourceDocument.unformattedCode !== sourceDocument.unformattedCode) {
 				newDocument.initialiseDocument(foundDocument.element, null, sourceDocument, foundDocument?.fixedSource)
 
 				this.parsedDocumentsCache = this.parsedDocumentsCache.filter((x) => x !== foundDocument)
-
 				this.parsedDocumentsCache.push(newDocument)
 				return newDocument
 			} else {
@@ -220,13 +213,14 @@ export class CodeWalkerService {
 			}
 		}
 		try {
-			const result = solparse.parse(documentText)
+			const text = sourceDocument.absolutePath.includes("onsole") ? mockConsoleSol : documentText
+			const result = solparse.parse(text)
 
-			newDocument.initialiseDocument(result, null, sourceDocument, fixedSource ? documentText : null)
+			newDocument.initialiseDocument(result, null, sourceDocument, fixedSource ? text : null)
 
 			this.parsedDocumentsCache.push(newDocument)
 		} catch (error) {
-			// console.debug("Unhandled (parse)", error)
+			console.debug("Unhandled (parse)", error, sourceDocument.absolutePath)
 			// console.log(JSON.stringify(error));
 			/*
             // if we error parsing (cannot cater for all combos) we fix by removing current line.
@@ -240,27 +234,27 @@ export class CodeWalkerService {
 		return newDocument
 	}
 
-	public getContracts(documentText: string, document: ParsedDocument): ParsedContract[] {
-		const contracts: ParsedContract[] = []
-		try {
-			const result: Element = solparse.parse(documentText)
+	// public getContracts(documentText: string, document: ParsedDocument): ParsedContract[] {
+	// 	const contracts: ParsedContract[] = []
+	// 	try {
+	// 		const result: Element = solparse.parse(documentText)
 
-			result.body.forEach((element) => {
-				if (
-					element.type === "ContractStatement" ||
-					element.type === "LibraryStatement" ||
-					element.type === "InterfaceStatement"
-				) {
-					const contract = new ParsedContract()
-					contract.initialise(element, document)
-					contracts.push(contract)
-				}
-			})
-		} catch (error) {
-			console.debug("GetContracts:", error.message)
-		}
-		return contracts
-	}
+	// 		result.body.forEach((element) => {
+	// 			if (
+	// 				element.type === "ContractStatement" ||
+	// 				element.type === "LibraryStatement" ||
+	// 				element.type === "InterfaceStatement"
+	// 			) {
+	// 				const contract = new ParsedContract()
+	// 				contract.initialise(element, document)
+	// 				contracts.push(contract)
+	// 			}
+	// 		})
+	// 	} catch (error) {
+	// 		console.debug("GetContracts:", error.message)
+	// 	}
+	// 	return contracts
+	// }
 
 	private findElementByOffset(elements: Array<{ start: number; end: number }>, offset: number): any {
 		return elements.find((element) => element.start <= offset && offset <= element.end)

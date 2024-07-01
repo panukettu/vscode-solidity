@@ -39,7 +39,7 @@ export class ClientCompilers {
 			const selectedCompiler: string = await vscode.window.showQuickPick(compilers)
 			vscode.workspace
 				.getConfiguration("solidity")
-				.update("compiler", { ...getCompiler(), type: CompilerType[selectedCompiler] }, target)
+				.update("compiler", { ...getCompiler(), type: selectedCompiler }, target)
 			vscode.window.showInformationMessage(`Compiler changed to: ${selectedCompiler}`)
 		} catch (e) {
 			vscode.window.showErrorMessage(`Error changing default compiler: ${e}`)

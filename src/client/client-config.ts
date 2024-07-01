@@ -33,13 +33,15 @@ export class Config {
 			npm: string
 			remote: string
 			local: string
-			type: CompilerType
+			type: any
 		}>("compiler")
 		const _compilerSettings = vscode.workspace.getConfiguration("solidity").get<{
 			output: ContractLevelSolcOutput[]
 			input: Partial<SolcInput["settings"]>
 		}>("compilerSettings")
-
+		if (_compiler.type === "string") {
+			_compiler.type = CompilerType[_compiler.type]
+		}
 		return {
 			compiler: _compiler,
 			compilerSettings: _compilerSettings,
