@@ -2,34 +2,8 @@ import type { ExecFileException } from "child_process"
 import type { ExecStatus } from "@shared/enums"
 import type { FunctionName } from "@shared/types"
 import * as vscode from "vscode"
-import type { Diagnostic } from "vscode-languageclient/node"
 import { ParsedLogs } from "./lens/foundry/foundry-logs-parser"
 
-// export namespace ExecOutput {
-// 	export type TestSuccess = {
-// 		result: ExecStatus.Pass | ExecStatus.Fail | ExecStatus.SetupFail;
-// 	} & TestOutputs;
-
-// 	export type TestCompilerError = {
-// 		result: ExecStatus.CompilerError;
-// 	} & TestOutputs;
-
-// 	export type TestRestart = {
-// 		lines?: string[];
-// 		result: ExecStatus.Restart;
-// 	};
-
-// 	export type TestUnhandled = {
-// 		result: ExecStatus;
-// 		parseError?: Error;
-// 	} & Partial<TestOutputs>;
-
-// 	export type TestOutput =
-// 		| ExecOutput.TestSuccess
-// 		| ExecOutput.TestCompilerError
-// 		| ExecOutput.TestRestart
-// 		| ExecOutput.TestUnhandled;
-// }
 export namespace Lens {
 	export type Funcsig = readonly [vscode.TextDocument, vscode.Range]
 	export type Natspec = readonly [vscode.TextDocument, vscode.Range]
