@@ -74,8 +74,8 @@ devDependencies:
     specifier: ^20.14.9
     version: 20.14.9
   '@types/vscode':
-    specifier: ^1.91.0
-    version: 1.91.0
+    specifier: ^1.84.2
+    version: 1.84.2
   '@vscode/vsce':
     specifier: ^2.29.0
     version: 2.29.0
@@ -935,8 +935,8 @@ packages:
     resolution: {integrity: sha512-7NQmHra/JILCd1QqpSzl8+mJRc8ZHz3uDm8YV1Ks9IhK0epEiTw8aIErbvH9PI+6XbqhyIQy3462nEsn7UVzjQ==}
     dev: true
 
-  /@types/vscode@1.91.0:
-    resolution: {integrity: sha512-PgPr+bUODjG3y+ozWUCyzttqR9EHny9sPAfJagddQjDwdtf66y2sDKJMnFZRuzBA2YtBGASqJGPil8VDUPvO6A==}
+  /@types/vscode@1.84.2:
+    resolution: {integrity: sha512-LCe1FvCDMJKkPdLVGYhP0HRJ1PDop2gRVm/zFHiOKwYLBRS7vEV3uOOUId4HMV+L1IxqyS+IZXMmlSMRbZGIAw==}
     dev: true
 
   /@vscode/vsce-sign-alpine-arm64@2.0.2:
