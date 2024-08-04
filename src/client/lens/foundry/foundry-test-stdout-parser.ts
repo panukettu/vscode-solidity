@@ -1,4 +1,4 @@
-import type { ExecFileException } from "child_process"
+import type { ExecFileException } from "node:child_process"
 import type { ParseStdOutArgs, TestExec } from "@client/client-types"
 import { ExecStatus } from "@shared/enums"
 import { formatOutput } from "@shared/regexp"
@@ -25,15 +25,20 @@ export const parseTestOutput = <T, R = T, U = T>({
 
 	if (results.status === ExecStatus.Pass) {
 		return onPass(results, formatted)
-	} else if (results.status === ExecStatus.SetupFail) {
+	}
+	if (results.status === ExecStatus.SetupFail) {
 		return onSetupFail(results, formatted)
-	} else if (results.status === ExecStatus.Fail) {
+	}
+	if (results.status === ExecStatus.Fail) {
 		return onFail(results, formatted)
-	} else if (results.status === ExecStatus.Restart) {
+	}
+	if (results.status === ExecStatus.Restart) {
 		return onRestart(results, formatted)
-	} else if (results.status === ExecStatus.CompilerError) {
+	}
+	if (results.status === ExecStatus.CompilerError) {
 		return onCompilerError(results, formatted, process.error)
-	} else if (results.status === ExecStatus.Error) {
+	}
+	if (results.status === ExecStatus.Error) {
 		return onUnhandled(results, formatted, process.error)
 	}
 }
@@ -106,7 +111,7 @@ export const getTestResults = (
 
 		result = getIndex(keywords.compiler.error)
 		if (result !== -1) {
-			return { 
+			return {
 				status: ExecStatus.CompilerError,
 				out: {
 					summary: [lines[result], " ", infos.compileInfo],
@@ -126,6 +131,6 @@ export const getTestResults = (
 			},
 		}
 	} catch (e) {
-		console.debug("Test results", e.message); 
+		console.debug("Test results", e.message)
 	}
 }
