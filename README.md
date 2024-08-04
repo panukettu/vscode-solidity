@@ -6,11 +6,13 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
-### 0.8.28
+### 0.8.29
 
 - code action suggesting fixes for unresolved imports
 - code action for removing unused imports
 - use `foundry remappings` by default for remappings
+
+### previous
 
 - rename config, fix incorrect enum usage
 - include paths, fix compiler issues and disable semantic tokens (too ugly perf)
@@ -30,6 +32,8 @@ _Disclaimer_: bugs likely
 
 - quickfix
 
+  - fix unresolved import paths / symbols
+  - remove unused import paths / symbols
   - import missing symbols (supports remappings)
   - correct naming errors (and argument-dependent lookup)
     - fuzzy suggestion for this can be configured with `solidity.fuzzLevel` items.
