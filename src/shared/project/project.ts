@@ -155,11 +155,13 @@ export class Project {
 	}
 
 	public findDirectImport(absolutePath: string): string {
-		for (const includePath of this.includePaths.concat([...this.cfg.project.libs])) {
+		for (const includePath of this.includePaths) {
 			const includePathResolved = path.resolve(this.rootPath, includePath)
 			if (absolutePath.startsWith(includePathResolved)) {
-				const result = absolutePath.replace(`${includePathResolved}`, "")
-				return result.startsWith("/") ? result.substring(1) : result
+				let result = absolutePath.replace(`${includePathResolved}`, "")
+				result = result.startsWith("/") ? result.substring(1) : result
+				if (result.indexOf("/") === 0) return `./${result}`
+				return result
 			}
 		}
 		return absolutePath
@@ -185,7 +187,7 @@ export class Project {
 		return this.sortRemappings(remappings, filePath).slice(0, count)
 	}
 
-	public getPossibleImports(from: string, filePath: string): string[] {
+	public getPossibleImports(from: string, filePath: string, max = 5): string[] {
 		const fileName = filePath.split("/").pop()
 		const matches = glob.sync(path.join(this.rootPath, "/**/", fileName), {
 			ignore: ["**/node_modules/**"],
@@ -193,19 +195,22 @@ export class Project {
 			nocase: true,
 		})
 
-		if (!matches.length) return []
+		if (!matches?.length) return []
 
 		const results = new Set<string>()
 
 		for (const match of matches) {
 			const remappings = this.findRemappingsForFile(match, 3)
-			if (remappings.length) remappings.forEach((r) => results.add(r.createImportFromFile(match)))
-			results.add(this.findDirectImport(match))
-			results.add(this.findShortestImport(from, match))
-			results.add(path.relative(from, match))
+			if (remappings?.length) remappings.forEach((r) => results.add(r.createImportFromFile(match)))
+			// results.add(this.findDirectImport(match))
+			// results.add(this.findShortestImport(from, match))
+			const relative = path.relative(from.includes(".") ? path.dirname(from) : from, match)
+			results.add(!relative.startsWith(".") ? `./${relative}` : relative)
 		}
 
 		return Array.from(results)
+			.sort((a, b) => a.length - b.length)
+			.slice(0, max)
 	}
 
 	private sortRemappings(array: Remapping[], filePath?: string) {

@@ -1,3 +1,4 @@
+import path from "node:path"
 import { documents } from "@server"
 import type { ParsedCode } from "@server/code/ParsedCode"
 import type { ParsedDocument } from "@server/code/ParsedDocument"
@@ -108,6 +109,9 @@ export class DocUtil {
 	}
 	get path() {
 		return this.document.uri.replace("file://", "")
+	}
+	get folder() {
+		return path.dirname(this.document.uri.replace("file://", ""))
 	}
 	static toPath(strWithFile: string) {
 		return strWithFile.replace("file://", "")

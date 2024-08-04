@@ -6,7 +6,7 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
-### 0.8.29
+### 0.8.30
 
 - code action suggesting fixes for unresolved imports
 - code action for removing unused imports
