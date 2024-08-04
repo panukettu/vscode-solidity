@@ -1,13 +1,21 @@
-import path from "path"
+import path from "node:path"
 import { commentFormatRegexp } from "@shared/regexp"
 import { TextDocument } from "vscode-languageserver-textdocument"
-import { CompletionItem, Hover, Location, MarkupContent, MarkupKind, Position, Range } from "vscode-languageserver/node"
+import {
+	CompletionItem,
+	type Hover,
+	Location,
+	type MarkupContent,
+	MarkupKind,
+	Position,
+	Range,
+} from "vscode-languageserver/node"
 import { URI } from "vscode-uri"
 import { TypeReference } from "../search/TypeReference"
-import { ParsedContract } from "./ParsedContract"
-import { ParsedDocument } from "./ParsedDocument"
-import { ParsedFunction } from "./ParsedFunction"
-import { BodyElement, Element, ElementParams, ImportElement, InnerElement } from "./types"
+import type { ParsedContract } from "./ParsedContract"
+import type { ParsedDocument } from "./ParsedDocument"
+import type { ParsedFunction } from "./ParsedFunction"
+import type { BodyElement, Element, ElementParams, ImportElement, InnerElement } from "./types"
 
 const terminators = [".", " ", ":", ";", ")", "]", ""]
 
@@ -83,9 +91,9 @@ export class ParsedCode {
 			!txt.startsWith("*/")
 		) {
 			return false
-		} else {
-			return true
 		}
+
+		return true
 	}
 
 	public getLineRange(lineNumber: number) {
@@ -95,27 +103,21 @@ export class ParsedCode {
 		if (this.contract != null) {
 			const prefix = incldueTypeName ? `${this.contract.name}.` : ""
 			return prefix + this.contract.name
-		} else {
-			const source = this.document.sourceDocument.absolutePath.split("/")
-			return source[source.length - 1]
 		}
+
+		const source = this.document.sourceDocument.absolutePath.split("/")
+		return source[source.length - 1]
 	}
 	public getContractNameOrGlobal(): string {
 		if (this.contract != null) {
 			return `${this.contract.getContractTypeName(this.contract.contractType).toLowerCase()}: ${this.contract.name}`
-		} else {
-			const item = this.document.findItem(this.name)
-			if (item) {
-				return `(global) ${item.element.type}`
-			} else {
-				const item = this.document.findType(this.name)
-				if (item) {
-					return item.element.type
-				} else {
-					return ""
-				}
-			}
 		}
+		let item = this.document.findItem(this.name)
+		if (item) return `(global) ${item.element.type}`
+
+		item = this.document.findType(this.name)
+		if (item) return item.element.type
+		return ""
 	}
 
 	public createShortInfo(
@@ -256,22 +258,26 @@ export class ParsedCode {
 	public createCompletionItem(): CompletionItem {
 		return null
 	}
-	public getRemappedOrRelativeImportPath(from: string): string {
+	public getShortestImport(from: string): string {
 		if (!this.document) return ""
-		const remapping = this.document.sourceDocument.project.findRemappingForFile(
+		const result = this.document.sourceDocument.project.getPossibleImports(
+			from,
 			this.document.sourceDocument.absolutePath,
 		)
-		if (remapping) {
-			return remapping.createImportFromFile(this.document.sourceDocument.absolutePath)
-		} else if (this.document.sourceDocument.project.includePaths.length) {
-			const result = this.document.sourceDocument.project.findShortestImport(
-				from,
-				this.document.sourceDocument.absolutePath,
-			)
-			if (result) return result
-		}
+		return result.length > 0 ? result[0] : path.relative(path.dirname(from), this.document.sourceDocument.absolutePath)
+		// if (remapping) {
+		// 	return remapping.createImportFromFile(this.document.sourceDocument.absolutePath)
+		// }
 
-		return path.relative(path.dirname(from), this.document.sourceDocument.absolutePath)
+		// if (this.document.sourceDocument.project.includePaths.length) {
+		// 	const result = this.document.sourceDocument.project.findShortestImport(
+		// 		from,
+		// 		this.document.sourceDocument.absolutePath,
+		// 	)
+		// 	if (result) return result
+		// }
+
+		// return path.relative(path.dirname(from), this.document.sourceDocument.absolutePath)
 	}
 	public initCompletionItem(): CompletionItem {
 		const completionItem = CompletionItem.create(this.name)
@@ -450,9 +456,8 @@ export class ParsedCode {
 	public findTypeInScope(name: string): ParsedCode {
 		if (!this.contract) {
 			return this.document.findType(name)
-		} else {
-			return this.contract.findType(name)
 		}
+		return this.contract.findType(name)
 	}
 
 	public findMethodsInScope(name: string, includeExtendedMethods = false): ParsedCode[] {
@@ -475,17 +480,15 @@ export class ParsedCode {
 
 			const allFuncs = this.document.getAllGlobalFunctions(includeExtendedMethods)
 			return allFuncs.find((f) => f.isCurrentElementedSelected(offset))
-		} else {
-			return this.contract.getSelectedFunction(offset, includeExtendedMethods)
 		}
+		return this.contract.getSelectedFunction(offset, includeExtendedMethods)
 	}
 
 	public findMembersInScope(name: string): ParsedCode[] {
 		if (!this.contract) {
 			return this.document.findMembersInScope(name)
-		} else {
-			return this.contract.findMembersInScope(name)
 		}
+		return this.contract.findMembersInScope(name)
 	}
 
 	public getInnerCompletionItems(): CompletionItem[] {

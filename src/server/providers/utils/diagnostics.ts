@@ -1,10 +1,10 @@
 // import { settings } from '@server/settings';
 import type { SolcError } from "@shared/compiler/types-solc"
 import { solcOutputRegexp } from "@shared/regexp"
-import { DiagnosticWithFileName } from "@shared/types"
+import type { DiagnosticWithFileName } from "@shared/types"
 import {
-	Diagnostic,
-	DiagnosticRelatedInformation,
+	type Diagnostic,
+	type DiagnosticRelatedInformation,
 	DiagnosticSeverity,
 	Position,
 	Range,
@@ -35,31 +35,31 @@ export function errorToDiagnostic(error: SolcError) {
 		}
 
 		return splitErrorToDiagnostic(error, errorSplit, index, fileName)
-	} else {
-		const errorSplit = error.formattedMessage.split(":")
-		let fileName = errorSplit[0]
-		let index = 1
-
-		// a full path in windows includes a : for the drive
-		if (process.platform === "win32") {
-			fileName = `${errorSplit[0]}:${errorSplit[1]}`
-			index = 2
-		}
-
-		return splitErrorToDiagnostic(error, errorSplit, index, fileName)
 	}
+
+	const errorSplit = error.formattedMessage.split(":")
+	let fileName = errorSplit[0]
+	let index = 1
+
+	// a full path in windows includes a : for the drive
+	if (process.platform === "win32") {
+		fileName = `${errorSplit[0]}:${errorSplit[1]}`
+		index = 2
+	}
+
+	return splitErrorToDiagnostic(error, errorSplit, index, fileName)
 }
 
 export function splitErrorToDiagnostic(error: SolcError, errorSplit: any, index: number, fileName: any) {
 	const severity = getDiagnosticSeverity(error.severity)
 	const errorMessage = error.message
 	// tslint:disable-next-line:radix
-	let line = parseInt(errorSplit[index])
+	let line = Number.parseInt(errorSplit[index])
 	if (Number.isNaN(line)) {
 		line = 1
 	}
 	// tslint:disable-next-line:radix
-	let column = parseInt(errorSplit[index + 1])
+	let column = Number.parseInt(errorSplit[index + 1])
 	if (Number.isNaN(column)) {
 		column = 1
 	}
@@ -118,9 +118,7 @@ export function forgeOutputErrorToDiagnostic(match: string[], rootPath: string):
 		character = match[14]
 	}
 
-	const trimmedCode = code ? code.trim() : ""
-
-	const start = Position.create(parseInt(matchLine) - 1, parseInt(character) - 1)
+	const start = Position.create(Number.parseInt(matchLine) - 1, Number.parseInt(character) - 1)
 	const end = Position.create(start.line, start.character)
 
 	const typeLower = type.toLowerCase().trim()
@@ -149,7 +147,6 @@ const mapSecondarySourceToVscode = (error: SolcError, parent?: DiagnosticWithFil
 
 	let match: string[] | null = null
 
-	// biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
 	while ((match = regexp.exec(error.formattedMessage)) !== null) {
 		let [, type, , errorCode, message, fileName, matchLine, character, code] = match
 		if (!message && !fileName) {
@@ -162,8 +159,8 @@ const mapSecondarySourceToVscode = (error: SolcError, parent?: DiagnosticWithFil
 		}
 		const trimmed = code ? code.trim() : ""
 		const range = Range.create(
-			Position.create(parseInt(matchLine) - 1, parseInt(character)),
-			Position.create(parseInt(matchLine) - 1, parseInt(character)),
+			Position.create(Number.parseInt(matchLine) - 1, Number.parseInt(character)),
+			Position.create(Number.parseInt(matchLine) - 1, Number.parseInt(character)),
 		)
 		results.push({
 			location: {

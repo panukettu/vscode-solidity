@@ -1,7 +1,7 @@
 import { documents } from "@server"
-import { ParsedCode } from "@server/code/ParsedCode"
-import { ParsedDocument } from "@server/code/ParsedDocument"
-import { CodeWalkerService } from "@server/codewalker"
+import type { ParsedCode } from "@server/code/ParsedCode"
+import type { ParsedDocument } from "@server/code/ParsedDocument"
+import type { CodeWalkerService } from "@server/codewalker"
 import { findByParam, getFunctionsByNameOffset } from "@server/providers/utils/functions"
 import { isLeavingFunctionParams } from "@server/providers/utils/matchers"
 import { funcDefMetadataRegexp, importFullRegexp, lineMetadataRegexp, nameRegexp } from "@shared/regexp"
@@ -9,7 +9,8 @@ import * as vscode from "vscode-languageserver/node"
 
 type DocImport = {
 	range: vscode.Range
-	line: string
+	line: number
+	lineText: string
 	from: string
 	symbols: string[]
 	addSymbol: (symbol: string) => ReturnType<DocUtil["change"]>
@@ -84,13 +85,20 @@ export class DocUtil {
 	public change({
 		replace,
 		insert,
-	}: { replace?: { range: vscode.Range; text: string }[]; insert?: { position: vscode.Position; text: string }[] }) {
-		const insertChanges = insert?.length ? insert : []
-		const replaceChanges = replace?.length ? replace : []
+		del,
+	}: {
+		replace?: { range: vscode.Range; text: string }[]
+		insert?: { position: vscode.Position; text: string }[]
+		del?: vscode.Range[]
+	}) {
+		const inserts = insert ?? []
+		const replaces = replace ?? []
+		const deletes = del ?? []
 		return {
 			[this.document.uri]: [
-				...replaceChanges.map((c) => vscode.TextEdit.replace(c.range, c.text)),
-				...insertChanges.map((c) => vscode.TextEdit.insert(c.position, c.text)),
+				...replaces.map((c) => vscode.TextEdit.replace(c.range, c.text)),
+				...inserts.map((c) => vscode.TextEdit.insert(c.position, c.text)),
+				...deletes.map((c) => vscode.TextEdit.del(c)),
 			],
 		}
 	}
@@ -245,19 +253,32 @@ export class DocUtil {
 		const terminator = lineText.lastIndexOf(end)
 		if (terminator !== -1 && !hasInner) {
 			return vscode.Position.create(currentLine, terminator + 1)
-		} else {
-			return this.findEndOf(startLine, currentLine + 1, start, end)
 		}
+		return this.findEndOf(startLine, currentLine + 1, start, end)
 	}
 	public lineTextNoWhitespace(line = this.position.line) {
 		return this.document.getText(this.lineRange(line, true))
 	}
 
+	public getRange(str: string) {
+		return this.getRangeInLine(this.getLineOf(str), str)
+	}
+	public getRangeBetween(from: string, to: string) {
+		const line = this.getLineOf(from)
+		return this.getInLine(line, from, to)
+	}
+	public getInLine(line: number, from: string, to: string) {
+		const lineText = this.lineText(line)
+		const start = lineText.indexOf(from)
+		const end = lineText.lastIndexOf(to)
+		return vscode.Range.create({ line, character: start + from.length }, { line, character: end })
+	}
+
 	public getLine(line: number) {
 		return this.lines[line]
 	}
-	public getLineRange(pos: vscode.Position, lineEnd: number) {
-		return vscode.Range.create(pos, vscode.Position.create(lineEnd, this.getLine(lineEnd).length))
+	public lineRangeDel(line: number) {
+		return vscode.Range.create({ character: 9999, line: line - 1 }, { character: 9999, line: line })
 	}
 	public getLines(range: vscode.Range) {
 		const startLine = range.start.line
@@ -285,6 +306,13 @@ export class DocUtil {
 		const startIndex = ignoreWhitespace ? lineText.match(/\S/)?.index ?? 0 : 0
 		return vscode.Range.create(vscode.Position.create(line, startIndex), vscode.Position.create(line, lineText.length))
 	}
+
+	public getRangeInLine(line: number, str: string) {
+		const start = this.lineText(line).indexOf(str)
+		if (start === -1) return DocUtil.positionRange(this.position)
+
+		return vscode.Range.create({ line, character: start }, { line, character: start + str.length })
+	}
 	public getWordAt(pos: number, text = this.document.getText()) {
 		const left = text.slice(0, pos + 1).search(/\w+$/)
 		const right = text.slice(pos).search(/\W/)
@@ -301,7 +329,8 @@ export class DocUtil {
 		const end = this.document.positionAt(word.end)
 		if (start.line === 0 && start.character === 0 && end.line !== 0) {
 			return vscode.Range.create(end, end)
-		} else if (end.line === 0 && end.character === 0 && start.line !== 0) {
+		}
+		if (end.line === 0 && end.character === 0 && start.line !== 0) {
 			return vscode.Range.create(start, start)
 		}
 		return vscode.Range.create(start, end)
@@ -331,17 +360,18 @@ export class DocUtil {
 			const start = this.document.positionAt(match.index)
 			const end = this.document.positionAt(match.index + match[0].length + 1)
 
-			imports.push({
+			const item = {
 				range: vscode.Range.create(start, end),
-				line: this.getLine(start.line),
+				line: start.line,
+				lineText: this.getLine(start.line),
 				from: fromMatch,
 				symbols: (symbolMatch?.split(",").map((s) => s.trim()) ?? []) as string[],
-				addSymbol(symbol: string) {
+				addSymbol: (symbol: string) => {
 					try {
 						if (!symbolMatch) return
-						if (!this.symbols.includes(symbol)) {
-							this.symbols.push(symbol)
-							const newSymbols = this.symbols.sort((a, b) => a.localeCompare(b)).join(", ")
+						if (!item.symbols.includes(symbol)) {
+							item.symbols.push(symbol)
+							const newSymbols = item.symbols.sort((a, b) => a.localeCompare(b)).join(", ")
 							const newLine = this.lineText(start.line).replace(symbolMatch, newSymbols)
 							return this.change({ replace: [{ range: this.lineRange(start.line), text: newLine }] })
 						}
@@ -356,7 +386,8 @@ export class DocUtil {
 					const text = hasContentBelow ? `\nimport ${symbolPart}${fromPart};` : `\nimport ${symbolPart}${fromPart};`
 					return this.change({ insert: [{ position: end, text }] })
 				},
-			})
+			}
+			imports.push(item)
 		}
 		return imports
 	}

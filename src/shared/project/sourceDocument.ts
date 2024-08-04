@@ -1,8 +1,9 @@
-import { readFileSync } from "node:fs"
-import * as path from "path"
+import { existsSync, readFileSync } from "node:fs"
+import * as path from "node:path"
 import type { Callbacks } from "@shared/compiler/types-solc"
+import { glob } from "glob"
 import { formatPath } from "../util"
-import { Project, resolveCache } from "./project"
+import { type Project, resolveCache } from "./project"
 
 type Import = {
 	importPath: string
@@ -84,12 +85,19 @@ export class SourceDocument {
 		this.project.checkCache()
 		const solFiles = this.project.getIncludePathFiles()
 		return {
-			import: (path: string) => {
-				const resolved = this.resolveImportPath(path, solFiles, true)
-				if (!resolved) return { error: `File not found: ${path}` }
-				resolveCache.set(path, resolved)
+			import: (importPath: string) => {
+				const resolved = this.resolveImportPath(importPath, solFiles, true)
+
+				if (resolved && existsSync(resolved)) {
+					resolveCache.set(importPath, resolved)
+					return {
+						contents: readFileSync(resolved).toString(),
+					}
+				}
+
+				const suggestions = this.project.getPossibleImports(this.absolutePath, importPath)
 				return {
-					contents: readFileSync(resolved).toString(),
+					error: suggestions.length ? `\nSuggestions:\n${suggestions.join("\n ")}` : "\nNo suggestions found.",
 				}
 			},
 		}
@@ -98,9 +106,9 @@ export class SourceDocument {
 	public getAllImportFromPackages() {
 		const importsFromPackages = new Array<string>()
 
-		for (const immported of this.imports) {
-			if (!this.isImportLocal(immported.importPath)) {
-				importsFromPackages.push(immported.importPath)
+		for (const item of this.imports) {
+			if (!this.isImportLocal(item.importPath)) {
+				importsFromPackages.push(item.importPath)
 			}
 		}
 		return importsFromPackages
@@ -117,11 +125,8 @@ export class SourceDocument {
 	public replaceDependencyPath(importPath: string, depImportAbsolutePath: string) {
 		const importRegEx = /(^\s?import\s+[^'"]*['"])(.*)(['"]\s*)/gm
 		this.code = this.code.replace(importRegEx, (match, p1, p2, p3) => {
-			if (p2 === importPath) {
-				return p1 + depImportAbsolutePath + p3
-			} else {
-				return match
-			}
+			if (p2 === importPath) return p1 + depImportAbsolutePath + p3
+			return match
 		})
 	}
 

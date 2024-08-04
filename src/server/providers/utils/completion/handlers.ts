@@ -1,18 +1,17 @@
-import { relative } from "path"
-import * as path from "path"
-import { fileURLToPath } from "url"
-import { DocUtil } from "@server/utils/text-document"
+import * as path from "node:path"
+import { fileURLToPath } from "node:url"
+import type { DocUtil } from "@server/utils/text-document"
 import { emitDotRegexp } from "@shared/regexp"
 import glob from "glob"
 import { doc } from "prettier"
 import * as vscode from "vscode-languageserver/node"
 import { ParsedContract } from "../../../code/ParsedContract"
-import { ParsedDocument } from "../../../code/ParsedDocument"
+import type { ParsedDocument } from "../../../code/ParsedDocument"
 import { ParsedStruct } from "../../../code/ParsedStruct"
-import { ParsedStructVariable } from "../../../code/ParsedStructVariable"
+import type { ParsedStructVariable } from "../../../code/ParsedStructVariable"
 import { typeHelp } from "../../../code/utils/ParsedCodeTypeHelper"
 import { DotCompletionService } from "../../../code/utils/dotCompletionService"
-import { CodeWalkerService } from "../../../codewalker"
+import type { CodeWalkerService } from "../../../codewalker"
 import { getFunctionsByNameOffset } from "../functions"
 import {
 	GeCompletionUnits,
@@ -22,7 +21,7 @@ import {
 	GetGlobalVariables,
 } from "./globals"
 import { getImportPath, textEdit } from "./misc"
-import { dotStartMatchers, parsePosition } from "./textMatchers"
+import type { dotStartMatchers, parsePosition } from "./textMatchers"
 
 const getLastDot = (
 	docUtil: DocUtil,
@@ -91,9 +90,8 @@ export const handleCustomFunctionCompletion = (
 								return u.for.name === member[0].output[0].type.name
 							})
 							.flatMap((u) => u.for.getInnerCompletionItems(true))
-					} else {
-						return getLastDot(docUtil, triggers, matchers, triggers, triggers.triggers.dotStart).results
 					}
+					return getLastDot(docUtil, triggers, matchers, triggers, triggers.triggers.dotStart).results
 				}
 				return selectedDocument.selectedContract.using
 					.filter((u) => {
@@ -121,7 +119,6 @@ export const handleCustomFunctionCompletion = (
 						return u.for.name === item.name
 					})
 					.flatMap((u) => u.for.getInnerCompletionItems(true))
-			} else {
 			}
 		} else {
 			if (matchers.dotAfterFuncParams && items[0] && items[0].output?.length === 0) {
@@ -185,7 +182,9 @@ export const handleCustomMappingCompletion = (
 			const type = document.findTypeInScope(result)
 			// @ts-expect-error;
 			return type.getInnerCompletionItems(true)
-		} else if (document.selectedContract) {
+		}
+
+		if (document.selectedContract) {
 			return document.selectedContract.using
 				.filter((u) => {
 					return u.for.name === result
@@ -228,7 +227,8 @@ export const handleCustomMatchers = (
 			...c,
 			insertText: "",
 		}))
-	} else if (matchers.isControlStatement) {
+	}
+	if (matchers.isControlStatement) {
 		return completionItems.map((c) => ({
 			...c,
 			insertText: c.insertText ? c.insertText.replace(";", "") : c.insertText,
@@ -272,7 +272,7 @@ export const handleInnerImportCompletion = (
 	const filePath = fileURLToPath(document.uri)
 	const result = completionItems.map((i) => {
 		if (!i.data?.absolutePath) return i
-		let rel = relative(filePath, i.data.absolutePath)
+		let rel = path.relative(filePath, i.data.absolutePath)
 		rel = rel.split("\\").join("/")
 		if (rel.startsWith("../")) {
 			rel = rel.substr(1)
@@ -347,25 +347,22 @@ export const handleEmit = (document: ParsedDocument) => {
 		return document.selectedContract
 			.getAllEventsCompletionItems()
 			.concat(document.document.getAllGlobalContractsCompletionItems())
-	} else {
-		return document.getAllGlobalEventsCompletionItems()
 	}
+	return document.getAllGlobalEventsCompletionItems()
 }
 
 export const handleRevert = (document: ParsedDocument) => {
 	if (document.selectedContract != null) {
 		return document.selectedContract.getAllErrorsCompletionItems()
-	} else {
-		return document.getAllGlobalErrorsCompletionItems()
 	}
+	return document.getAllGlobalErrorsCompletionItems()
 }
 
 export const handleDefault = (document: ParsedDocument, offset: number) => {
 	if (document.selectedContract != null) {
 		return document.selectedContract.getSelectedContractCompletionItems(offset)
-	} else {
-		return document.getSelectedDocumentCompletionItems(offset)
 	}
+	return document.getSelectedDocumentCompletionItems(offset)
 }
 
 export const handleFinally = () => {

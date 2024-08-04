@@ -1,10 +1,10 @@
-import * as path from "path"
+import * as path from "node:path"
 import type { FoundryConfigParsed, SolidityConfig } from "@shared/types"
 import { GlobSync, glob } from "glob"
 import { createLibPackages } from "./dependency-utils"
-import { Package, createDefaultPackage } from "./package"
+import { type Package, createDefaultPackage } from "./package"
 import { getFoundryConfig, getHardhatSourceFolder, loadRemappings } from "./project-utils"
-import { Remapping, parseRemappings } from "./remapping"
+import { type Remapping, parseRemappings } from "./remapping"
 
 export const resolveCache: Map<string, string> = new Map()
 export let filesCache: string[] = []
@@ -41,7 +41,7 @@ export class Project {
 			rootPath,
 			config.project.sources,
 			config.compiler.outDir,
-			this.includePaths,
+			this.includePaths.length ? this.includePaths : config.project.libs,
 		)
 
 		this.dependencies = createLibPackages(config.project.libs, rootPath, this.projectPackage, config.project.libSources)
@@ -50,7 +50,6 @@ export class Project {
 		this.libs = config.project.libs
 
 		this.remappings = parseRemappings(loadRemappings(this), this)
-
 		this.absoluteSources = this.projectPackage.getSolSourcesAbsolutePath()
 		this.globPath = `${this.absoluteSources}/**/*.sol`
 
@@ -75,7 +74,7 @@ export class Project {
 			new Set(
 				this.dependencies.flatMap((d) => {
 					const lib = d.getSolSourcesAbsolutePath()
-					return d.sol_sources_alternative_directories.flatMap((dir) => glob.sync(path.join(lib, dir, "/**/*.sol")))
+					return glob.sync(path.join(lib, "/**/*.sol"))
 				}),
 			),
 		)
@@ -105,6 +104,7 @@ export class Project {
 		}
 		return filesCache
 	}
+
 	public _getProjectSolFiles() {
 		const exclusions = this.getDefaultExclusions()
 		if (this.rootPath !== this.absoluteSources) {
@@ -112,11 +112,11 @@ export class Project {
 
 			return (filesCache = this.glob.found)
 		}
+
+		exclusions.push(path.join(this.rootPath, this.projectPackage.build_dir, "**"))
 		for (const libFolder of this.libs) {
 			exclusions.push(path.join(this.rootPath, libFolder, "**"))
 		}
-
-		exclusions.push(path.join(this.rootPath, this.projectPackage.build_dir, "**"))
 
 		for (const x of this.getAllRelativeLibrariesAsExclusionsFromRemappings()) {
 			exclusions.push(x)
@@ -151,7 +151,7 @@ export class Project {
 		// const remappings = importRemappings("@openzeppelin/=lib/openzeppelin-contracts//\r\nds-test/=lib/ds-test/src/", this);
 		const remappings = this.remappings.filter((mapping) => mapping.isImportForThis(importPath))
 		if (!remappings?.length) return null
-		return this.sortByLength(remappings)[remappings.length - 1]
+		return this.sortRemappings(remappings)[0]
 	}
 
 	public findDirectImport(absolutePath: string): string {
@@ -166,8 +166,8 @@ export class Project {
 	}
 
 	public findShortestImport(from: string, importPath: string): string {
-		let result = this.findImportRemapping(importPath)?.createImportFromFile(importPath)
-		if (!result) result = this.findRemappingForFile(importPath)?.createImportFromFile(importPath)
+		let result = this.findRemappingForFile(importPath)?.createImportFromFile(importPath)
+		if (!result) result = this.findImportRemapping(importPath)?.createImportFromFile(importPath)
 		if (!result) result = this.findDirectImport(importPath)
 		if (result && result !== importPath) return result
 		return path.relative(path.dirname(from), importPath)
@@ -176,12 +176,44 @@ export class Project {
 	public findRemappingForFile(filePath: string): Remapping {
 		const remappings = this.remappings.filter((mapping) => mapping.isFileForThis(filePath))
 		if (!remappings?.length) return null
-		return this.sortByLength(remappings)[remappings.length - 1]
+		return this.sortRemappings(remappings, filePath)[0]
+	}
+
+	public findRemappingsForFile(filePath: string, count: number): Remapping[] {
+		const remappings = this.remappings.filter((mapping) => mapping.isFileForThis(filePath))
+		if (!remappings?.length) return null
+		return this.sortRemappings(remappings, filePath).slice(0, count)
+	}
+
+	public getPossibleImports(from: string, filePath: string): string[] {
+		const fileName = filePath.split("/").pop()
+		const matches = glob.sync(path.join(this.rootPath, "/**/", fileName), {
+			ignore: ["**/node_modules/**"],
+			nodir: true,
+			nocase: true,
+		})
+
+		if (!matches.length) return []
+
+		const results = new Set<string>()
+
+		for (const match of matches) {
+			const remappings = this.findRemappingsForFile(match, 3)
+			if (remappings.length) remappings.forEach((r) => results.add(r.createImportFromFile(match)))
+			results.add(this.findDirectImport(match))
+			results.add(this.findShortestImport(from, match))
+			results.add(path.relative(from, match))
+		}
+
+		return Array.from(results)
+	}
+
+	private sortRemappings(array: Remapping[], filePath?: string) {
+		if (!filePath) return array.sort((a, b) => a.prefix.length - b.prefix.length)
+		return array.sort((a, b) => a.createImportFromFile(filePath).length - b.createImportFromFile(filePath).length)
 	}
 
 	private sortByLength(array: any[]) {
-		return array.sort(function (a, b) {
-			return a.length - b.length
-		})
+		return array.sort((a, b) => a.length - b.length)
 	}
 }

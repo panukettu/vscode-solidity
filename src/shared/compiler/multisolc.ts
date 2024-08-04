@@ -2,12 +2,12 @@ import { errorToDiagnostic } from "@server/providers/utils/diagnostics"
 import { CompilerType } from "@shared/enums"
 import { Project } from "@shared/project/project"
 import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
-import { MultisolcSettings, SolidityConfig } from "@shared/types"
+import type { MultisolcSettings, SolidityConfig } from "@shared/types"
 import { ExtensionSolc } from "./location/solc-default"
 import { LocalSolc } from "./location/solc-local"
 import { NPMSolc } from "./location/solc-npm"
 import { RemoteSolc } from "./location/solc-remote"
-import { SolcInput, SolcOutput } from "./types-solc"
+import type { SolcInput, SolcOutput } from "./types-solc"
 
 export class Multisolc {
 	public rootPath: string
@@ -147,7 +147,7 @@ export class Multisolc {
 			const output = await this.compileInputWith(input, config.compiler.type, doc.getImportCallback())
 			return output.errors?.map(errorToDiagnostic) ?? []
 		} catch (error) {
-			console.debug("Unhandled (compileWithDiagnostic):", error)
+			console.debug("compileWithDiagnostic:", error)
 			this.initializeSolc(config.compiler.type).then(async () => {
 				const output = await this.compileInputWith(input, config.compiler.type, doc.getImportCallback())
 				return output.errors?.map(errorToDiagnostic) ?? []

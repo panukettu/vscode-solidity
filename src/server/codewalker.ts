@@ -1,13 +1,13 @@
-import * as vscode from "vscode-languageserver"
+import type * as vscode from "vscode-languageserver"
 import { URI } from "vscode-uri"
 
-import * as fs from "fs"
+import * as fs from "node:fs"
 import * as solparse from "@pkxp/solparse-exp-jb"
 import { documentMap } from "@server/providers/utils/caches"
 import { Project } from "@shared/project/project"
-import { SourceDocument } from "@shared/project/sourceDocument"
+import type { SourceDocument } from "@shared/project/sourceDocument"
 import { SourceDocumentCollection, mockConsoleSol } from "@shared/project/sourceDocuments"
-import { SolidityConfig } from "@shared/types"
+import type { SolidityConfig } from "@shared/types"
 import { ParsedDocument } from "./code/ParsedDocument"
 
 export class CodeWalkerService {
@@ -30,24 +30,15 @@ export class CodeWalkerService {
 	public initDocuments() {
 		if (!this.project) throw new Error("Project not initialized")
 		const sourceDocuments = new SourceDocumentCollection()
+
 		for (const path of this.project.getProjectSolFiles() ?? []) {
-			const existing = sourceDocuments.documents.find((d) => d.absolutePath === path)
-
-			if (!existing) {
-				const item = sourceDocuments.addSourceDocumentAndResolveImports(
-					path,
-					fs.readFileSync(path, "utf8"),
-					this.project,
-				)
-
-				this.parseDocumentAsync(item.unformattedCode, false, item)
-			} else {
-				this.parseDocumentAsync(existing.unformattedCode, false, existing)
-			}
+			const item = sourceDocuments.addSourceDocumentAndResolveImports(path, null, this.project)
+			this.parseDocumentAsync(item.unformattedCode, false, item)
 		}
-		for (const path of this.project.getLibSourceFiles()) {
-			const existing = sourceDocuments.documents.find((d) => d.absolutePath === path)
-			if (existing) this.parseDocumentAsync(existing.unformattedCode, false, existing)
+
+		for (const libPath of this.project.getLibSourceFiles()) {
+			const item = sourceDocuments.addSourceDocumentAndResolveImports(libPath, null, this.project)
+			this.parseDocumentAsync(item.unformattedCode, true, item)
 		}
 		queueMicrotask(() => {
 			this.parsedDocumentsCache.forEach((element) => {
@@ -60,22 +51,13 @@ export class CodeWalkerService {
 	public initialiseChangedDocuments() {
 		const sourceDocuments = new SourceDocumentCollection()
 		this.project.getProjectSolFiles().forEach((contractPath) => {
-			if (!sourceDocuments.containsSourceDocument(contractPath)) {
-				sourceDocuments.addSourceDocumentAndResolveImports(
-					contractPath,
-					fs.readFileSync(contractPath, "utf8"),
-					this.project,
-				)
-			}
+			sourceDocuments.addSourceDocumentAndResolveImports(contractPath, null, this.project)
 		})
 		sourceDocuments.documents.forEach((sourceDocumentItem) => {
 			this.parseDocumentChanged(sourceDocumentItem.unformattedCode, false, sourceDocumentItem)
 		})
 	}
 
-	public getSelectedDocumentProfiler(document: vscode.TextDocument, position: vscode.Position): ParsedDocument {
-		return this.getSelectedDocument(document, position)
-	}
 	public getSelectedDocument(document: vscode.TextDocument, position: vscode.Position): ParsedDocument {
 		let selectedDocument: ParsedDocument
 		let selectedSourceDocument: SourceDocument
@@ -94,9 +76,11 @@ export class CodeWalkerService {
 			selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache)
 		} else {
 			const sourceDocuments = new SourceDocumentCollection()
-			sourceDocuments.addSourceDocumentAndResolveImports(URI.parse(document.uri).fsPath, documentText, this.project)
-
-			selectedSourceDocument = sourceDocuments.documents[0]
+			selectedSourceDocument = sourceDocuments.addSourceDocumentAndResolveImports(
+				URI.parse(document.uri).fsPath,
+				documentText,
+				this.project,
+			)
 
 			selectedDocument = this.parseSelectedDocument(documentText, offset, position.line, false, selectedSourceDocument)
 			selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache)
@@ -167,7 +151,7 @@ export class CodeWalkerService {
 		const foundDocument = this.parsedDocumentsCache.find(
 			(x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath,
 		)
-		if (foundDocument != null) {
+		if (foundDocument) {
 			if (foundDocument.sourceDocument.unformattedCode === sourceDocument.unformattedCode) {
 				return foundDocument
 			}
@@ -200,18 +184,12 @@ export class CodeWalkerService {
 		const foundDocument = this.parsedDocumentsCache.find(
 			(x) => x.sourceDocument.absolutePath === sourceDocument.absolutePath,
 		)
-		const newDocument = new ParsedDocument()
-		if (foundDocument != null) {
-			if (foundDocument.sourceDocument.unformattedCode !== sourceDocument.unformattedCode) {
-				newDocument.initialiseDocument(foundDocument.element, null, sourceDocument, foundDocument?.fixedSource)
-
-				this.parsedDocumentsCache = this.parsedDocumentsCache.filter((x) => x !== foundDocument)
-				this.parsedDocumentsCache.push(newDocument)
-				return newDocument
-			} else {
+		if (foundDocument) {
+			if (fixedSource || foundDocument.sourceDocument.unformattedCode === sourceDocument.unformattedCode)
 				return foundDocument
-			}
 		}
+
+		const newDocument = new ParsedDocument()
 		try {
 			const text = sourceDocument.absolutePath.includes("onsole") ? mockConsoleSol : documentText
 			const result = solparse.parse(text)
@@ -233,28 +211,6 @@ export class CodeWalkerService {
 		}
 		return newDocument
 	}
-
-	// public getContracts(documentText: string, document: ParsedDocument): ParsedContract[] {
-	// 	const contracts: ParsedContract[] = []
-	// 	try {
-	// 		const result: Element = solparse.parse(documentText)
-
-	// 		result.body.forEach((element) => {
-	// 			if (
-	// 				element.type === "ContractStatement" ||
-	// 				element.type === "LibraryStatement" ||
-	// 				element.type === "InterfaceStatement"
-	// 			) {
-	// 				const contract = new ParsedContract()
-	// 				contract.initialise(element, document)
-	// 				contracts.push(contract)
-	// 			}
-	// 		})
-	// 	} catch (error) {
-	// 		console.debug("GetContracts:", error.message)
-	// 	}
-	// 	return contracts
-	// }
 
 	private findElementByOffset(elements: Array<{ start: number; end: number }>, offset: number): any {
 		return elements.find((element) => element.start <= offset && offset <= element.end)

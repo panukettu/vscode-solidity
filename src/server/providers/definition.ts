@@ -1,10 +1,10 @@
-import { ParsedDocument } from "@server/code/ParsedDocument"
+import type { ParsedDocument } from "@server/code/ParsedDocument"
 import { ParsedExpression } from "@server/code/ParsedExpression"
 import { ParsedVariable } from "@server/code/ParsedVariable"
 import { DocUtil } from "@server/utils/text-document"
-import * as vscode from "vscode-languageserver/node"
-import { ParsedCode } from "../code/ParsedCode"
-import { CodeWalkerService } from "../codewalker"
+import type * as vscode from "vscode-languageserver/node"
+import type { ParsedCode } from "../code/ParsedCode"
+import type { CodeWalkerService } from "../codewalker"
 import { clearCaches } from "./utils/caches"
 
 let currentOffset = 0
@@ -53,6 +53,13 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 
 		if (!currentItem) return []
 
+		const foundLocations = currentItem
+			.getSelectedTypeReferenceLocation(currentOffset)
+			.filter((x) => x.location?.uri.length)
+			.map((x) => x.location)
+
+		if (foundLocations.length) return foundLocations
+
 		if (currentItem instanceof ParsedExpression && currentItem.parent) {
 			const result = handleParsedExpression(selectedDoc, currentItem, docUtil)
 			if (result?.length) {
@@ -60,10 +67,6 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 				return result.map((x) => x.getLocation())
 			}
 		}
-
-		const references = currentItem.getSelectedTypeReferenceLocation(currentOffset)
-
-		const foundLocations = references.filter((x) => x.location != null).map((x) => x.location)
 
 		if (!foundLocations?.length) {
 			for (const imported of selectedDoc.importedDocuments) {

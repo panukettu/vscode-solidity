@@ -1,8 +1,7 @@
-import * as fs from "fs"
-import * as path from "path"
+import * as path from "node:path"
 import { Config, getCurrentProjectInWorkspaceRootFsPath, getCurrentWorkspaceRootFolder } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
-import { BaseCommandArgs } from "@client/client-types"
+import type { BaseCommandArgs } from "@client/client-types"
 import { Project } from "@shared/project/project"
 import type { SourceDocument } from "@shared/project/sourceDocument"
 import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
@@ -38,7 +37,7 @@ export function compileAllContracts(state: ClientState, commandArgs: BaseCommand
 	const remaining = (project?.getProjectSolFiles() ?? []).filter((f) => !contractsCollection.containsSourceDocument(f))
 
 	for (const document of remaining) {
-		contractsCollection.addSourceDocumentAndResolveImports(document, fs.readFileSync(document, "utf8"), project)
+		contractsCollection.addSourceDocumentAndResolveImports(document, null, project)
 	}
 
 	const compilerOpts = Config.getCompilerOptions(

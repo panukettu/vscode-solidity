@@ -1,17 +1,17 @@
 import { ExpressionType } from "@shared/enums"
-import { CompletionItem } from "vscode-languageserver"
-import { defCtx, handleParsedExpression } from "../providers/definition"
+import type { CompletionItem } from "vscode-languageserver"
+import { defCtx } from "../providers/definition"
 import { TypeReference } from "../search/TypeReference"
-import { IParsedExpressionContainer } from "./IParsedExpressionContainer"
+import type { IParsedExpressionContainer } from "./IParsedExpressionContainer"
 import { ParsedCode } from "./ParsedCode"
 import { ParsedContract } from "./ParsedContract"
 import { ParsedDeclarationType } from "./ParsedDeclarationType"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedEnum } from "./ParsedEnum"
 import { ParsedFunction } from "./ParsedFunction"
 import { ParsedStruct } from "./ParsedStruct"
-import { ParsedVariable } from "./ParsedVariable"
-import { Element } from "./types"
+import type { ParsedVariable } from "./ParsedVariable"
+import type { Element } from "./types"
 
 export class ParsedExpression extends ParsedCode {
 	public parent: ParsedExpression = null
@@ -33,14 +33,20 @@ export class ParsedExpression extends ParsedCode {
 			if (element.isArray === false) {
 				let memberChildObject: ParsedExpression = null
 				if (element.property != null) {
-					memberChildObject = this.createFromElement(element.property, document, contract, child, expressionContainer)
+					memberChildObject = ParsedExpression.createFromElement(
+						element.property,
+						document,
+						contract,
+						child,
+						expressionContainer,
+					)
 					if (child != null) {
 						child.parent = memberChildObject
 					}
 				}
 				let memberParentProperty: ParsedExpression = null
 				if (element.object != null) {
-					memberParentProperty = this.createFromElement(
+					memberParentProperty = ParsedExpression.createFromElement(
 						element.object,
 						document,
 						contract,
@@ -52,26 +58,31 @@ export class ParsedExpression extends ParsedCode {
 					}
 				}
 				return memberChildObject
-			} else {
-				let memberChildObject: ParsedExpression = null
-				if (element.object != null) {
-					memberChildObject = this.createFromElement(element.object, document, contract, child, expressionContainer)
-					if (child != null) {
-						child.parent = memberChildObject
-					}
-				}
-
-				if (element.property != null) {
-					if (Array.isArray(element.property)) {
-						for (const item of element.property) {
-							expressionContainer.initialiseVariablesMembersEtc(item, element, null)
-						}
-					} else {
-						expressionContainer.initialiseVariablesMembersEtc(element.property, element, null)
-					}
-				}
-				return memberChildObject
 			}
+			let memberChildObject: ParsedExpression = null
+			if (element.object != null) {
+				memberChildObject = ParsedExpression.createFromElement(
+					element.object,
+					document,
+					contract,
+					child,
+					expressionContainer,
+				)
+				if (child != null) {
+					child.parent = memberChildObject
+				}
+			}
+
+			if (element.property != null) {
+				if (Array.isArray(element.property)) {
+					for (const item of element.property) {
+						expressionContainer.initialiseVariablesMembersEtc(item, element, null)
+					}
+				} else {
+					expressionContainer.initialiseVariablesMembersEtc(element.property, element, null)
+				}
+			}
+			return memberChildObject
 		}
 	}
 
@@ -93,7 +104,7 @@ export class ParsedExpression extends ParsedCode {
 					return callExpression
 				}
 				case "MemberExpression": // e.g. x.y x.f(y) arr[1] map['1'] arr[i] map[k]
-					return this.createFromMemberExpression(element, document, contract, child, expressionContainer)
+					return ParsedExpression.createFromMemberExpression(element, document, contract, child, expressionContainer)
 				case "Identifier": {
 					const expressionIdentifier = new ParsedExpressionIdentifier()
 					expressionIdentifier.initialiseExpression(element, document, contract, child, expressionContainer)
@@ -399,12 +410,11 @@ export class ParsedExpressionIdentifier extends ParsedExpression {
 				return results.concat(this.reference.getAllReferencesToThis(documents))
 			}
 			return [this.createFoundReferenceLocationResult()]
-		} else {
-			// in case the parent is a member and not part of the element
-			if (this.parent != null) {
-				if (this.parent.isCurrentElementedSelected(offset)) {
-					return results.concat(this.parent.getAllReferencesToSelected(offset, documents))
-				}
+		}
+		// in case the parent is a member and not part of the element
+		if (this.parent != null) {
+			if (this.parent.isCurrentElementedSelected(offset)) {
+				return results.concat(this.parent.getAllReferencesToSelected(offset, documents))
 			}
 		}
 		return results
@@ -418,12 +428,11 @@ export class ParsedExpressionIdentifier extends ParsedExpression {
 				}
 			}
 			return this
-		} else {
-			// in case the parent is a member and not part of the element
-			if (this.parent != null) {
-				if (this.parent.isCurrentElementedSelected(offset)) {
-					return this.parent.getSelectedItem(offset)
-				}
+		}
+		// in case the parent is a member and not part of the element
+		if (this.parent != null) {
+			if (this.parent.isCurrentElementedSelected(offset)) {
+				return this.parent.getSelectedItem(offset)
 			}
 		}
 		return null
@@ -532,12 +541,11 @@ export class ParsedExpressionIdentifier extends ParsedExpression {
 					return [TypeReference.create(true, this.reference.getLocation())]
 				}
 				return [TypeReference.create(true)]
-			} else {
-				// in case the parent is a member and not part of the element
-				if (this.parent != null) {
-					if (this.parent.isCurrentElementedSelected(offset)) {
-						return this.parent.getSelectedTypeReferenceLocation(offset)
-					}
+			}
+			// in case the parent is a member and not part of the element
+			if (this.parent != null) {
+				if (this.parent.isCurrentElementedSelected(offset)) {
+					return this.parent.getSelectedTypeReferenceLocation(offset)
 				}
 			}
 			return [TypeReference.create(false)]

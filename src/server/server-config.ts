@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process"
 import { CompilerType } from "@shared/enums"
 import { resolveCache } from "@shared/project/project"
 import { getFoundryConfig, loadRemappings } from "@shared/project/project-utils"
@@ -10,7 +11,7 @@ import { connection } from "../server"
 import { replaceRemappings } from "../shared/util"
 import SolhintService from "./linter/solhint"
 import { createServerMultisolc } from "./server-compiler"
-import { ExtendedSettings } from "./server-types"
+import type { ExtendedSettings } from "./server-types"
 
 function defaultConfig() {
 	const result = {} as SolidityConfig
@@ -195,7 +196,7 @@ async function requestConfig() {
 							),
 						},
 					},
-					foundryConfig: getFoundryConfig(settings.rootPath),
+					foundry: getFoundryConfig(settings.rootPath),
 				}),
 			},
 			compiler: {

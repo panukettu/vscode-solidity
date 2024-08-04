@@ -1,8 +1,8 @@
-import * as fs from "fs"
-import { SolcInput } from "@shared/compiler/types-solc"
-import { MultisolcSettings } from "@shared/types"
+import * as fs from "node:fs"
+import type { SolcInput } from "@shared/compiler/types-solc"
+import type { MultisolcSettings } from "@shared/types"
 import { formatPath } from "../util"
-import { Project } from "./project"
+import type { Project } from "./project"
 import { SourceDocument } from "./sourceDocument"
 
 const mockContent = (content: string) => `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n${content}`
@@ -92,9 +92,9 @@ export class SourceDocumentCollection {
 		return contractsForCompilation
 	}
 
-	public addSourceDocumentAndResolveImports(contractPath: string, code: string, project: Project) {
+	public addSourceDocumentAndResolveImports(contractPath: string, code: string | null, project: Project) {
 		const contract = this.addSourceDocument(contractPath, code, project)
-		if (!contract) return null
+		if (typeof contract === "number") return this.documents[contract]
 		contract.resolveImports()
 
 		for (const imported of contract.imports) {
@@ -109,13 +109,15 @@ export class SourceDocumentCollection {
 		return contract
 	}
 
-	private addSourceDocument(contractPath: string, code: string, project: Project) {
-		if (!this.containsSourceDocument(contractPath)) {
-			const contract = new SourceDocument(contractPath, code, project)
-			this.documents.push(contract)
-			return contract
-		}
-		return null
+	private addSourceDocument(contractPath: string, code: string | null, project: Project) {
+		const idx = this.documents.findIndex((contract: SourceDocument) => {
+			return contract.absolutePath === contractPath
+		})
+		if (idx !== -1) return idx
+
+		const contract = new SourceDocument(contractPath, code || this.readContractCode(contractPath), project)
+		this.documents.push(contract)
+		return contract
 	}
 
 	private formatContractPath(contractPath: string) {
@@ -138,10 +140,8 @@ export class SourceDocumentCollection {
 	}
 
 	private readContractCode(contractPath: string) {
-		if (fs.existsSync(contractPath)) {
-			return fs.readFileSync(contractPath, "utf8")
-		}
-		return null
+		if (!fs.existsSync(contractPath)) return null
+		return fs.readFileSync(contractPath, "utf8")
 	}
 
 	private addSourceDocumentAndResolveDependencyImport(

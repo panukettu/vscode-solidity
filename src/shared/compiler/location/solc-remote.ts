@@ -1,5 +1,5 @@
-import * as fs from "fs"
-import path from "path"
+import * as fs from "node:fs"
+import path from "node:path"
 import { CompilerType } from "@shared/enums"
 import solc from "solc"
 import { getRemoteSolc, parseReleaseVersion } from "../utils"
@@ -59,9 +59,8 @@ export class RemoteSolc extends SolcLoader {
 		} catch (error) {
 			if (retryNumber <= maxRetries) {
 				return this.loadRemoteWithRetries(versionString, retryNumber + 1, maxRetries)
-			} else {
-				throw error
 			}
+			throw error
 		}
 	}
 
@@ -71,17 +70,15 @@ export class RemoteSolc extends SolcLoader {
 			if (fs.existsSync(pathVersion) && versionString !== "latest") {
 				const solidityfile = require(pathVersion)
 				return solc.setupMethods(solidityfile)
-			} else {
-				await getRemoteSolc(versionString, pathVersion)
-				return solc.setupMethods(require(pathVersion))
 			}
+			await getRemoteSolc(versionString, pathVersion)
+			return solc.setupMethods(require(pathVersion))
 		} catch (error) {
 			if (fs.existsSync(pathVersion)) {
 				fs.unlinkSync(pathVersion)
 				return this.loadRemoteVersion(versionString)
-			} else {
-				throw error
 			}
+			throw error
 		}
 	}
 }

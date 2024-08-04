@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, statSync } from "node:fs"
-import path from "path"
-import { Package, createDefaultPackage } from "./package"
+import path from "node:path"
+import { type Package, createDefaultPackage } from "./package"
 
 export function createLibPackages(libs: string[], rootPath: string, projectPackage: Package, sources: string[]) {
 	return libs.flatMap((libDir) => createDependencies(rootPath, projectPackage, libDir, sources))
@@ -17,8 +17,14 @@ export function createDependencies(
 	if (!existsSync(libPath)) return libPackages
 
 	for (const directory of getDirectories(libPath)) {
-		const depPackage = createDefaultPackage(path.join(libPath, directory), undefined, projectPackage.build_dir)
-		depPackage.sol_sources_alternative_directories = libSourcesLocations
+		const sources = libSourcesLocations.filter((source) => existsSync(path.join(libPath, directory, source)))
+		const depPackage = createDefaultPackage(
+			path.join(libPath, directory),
+			sources.length ? sources[0] : undefined,
+			projectPackage.build_dir,
+			libSourcesLocations,
+		)
+
 		if (!libPackages.some((existingDepPack: Package) => existingDepPack.name === depPackage.name)) {
 			libPackages.push(depPackage)
 
@@ -30,7 +36,7 @@ export function createDependencies(
 }
 
 export function getDirectories(dirPath: string): string[] {
-	return readdirSync(dirPath).filter(function (file) {
+	return readdirSync(dirPath).filter((file) => {
 		const subdirPath = path.join(dirPath, file)
 		return statSync(subdirPath).isDirectory()
 	})

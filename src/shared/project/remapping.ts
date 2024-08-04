@@ -1,7 +1,7 @@
-import * as path from "path"
+import * as path from "node:path"
 import { remapRegexp } from "@shared/regexp"
 import { isPathSubdirectory } from "../util"
-import { Project } from "./project"
+import type { Project } from "./project"
 
 export class Remapping {
 	public context: string
@@ -61,9 +61,8 @@ export class Remapping {
 	public isFileForThis(filePath: string) {
 		if (path.isAbsolute(this.target)) {
 			return filePath.startsWith(this.target)
-		} else {
-			return filePath.startsWith(path.join(this.basePath, this.target))
 		}
+		return filePath.startsWith(path.join(this.basePath, this.target))
 	}
 
 	public resolveImport(dependencyImport: string) {

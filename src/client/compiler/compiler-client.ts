@@ -1,10 +1,10 @@
-import * as fs from "fs"
-import * as path from "path"
+import * as fs from "node:fs"
+import * as path from "node:path"
 import { Config, getCurrentProjectInWorkspaceRootFsPath } from "@client/client-config"
-import { BaseCommandArgs } from "@client/client-types"
+import type { BaseCommandArgs } from "@client/client-types"
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { Multisolc } from "@shared/compiler/multisolc"
-import { SolcOutput } from "@shared/compiler/types-solc"
+import type { SolcOutput } from "@shared/compiler/types-solc"
 import { getRemoteSolc, getSolcReleases } from "@shared/compiler/utils"
 import { CompilerType } from "@shared/enums"
 import type { CompileArgs, SolidityConfig } from "@shared/types"
@@ -120,11 +120,10 @@ export class ClientCompilers {
 		if (!args.solcInput?.sources) {
 			vscode.window.showWarningMessage("No solidity sources to compile!")
 			return
-		} else {
-			const message = `Compiling ${Object.keys(args.solcInput.sources)?.length} files`
-			vscode.window.showInformationMessage(message)
-			vscode.window.setStatusBarMessage(message)
 		}
+		const message = `Compiling ${Object.keys(args.solcInput.sources)?.length} files`
+		vscode.window.showInformationMessage(message)
+		vscode.window.setStatusBarMessage(message)
 
 		try {
 			const output = await this.multisolc.compileInputWith(

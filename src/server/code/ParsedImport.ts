@@ -1,9 +1,9 @@
-import path from "path"
+import path from "node:path"
 import { Location, Range } from "vscode-languageserver"
 import { URI } from "vscode-uri"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 import type { ImportElement } from "./types"
 
 export class ParsedImport extends ParsedCode {

@@ -149,6 +149,7 @@ export interface SolidityConfig {
 		libs: string[]
 		libSources: string[]
 		includePaths: string[]
+		useForgeRemappings?: boolean
 		remappings: string[]
 		remappingsWindows: string[]
 		remappingsUnix: string[]

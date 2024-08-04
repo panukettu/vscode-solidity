@@ -1,49 +1,48 @@
-import * as fs from "fs"
-import * as path from "path"
+import * as fs from "node:fs"
+import * as path from "node:path"
 import axios from "axios"
 import * as fse from "fs-extra"
 import * as vscode from "vscode"
 import { getCurrentProjectInWorkspaceRootFsPath } from "../../client/client-config"
 import { SourceDocumentCollection } from "../project/sourceDocuments"
 
-// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
-export class EtherscanDomainChainMapper {
-	public static getMappings(): any {
-		return {
-			mainnet: "api.etherscan.io",
-			arbitrum: "api.arbiscan.io",
-			goerli: "api-goerli.etherscan.io",
-			sepolia: "api-sepolia.etherscan.io",
-			optimism: "api-optimistic.etherscan.io",
-			optimismGoerli: "api-goerli-optimism.etherscan.io",
-			arbitrumNova: "api-nova.arbiscan.io",
-			arbitrumGoerli: "api-goerli.arbiscan.io",
-			arbitrumSepolia: "api-sepolia.arbiscan.io",
-			polygon: "api.polygonscan.com",
-			polygonMumbai: "api-testnet.polygonscan.com",
-			polygonZkevm: "api-zkevm.polygonscan.com",
-			polygonZkevmTestnet: "api-testnet-zkevm.polygonscan.com",
-			binance: "api.bscscan.com",
-			moonbeam: "api-moonbeam.moonscan.io",
-			moonriver: "api-moonriver.moonscan.io",
-			gnosis: "api.gnosisscan.io",
-			celo: "api.celoscan.io",
-			avax: "api.snowtrace.io",
-			fantom: "api.ftmscan.com",
-		}
-	}
-
-	public static getDomain(chain: string) {
-		return this.getMappings()[chain]
-	}
-
-	public static getChains(): string[] {
-		return Object.keys(this.getMappings())
-	}
+export const EtherscanAPI = {
+	apis: {
+		mainnet: "api.etherscan.io",
+		arbitrum: "api.arbiscan.io",
+		goerli: "api-goerli.etherscan.io",
+		sepolia: "api-sepolia.etherscan.io",
+		optimism: "api-optimistic.etherscan.io",
+		optimismGoerli: "api-goerli-optimism.etherscan.io",
+		arbitrumNova: "api-nova.arbiscan.io",
+		arbitrumGoerli: "api-goerli.arbiscan.io",
+		arbitrumSepolia: "api-sepolia.arbiscan.io",
+		polygon: "api.polygonscan.com",
+		polygonMumbai: "api-testnet.polygonscan.com",
+		polygonZkevm: "api-zkevm.polygonscan.com",
+		polygonZkevmTestnet: "api-testnet-zkevm.polygonscan.com",
+		binance: "api.bscscan.com",
+		moonbeam: "api-moonbeam.moonscan.io",
+		moonriver: "api-moonriver.moonscan.io",
+		gnosis: "api.gnosisscan.io",
+		celo: "api.celoscan.io",
+		avax: "api.snowtrace.io",
+		fantom: "api.ftmscan.com",
+	},
+	async sources(chain: string, address: string, apiKey = "your-api-key") {
+		return (
+			await axios.get(
+				`https://${this.apis[chain]}/api?module=contract&action=getsourcecode&address=${address}&apikey=${apiKey}`,
+			)
+		).data as ContractResponse
+	},
+	chains(): string[] {
+		return Object.keys(this.apis())
+	},
 }
 
 // biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
-export class EtherscanContractDownloader {
+export class Etherscan {
 	public static isValiAddressMessage(
 		address: string,
 	): string | vscode.InputBoxValidationMessage | Thenable<string | vscode.InputBoxValidationMessage> {
@@ -57,7 +56,8 @@ export class EtherscanContractDownloader {
 		address = address.toLowerCase()
 		if (!/^(0x)?[0-9a-f]{40}$/i.test(address)) {
 			return invalidAddress
-		} else if (/^(0x)?[0-9a-f]{40}$/.test(address) || /^(0x)?[0-9A-F]{40}$/.test(address)) {
+		}
+		if (/^(0x)?[0-9a-f]{40}$/.test(address) || /^(0x)?[0-9A-F]{40}$/.test(address)) {
 			// If it's all small caps or all all caps, return true
 			return null
 		}
@@ -78,14 +78,15 @@ export class EtherscanContractDownloader {
 		return hex
 	}
 
-	public static isValiAddress(address: string): boolean {
+	public static isValidAddress(address: string): boolean {
 		if (!address) {
 			return false
 		}
 		address = address.toLowerCase()
 		if (!/^(0x)?[0-9a-f]{40}$/i.test(address)) {
 			return false
-		} else if (/^(0x)?[0-9a-f]{40}$/.test(address) || /^(0x)?[0-9A-F]{40}$/.test(address)) {
+		}
+		if (/^(0x)?[0-9a-f]{40}$/.test(address) || /^(0x)?[0-9A-F]{40}$/.test(address)) {
 			return true
 		}
 		return false
@@ -94,29 +95,25 @@ export class EtherscanContractDownloader {
 	public static async downloadContractWithPrompts() {
 		if (vscode.window.activeTextEditor) {
 			try {
-				const chains = EtherscanDomainChainMapper.getChains()
+				const chains = EtherscanAPI.chains()
 				const selectedChain: string = await vscode.window.showQuickPick(chains)
 				const inputBox: vscode.InputBoxOptions = {}
 				inputBox.title = "Please enter the contract address:"
 				inputBox.prompt = "Please enter the contract address"
 				inputBox.ignoreFocusOut = true
-				inputBox.validateInput = this.isValiAddressMessage
+				inputBox.validateInput = Etherscan.isValiAddressMessage
 
 				let selectedAddress: string = await vscode.window.showInputBox(inputBox)
 				if (selectedAddress !== undefined) {
 					// cancelled
-					if (!this.isValiAddress(selectedAddress)) {
-						throw "Invalid address"
-					}
-					selectedAddress = this.ensureHexPrefix(selectedAddress)
+					if (!Etherscan.isValidAddress(selectedAddress)) throw "Invalid address"
+
+					selectedAddress = Etherscan.ensureHexPrefix(selectedAddress)
 					const pathProject = getCurrentProjectInWorkspaceRootFsPath()
-					const downloadedFiles = await EtherscanContractDownloader.downloadContract(
-						selectedChain,
-						selectedAddress,
-						pathProject,
-					)
-					vscode.window.showInformationMessage(`Contract downloaded:${downloadedFiles[0]}`)
-					const openPath = vscode.Uri.file(downloadedFiles[0])
+
+					const files = await Etherscan.downloadContract(selectedChain, selectedAddress, pathProject)
+					vscode.window.showInformationMessage(`Contract downloaded:${files[0]}`)
+					const openPath = vscode.Uri.file(files[0])
 					vscode.workspace.openTextDocument(openPath).then((doc) => {
 						vscode.window.showTextDocument(doc)
 					})
@@ -136,14 +133,13 @@ export class EtherscanContractDownloader {
 		subfolder = "chainContracts",
 		apiKey = "YourApiKeyToken",
 	): Promise<string[]> {
-		const info = await EtherscanContractInfoService.getContractInfo(chain, address, apiKey)
+		const info = await EtherscanAPI.sources(chain, address, apiKey)
 		const downloadedFiles: string[] = []
 		if (info.result.length > 0) {
 			// one contract..
 			const contractInfo = info.result[0]
-			if (contractInfo.SourceCode === "") {
-				throw "Contract has not been verified or found"
-			}
+			if (contractInfo.SourceCode === "") throw "Contract has not been verified or found"
+
 			const subfolderFullPath = path.join(projectPath, contractInfo.ContractName)
 			fse.ensureDirSync(subfolderFullPath)
 			const abiFileName = `${contractInfo.ContractName}.abi`
@@ -178,27 +174,13 @@ export class EtherscanContractDownloader {
 	}
 }
 
-// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
-export class EtherscanContractInfoService {
-	public static async getContractInfo(
-		chain: string,
-		address: string,
-		apiKey = "YourApiKeyToken",
-	): Promise<EtherscanContractInfoResponse> {
-		const domain = EtherscanDomainChainMapper.getDomain(chain)
-		const url = `https://${domain}/api?module=contract&action=getsourcecode&address=${address}&apikey=${apiKey}`
-		const response = await axios.get(url)
-		return response.data as EtherscanContractInfoResponse
-	}
-}
-
-export interface EtherscanContractInfoResponse {
+export type ContractResponse = {
 	status: string
 	message: string
 	result: EtherscanContractInfo[]
 }
 
-export interface EtherscanContractInfo {
+export type EtherscanContractInfo = {
 	SourceCode: string
 	ABI: string
 	ContractName: string

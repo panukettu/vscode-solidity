@@ -1,8 +1,8 @@
-import { DocUtil } from "@server/utils/text-document"
+import type { DocUtil } from "@server/utils/text-document"
 import * as vscode from "vscode-languageserver/node"
 import { documents } from "../../../server"
-import { CodeWalkerService } from "../../codewalker"
-import { ProviderRequestHelp } from "../../server-types"
+import type { CodeWalkerService } from "../../codewalker"
+import type { ProviderRequestHelp } from "../../server-types"
 import { getCodeWalkerService } from "../../server-utils"
 import { clearCaches } from "./caches"
 export const providerRequest: ProviderRequestHelp = {

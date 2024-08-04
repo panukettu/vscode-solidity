@@ -1,14 +1,14 @@
-import { CompletionItem, Hover, Location, Range, TextDocument } from "vscode-languageserver"
+import { type CompletionItem, type Hover, Location, Range, TextDocument } from "vscode-languageserver"
 import { URI } from "vscode-uri"
-import { SourceDocument } from "../../shared/project/sourceDocument"
+import type { SourceDocument } from "../../shared/project/sourceDocument"
 import { documentMap } from "../providers/utils/caches"
 import { TypeReference } from "../search/TypeReference"
-import { IParsedExpressionContainer } from "./IParsedExpressionContainer"
+import type { IParsedExpressionContainer } from "./IParsedExpressionContainer"
 import { ParsedCode } from "./ParsedCode"
 import { ParsedConstant } from "./ParsedConstant"
 import { ParsedContract } from "./ParsedContract"
 import { ParsedCustomType } from "./ParsedCustomType"
-import { ParsedDeclarationType } from "./ParsedDeclarationType"
+import type { ParsedDeclarationType } from "./ParsedDeclarationType"
 import { ParsedEnum } from "./ParsedEnum"
 import { ParsedError } from "./ParsedError"
 import { ParsedEvent } from "./ParsedEvent"
@@ -17,7 +17,7 @@ import { ParsedFunction } from "./ParsedFunction"
 import { ParsedImport } from "./ParsedImport"
 import { ParsedStruct } from "./ParsedStruct"
 import { ParsedUsing } from "./ParsedUsing"
-import { Element, type ImportElement } from "./types"
+import type { Element } from "./types"
 
 type ParsedType = ParsedContract | ParsedFunction | ParsedStruct | ParsedCode
 
@@ -138,11 +138,15 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		returnItems.push(...this.functions)
 		returnItems.push(...this.structs)
 		returnItems.push(...this.errors)
+		returnItems.push(
+			...this.importedDocuments
+				.filter((i) => this.sourceDocument.project.libs.includes(i.sourceDocument.absolutePath))
+				.flatMap((d) => d.getAllImportables()),
+		)
 		returnItems.push(...this.events)
 		returnItems.push(...this.enums)
 		returnItems.push(...this.constants)
 		returnItems.push(...this.customTypes)
-		returnItems.push(...this.expressions)
 		return returnItems
 	}
 
@@ -581,18 +585,16 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 	public getTypes<T extends ParsedType>(withImports = true): T[] {
 		const results = []
 
-		const structMembers = this.structs.map((s) => s.getInnerMembers()).flatMap((s) => s)
+		const structMembers = this.structs.flatMap((s) => s.getInnerMembers())
 		const structMembersInner = this.innerContracts
-			.map((s) => s.getAllStructs(true))
-			.map((i) => i.map((s) => s.getInnerMembers()).flatMap((s) => s))
-			.flatMap((s) => s)
+			.flatMap((s) => s.getAllStructs(true))
+			.flatMap((i) => i.getInnerMembers())
 
-		const functionMembers = this.functions.map((f) => f.getAllItems()).flatMap((s) => s)
+		const functionMembers = this.functions.flatMap((f) => f.getAllItems())
 
 		const fundctionMembersInner = this.innerContracts
-			.map((s) => s.getAllFunctions(true))
-			.map((i) => i.map((s) => s.getInnerMembers()).flatMap((s) => s))
-			.flatMap((s) => s)
+			.flatMap((s) => s.getAllFunctions(true))
+			.flatMap((i) => i.getInnerMembers())
 
 		const returnVs = results
 			.concat(this.functions)
@@ -639,8 +641,8 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		}
 
 		const structMembersInner = this.innerContracts
-			.map((s) => s.getAllStructs(true))
-			.flatMap((i) => i.map((s) => s.getInnerMembers()).flatMap((s) => s))
+			.flatMap((s) => s.getAllStructs(true))
+			.flatMap((i) => i.getInnerMembers())
 
 		localResults = structMembersInner.filter((s) => s.name === name)
 		if (localResults.length > 0) {
@@ -931,9 +933,8 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		const foundResult = TypeReference.filterFoundResults(results)
 		if (foundResult.length > 0) {
 			return foundResult
-		} else {
-			return [TypeReference.create(true)]
 		}
+		return [TypeReference.create(true)]
 	}
 
 	public findType(name: string): ParsedCode {

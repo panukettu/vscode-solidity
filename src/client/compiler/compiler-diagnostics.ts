@@ -1,4 +1,4 @@
-import { BaseCommandArgs } from "@client/client-types"
+import type { BaseCommandArgs } from "@client/client-types"
 import type { SolcError } from "@shared/compiler/types-solc"
 import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import * as vscode from "vscode"

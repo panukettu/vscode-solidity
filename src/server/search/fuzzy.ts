@@ -1,8 +1,8 @@
-import { ParsedCode } from "@server/code/ParsedCode"
+import type { ParsedCode } from "@server/code/ParsedCode"
 import { ParsedContract } from "@server/code/ParsedContract"
-import { ParsedDocument } from "@server/code/ParsedDocument"
+import type { ParsedDocument } from "@server/code/ParsedDocument"
 import { config, settings } from "@server/server-config"
-import { DocUtil } from "@server/utils/text-document"
+import type { DocUtil } from "@server/utils/text-document"
 import Fuse from "fuse.js"
 
 export const fuzzySearchByName = (

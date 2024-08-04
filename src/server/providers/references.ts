@@ -1,6 +1,6 @@
 import { ParsedExpression } from "@server/code/ParsedExpression"
-import { DocUtil } from "@server/utils/text-document"
-import * as vscode from "vscode-languageserver"
+import type { DocUtil } from "@server/utils/text-document"
+import type * as vscode from "vscode-languageserver"
 import { handleParsedExpression } from "./definition"
 import { clearCaches } from "./utils/caches"
 import { providerRequest } from "./utils/common"

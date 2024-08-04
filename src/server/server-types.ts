@@ -1,4 +1,4 @@
-import * as vscode from "vscode-languageserver/node"
+import type * as vscode from "vscode-languageserver/node"
 import type { ParsedDocument } from "./code/ParsedDocument"
 
 //DocumentExecuteCommand
@@ -13,9 +13,9 @@ export type ExtendedSettings = {
 }
 
 export interface Linter {
-	setIdeRules(rules: any)
+	setIdeRules(rules: object): void
 	validate(filePath: string, documentText: string): vscode.Diagnostic[]
-	loadFileConfig(rootPath: string)
+	loadFileConfig(rootPath: string): void
 }
 
 export type ProviderRequestHelp = {

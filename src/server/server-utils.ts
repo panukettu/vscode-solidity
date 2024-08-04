@@ -14,7 +14,9 @@ export function initCommon(document: any) {
 	if (typeof document.uri === "string") {
 		initWorkspaceRootFolder(document.uri)
 		return initCurrentProjectInWorkspaceRootFsPath(document.uri)
-	} else if (typeof document.uri === "object") {
+	}
+
+	if (typeof document.uri === "object") {
 		initWorkspaceRootFolder(document.uri.external)
 		return initCurrentProjectInWorkspaceRootFsPath(document.uri.external)
 	}
@@ -37,48 +39,41 @@ export function initWorkspaceRootFolder(uri: string) {
 	if (settings.rootPath) return
 
 	const fullUri = URI.parse(uri)
-	if (!fullUri.fsPath.startsWith(settings.rootPath)) {
-		if (settings.workspaceFolders) {
-			const newRootFolder = settings.workspaceFolders.find((x) => uri.startsWith(x.uri))
-			if (newRootFolder != null) {
-				settings.rootPath = URI.parse(newRootFolder.uri).fsPath
-				ServerCompilers.rootPath = settings.rootPath
-				if (settings.linter != null) {
-					settings.linter.loadFileConfig(settings.rootPath)
-				}
-			}
-		}
-	}
+	if (!settings.workspaceFolders || fullUri.fsPath.startsWith(settings.rootPath)) return
+
+	const newRootFolder = settings.workspaceFolders.find((x) => uri.startsWith(x.uri))
+	if (newRootFolder == null) return
+
+	settings.rootPath = URI.parse(newRootFolder.uri).fsPath
+	ServerCompilers.rootPath = settings.rootPath
+	if (settings.linter) settings.linter.loadFileConfig(settings.rootPath)
 }
 
 export function initCurrentProjectInWorkspaceRootFsPath(currentDocument: string) {
 	if (!ServerCompilers) throw new Error("2ServerCompilers not initialized")
 	if (!settings) throw new Error("2settings not initialized")
 
-	if (config.project.monorepo) {
-		if (selectedDocument === currentDocument && selectedProjectFolder != null) {
-			return selectedProjectFolder
-		}
-		const projectFolder = findFirstRootProjectFile(settings.rootPath, URI.parse(currentDocument).fsPath)
-		if (projectFolder == null) {
-			selectedProjectFolder = settings.rootPath
-			selectedDocument = currentDocument
-
-			return settings.rootPath
-		} else {
-			selectedProjectFolder = projectFolder
-			selectedDocument = currentDocument
-			ServerCompilers.rootPath = projectFolder
-			if (settings.linter != null) {
-				settings.linter.loadFileConfig(projectFolder)
-			}
-			return projectFolder
-		}
-	} else {
-		// we might have changed settings
+	if (!config.project.monorepo) {
 		ServerCompilers.rootPath = settings.rootPath
-		selectedProjectFolder = settings.rootPath
 		selectedDocument = currentDocument
-		return settings.rootPath
+		return (selectedProjectFolder = settings.rootPath)
 	}
+
+	if (selectedDocument === currentDocument && selectedProjectFolder != null) {
+		return selectedProjectFolder
+	}
+
+	const projectFolder = findFirstRootProjectFile(settings.rootPath, URI.parse(currentDocument).fsPath)
+
+	if (projectFolder == null) {
+		selectedDocument = currentDocument
+		return (selectedProjectFolder = settings.rootPath)
+	}
+
+	if (settings.linter) settings.linter.loadFileConfig(projectFolder)
+
+	selectedProjectFolder = projectFolder
+	selectedDocument = currentDocument
+
+	return (ServerCompilers.rootPath = projectFolder)
 }

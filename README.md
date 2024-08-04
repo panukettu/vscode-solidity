@@ -6,6 +6,12 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
+### 0.8.28
+
+- code action suggesting fixes for unresolved imports
+- code action for removing unused imports
+- use `foundry remappings` by default for remappings
+
 - rename config, fix incorrect enum usage
 - include paths, fix compiler issues and disable semantic tokens (too ugly perf)
 - add semantic tokens

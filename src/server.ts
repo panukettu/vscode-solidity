@@ -1,6 +1,7 @@
 import { getCodeActionFixes } from "@server/actions/server-code-actions"
 import { provideHover } from "@server/providers/hover"
 import { provideSignatureHelp } from "@server/providers/signatures"
+import { validateAllDocuments, validateDocument } from "@server/server-diagnostics"
 import { DocUtil } from "@server/utils/text-document"
 import { resolveCache } from "@shared/project/project"
 import { TextDocument } from "vscode-languageserver-textdocument"
@@ -11,14 +12,9 @@ import { getDefinition } from "./server/providers/definition"
 import { getAllReferencesToItem } from "./server/providers/references"
 import { providerParams } from "./server/providers/utils/common"
 import { executeCommand } from "./server/server-commands"
-import {
-	compilerInitialized,
-	configureServerCachePath,
-	validateAllDocuments,
-	validateDocument,
-} from "./server/server-compiler"
+import { compilerInitialized, configureServerCachePath } from "./server/server-compiler"
 import { config, handleConfigChange, handleInitialize, handleInitialized, settings } from "./server/server-config"
-import { CommandParamsBase } from "./server/server-types"
+import type { CommandParamsBase } from "./server/server-types"
 import { getCodeWalkerService, initCommon } from "./server/server-utils"
 
 export const documents = new vscode.TextDocuments(TextDocument)
@@ -84,6 +80,75 @@ connection.onSignatureHelp((handler) => {
 	return provideSignatureHelp(...providerParams(handler))
 })
 
+connection.onExecuteCommand((params) => {
+	const [document, range] = params.arguments as CommandParamsBase
+	document && initCommon(document)
+	try {
+		return executeCommand(
+			getCodeWalkerService(),
+			params,
+			document?.uri ? documents.get(document.uri.external) : undefined,
+			range ? vscode.Range.create(range[0], range[1]) : undefined,
+		)
+	} catch (e) {
+		console.debug("Unhandled", e.message)
+		return null
+	}
+})
+
+connection.onDidChangeWatchedFiles(({ changes }) => {
+	if (settings.linter != null) settings.linter.loadFileConfig(settings.rootPath)
+	if (!changes.some((change) => change.uri.includes("foundry.toml") || change.uri.includes("solhint.json"))) return
+
+	handleConfigChange({} as any)
+	resolveCache.clear()
+	return validateAllDocuments()
+})
+
+connection.onCodeAction((handler) => {
+	initCommon(handler.textDocument)
+	const docUtil = new DocUtil(handler.textDocument, handler.range, getCodeWalkerService())
+	return getCodeActionFixes(docUtil, handler.context.diagnostics)
+})
+
+connection.onDidChangeConfiguration(async (change) => {
+	await handleConfigChange(change)
+	if (settings.linter != null) settings.linter.loadFileConfig(settings.rootPath)
+	resolveCache.clear()
+	return validateAllDocuments()
+})
+
+documents.onDidChangeContent(async (event) => {
+	if (!config.validation.onChange || event.document.version < 1 || !compilerInitialized) return
+	return validateDocument(event.document)
+})
+
+/* -------------------------------------------------------------------------- */
+/*                                  Documents                                 */
+/* -------------------------------------------------------------------------- */
+
+// remove diagnostics from the Problems panel when we close the file
+documents.onDidClose((event) => {
+	return connection.sendDiagnostics({
+		diagnostics: [],
+		uri: event.document.uri,
+	})
+})
+
+documents.onDidOpen(async (event) => {
+	if (!config.validation.onOpen || !compilerInitialized) return
+	return validateDocument(event.document)
+})
+
+documents.onDidSave(async (event) => {
+	if (!config.validation.onSave || !compilerInitialized) return
+	return validateDocument(event.document)
+})
+
+documents.listen(connection)
+
+connection.listen()
+
 // connection.languages.semanticTokens.onRange((params) => {
 // 	// Implement your logic to provide semantic tokens for the given document here.
 // 	// You should return the semantic tokens as a response.
@@ -109,80 +174,3 @@ connection.onSignatureHelp((handler) => {
 // 	const semanticTokens = computeSemanticTokens(new DocUtil(document, DocUtil.positionRange(position), walker))
 // 	return semanticTokens
 // })
-
-connection.onExecuteCommand((params) => {
-	const [document, range] = params.arguments as CommandParamsBase
-	document && initCommon(document)
-	try {
-		return executeCommand(
-			getCodeWalkerService(),
-			params,
-			document?.uri ? documents.get(document.uri.external) : undefined,
-			range ? vscode.Range.create(range[0], range[1]) : undefined,
-		)
-	} catch (e) {
-		console.debug("Unhandled", e.message)
-		return null
-	}
-})
-
-/* -------------------------------------------------------------------------- */
-/*                                    Misc                                    */
-/* -------------------------------------------------------------------------- */
-
-connection.onDidChangeWatchedFiles((_change) => {
-	if (settings.linter != null) {
-		settings.linter.loadFileConfig(settings.rootPath)
-	}
-	const hasFoundryChange = _change.changes.some((change) => change.uri.includes("foundry.toml"))
-	if (hasFoundryChange) {
-		handleConfigChange({} as any)
-		resolveCache.clear()
-		return validateAllDocuments()
-	}
-})
-
-connection.onCodeAction((handler) => {
-	initCommon(handler.textDocument)
-	const docUtil = new DocUtil(handler.textDocument, handler.range, getCodeWalkerService())
-	return getCodeActionFixes(docUtil, handler.context.diagnostics)
-})
-
-connection.onDidChangeConfiguration(async (change) => {
-	await handleConfigChange(change)
-	if (settings.linter != null) {
-		settings.linter.loadFileConfig(settings.rootPath)
-	}
-	resolveCache.clear()
-	await validateAllDocuments()
-})
-
-documents.onDidChangeContent(async (event) => {
-	if (!config.validation.onChange || event.document.version < 1 || !compilerInitialized) return
-	return await validateDocument(event.document)
-})
-
-/* -------------------------------------------------------------------------- */
-/*                                  Documents                                 */
-/* -------------------------------------------------------------------------- */
-
-// remove diagnostics from the Problems panel when we close the file
-documents.onDidClose((event) => {
-	return connection.sendDiagnostics({
-		diagnostics: [],
-		uri: event.document.uri,
-	})
-})
-documents.onDidOpen(async (event) => {
-	if (!config.validation.onOpen || !compilerInitialized) return
-	return await validateDocument(event.document)
-})
-
-documents.onDidSave(async (event) => {
-	if (!config.validation.onSave || !compilerInitialized) return
-	return await validateDocument(event.document)
-})
-
-documents.listen(connection)
-
-connection.listen()

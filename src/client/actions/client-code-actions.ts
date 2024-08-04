@@ -23,27 +23,22 @@ const checksum: ActionDefinition = {
 		range: vscode.Range,
 	): vscode.CodeAction[] => {
 		const match = checksum.regex().exec(diagnostic.message)
-		if (match) {
-			if (match.groups.address) {
-				const fixedAddress = match.groups.address
-				const fix = new vscode.CodeAction(
-					`Convert address to checksummed address: 0x${fixedAddress}`,
-					vscode.CodeActionKind.QuickFix,
-				)
-				const line = document.lineAt(diagnostic.range.start.line)
-				fix.edit = new vscode.WorkspaceEdit()
-				fix.edit.replace(
-					document.uri,
-					new vscode.Range(diagnostic.range.start, diagnostic.range.start.translate(0, fixedAddress.length + 2)),
-					`0x${fixedAddress}`,
-				)
-				fix.isPreferred = true
-				fix.diagnostics = [diagnostic]
-				fix.diagnostics[0].range = line.range
-				return [fix]
-			}
-		}
-		return null
+		if (!match?.groups.address) return null
+		const fixedAddress = match.groups.address
+		const fix = new vscode.CodeAction(
+			`Convert address to checksummed address: 0x${fixedAddress}`,
+			vscode.CodeActionKind.QuickFix,
+		)
+		const line = document.lineAt(diagnostic.range.start.line)
+		fix.edit = new vscode.WorkspaceEdit()
+		fix.edit.replace(
+			document.uri,
+			new vscode.Range(diagnostic.range.start, diagnostic.range.start.translate(0, fixedAddress.length + 2)),
+			`0x${fixedAddress}`,
+		)
+		fix.isPreferred = true
+		fix.diagnostics = [diagnostic]
+		return [fix]
 	},
 }
 
@@ -126,13 +121,15 @@ const spdx = {
 			const fix = new vscode.CodeAction(`Add SPDX License ${license}`, vscode.CodeActionKind.QuickFix)
 			const licenseText = `// SPDX-License-Identifier: ${license}`
 			fix.edit = new vscode.WorkspaceEdit()
-			const line = document.lineAt(diagnostic.range.start.line)
+			const line = document.lineAt(range.start.line)
 			const shouldReplace = line.text.trim().includes("//")
 			shouldReplace
 				? fix.edit.replace(document.uri, line.range, licenseText)
-				: fix.edit.insert(document.uri, line.range.start, `${licenseText}\n`)
+				: fix.edit.insert(document.uri, range.start, `${licenseText}\n`)
 			fix.isPreferred = isPreferred
+
 			fix.diagnostics = [diagnostic]
+			fix.diagnostics[0].range = line.range
 			return fix
 		})
 	},

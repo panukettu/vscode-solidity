@@ -1,5 +1,5 @@
-import * as fs from "fs"
-import * as path from "path"
+import * as fs from "node:fs"
+import * as path from "node:path"
 export function createDefaultPackage(packagePath: string, sources = "", outDir = "bin", libs: string[] = []): Package {
 	const defaultPackage = new Package(sources, outDir)
 	defaultPackage.absolutePath = packagePath
@@ -46,18 +46,13 @@ export class Package {
 			)
 			if (fs.existsSync(defaultPath)) {
 				return defaultPath
-			} else {
-				for (let index = 0; index < this.sol_sources_alternative_directories.length; index++) {
-					const directory = this.sol_sources_alternative_directories[index]
-					if (directory !== undefined || directory === "") {
-						const fullpath = path.join(
-							this.absolutePath,
-							directory,
-							contractDependencyImport.substring(this.name.length),
-						)
-						if (fs.existsSync(fullpath)) {
-							return fullpath
-						}
+			}
+			for (let index = 0; index < this.sol_sources_alternative_directories.length; index++) {
+				const directory = this.sol_sources_alternative_directories[index]
+				if (directory !== undefined || directory === "") {
+					const fullpath = path.join(this.absolutePath, directory, contractDependencyImport.substring(this.name.length))
+					if (fs.existsSync(fullpath)) {
+						return fullpath
 					}
 				}
 			}
