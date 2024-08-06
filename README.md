@@ -10,6 +10,7 @@ _Disclaimer_: bugs likely
 
 - new command: keccak256 from input (cmd+shift+p -> hash)
 - new command: encode from input (cmd+shift+p -> encode)
+- new command: decode from input (cmd+shift+p -> decode)
 - new lens: view all error selectors in file (click selectors on top of an error)
 - new lens: view all func selectors in file (click selectors on top of function)
 - misc: view info on import source
