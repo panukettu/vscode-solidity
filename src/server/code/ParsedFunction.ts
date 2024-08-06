@@ -1,9 +1,9 @@
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
-import { IParsedExpressionContainer } from "./IParsedExpressionContainer"
+import { type CompletionItem, CompletionItemKind } from "vscode-languageserver"
+import type { IParsedExpressionContainer } from "./IParsedExpressionContainer"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
+import type { ParsedContract } from "./ParsedContract"
 import { ParsedDeclarationType } from "./ParsedDeclarationType"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedExpression } from "./ParsedExpression"
 import { ParsedFunctionVariable } from "./ParsedFunctionVariable"
 import { ParsedModifierArgument } from "./ParsedModifierArgument"
@@ -12,9 +12,9 @@ import { ParsedParameter } from "./ParsedParameter"
 import { getFunctionSelector } from "viem"
 import { ctx } from "../providers/completions"
 import { TypeReference } from "../search/TypeReference"
-import { ParsedCustomType } from "./ParsedCustomType"
-import { ParsedStruct } from "./ParsedStruct"
-import { InnerElement } from "./types"
+import type { ParsedCustomType } from "./ParsedCustomType"
+import type { ParsedStruct } from "./ParsedStruct"
+import type { InnerElement } from "./types"
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
 
@@ -229,14 +229,15 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 			this.initialiseVariablesMembersEtc(this.element.body, null, null)
 		}
 		this.isInterface = this.element.is_abstract
-		this.isLibrary = this.contract ? this.contract.getContractTypeName(this.contract.contractType) === "Library" : false
+		this.isLibrary = this.contract ? this.contract.getContractTypeName(this.contract.contractType) === "library" : false
 		this.isFreeFunction = this.contract == null
 	}
 
 	public getParsedParentType() {
 		if (this.contract) {
 			return this.contract.getParsedObjectType()
-		} else if (this.isFreeFunction) {
+		}
+		if (this.isFreeFunction) {
 			return "Free"
 		}
 	}
@@ -345,13 +346,8 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 				.concat(this.contract.getInnerMembers())
 				.concat(this.input)
 				.concat(this.output)
-		} else {
-			return result
-				.concat(this.variables)
-				.concat(this.document.getInnerMembers())
-				.concat(this.input)
-				.concat(this.output)
 		}
+		return result.concat(this.variables).concat(this.document.getInnerMembers()).concat(this.input).concat(this.output)
 	}
 
 	public getElementId(): string {
@@ -445,7 +441,7 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 		return this.createInfo(
 			this.getRootName(),
 			"",
-			this.getSignature(false, activeParam) + (extra ? extra : ""),
+			`${this.getSignature(false, activeParam) + (extra ? extra : "")} | | ${getFunctionSelector(this.getSelector())}`,
 			this.contract
 				? `${this.contract.getContractTypeName(this.contract.contractType)} ${this.getParsedObjectType()}`.toLowerCase()
 				: "",
@@ -460,25 +456,25 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 
 	public override getParsedObjectType(): string {
 		if (!this.contract) {
-			return "Free Function"
+			return "free func"
 		}
 
 		if (this.isModifier) {
-			return "Modifier"
+			return "modifier"
 		}
 		if (this.isConstructor) {
-			return "Constructor"
+			return "constructor"
 		}
 
 		if (this.isReceive) {
-			return "Receive"
+			return "receive"
 		}
 
 		if (this.isFallback) {
-			return "Fallback"
+			return "fallback"
 		}
 
-		return "Function"
+		return "func"
 	}
 
 	public getDeclaration(): string {
@@ -544,11 +540,9 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 			const foundResult = TypeReference.filterFoundResults(
 				this.getAllItems().flatMap((x) => x.getSelectedTypeReferenceLocation(offset)),
 			)
-			if (foundResult.length > 0) {
-				return foundResult
-			} else {
-				return [TypeReference.create(true)]
-			}
+			if (foundResult.length) return foundResult
+
+			return [TypeReference.create(true)]
 		}
 		return [TypeReference.create(false)]
 	}

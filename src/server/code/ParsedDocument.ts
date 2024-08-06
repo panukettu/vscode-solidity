@@ -197,6 +197,10 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		let returnItems: ParsedError[] = []
 		returnItems = returnItems.concat(this.errors)
 
+		for (const item of this.innerContracts) {
+			returnItems = this.mergeArrays(returnItems, item.errors)
+		}
+
 		for (const item of this.importedDocuments) {
 			returnItems = this.mergeArrays(returnItems, item.errors)
 		}
@@ -631,101 +635,6 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		return returnVs
 	}
 
-	public brute<T extends ParsedType>(name: string, withImports = true): T[] {
-		const results = []
-		let localResults = []
-		const structMembers = this.structs.flatMap((s) => s.getInnerMembers())
-
-		localResults = structMembers.filter((s) => s.name === name)
-		if (localResults.length > 0) {
-			return localResults
-		}
-
-		const structMembersInner = this.innerContracts
-			.flatMap((s) => s.getAllStructs(true))
-			.flatMap((i) => i.getInnerMembers())
-
-		localResults = structMembersInner.filter((s) => s.name === name)
-		if (localResults.length > 0) {
-			return localResults
-		}
-
-		const functionMembers = this.functions.flatMap((f) => f.getAllItems())
-		localResults = functionMembers.filter((s) => s.name === name)
-		if (localResults.length > 0) {
-			return localResults
-		}
-		const funcMembersInner = this.innerContracts
-			.map((s) => s.getAllFunctions(true))
-			.flatMap((i) => i.flatMap((s) => s.getInnerMembers()))
-		localResults = funcMembersInner.filter((s) => s.name === name)
-		if (localResults.length > 0) {
-			return localResults
-		}
-
-		const inherits = this.innerContracts.flatMap((s) =>
-			s
-				.getExtendedContractsRecursive()
-				.flatMap((c) => {
-					return [
-						c.functions,
-						c.getAllFunctions(true).flatMap((i) => i.getAllItems()),
-						c.stateVariables,
-						c.enums,
-						c.errors,
-						c.events,
-						c.structs,
-						c.structs.flatMap((s) => s.getInnerMembers()),
-					]
-				})
-				.flat(),
-		)
-		const returnVs = results
-			.concat(inherits)
-			.concat(this.functions)
-			.concat(this.innerContracts)
-			.concat(this.errors)
-			.concat(this.events)
-			.concat(this.structs)
-			.concat(this.usings)
-			.concat(this.customTypes)
-			.concat(this.constants)
-			.concat(this.expressions)
-
-		localResults = returnVs.filter((i) => i.name === name)
-
-		if (localResults.length > 0) {
-			return localResults
-		}
-
-		if (withImports) {
-			for (const imported of this.importedDocuments) {
-				const result0 = imported.brute<T>(name, false)
-				if (result0.length > 0) {
-					return result0
-				}
-
-				for (const innerImport of imported.importedDocuments) {
-					if (innerImport !== this) {
-						const result1 = imported.brute<T>(name, false)
-						if (result1.length > 0) {
-							return result1
-						}
-						for (const superInnerImport of innerImport.importedDocuments) {
-							if (superInnerImport !== this) {
-								const result2 = superInnerImport.brute<T>(name, false)
-								if (result2.length > 0) {
-									return result2
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return returnVs.filter((i) => i.name === name)
-	}
 	public override getSelectedItem(offset: number): ParsedCode {
 		let selectedItem: ParsedCode = null
 		if (this.isCurrentElementedSelected(offset)) {

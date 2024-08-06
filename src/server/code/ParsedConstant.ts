@@ -1,9 +1,9 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { ParsedDeclarationType } from "./ParsedDeclarationType"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedParameter } from "./ParsedParameter"
 import { ParsedVariable } from "./ParsedVariable"
-import { BodyElement } from "./types"
+import type { BodyElement } from "./types"
 
 export class ParsedConstant extends ParsedVariable {
 	public from: string
@@ -32,7 +32,7 @@ export class ParsedConstant extends ParsedVariable {
 	}
 
 	public override getParsedObjectType(): string {
-		return "Constant"
+		return "constant"
 	}
 
 	public override getInfo(comment?: boolean): string {

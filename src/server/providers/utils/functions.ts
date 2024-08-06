@@ -1,7 +1,7 @@
-import { DocUtil } from "@server/utils/text-document"
-import { ParameterInformation } from "vscode-languageserver"
-import { ParsedDocument } from "../../code/ParsedDocument"
-import { ParsedFunction } from "../../code/ParsedFunction"
+import type { DocUtil } from "@server/utils/text-document"
+import type { ParameterInformation } from "vscode-languageserver"
+import type { ParsedDocument } from "../../code/ParsedDocument"
+import type { ParsedFunction } from "../../code/ParsedFunction"
 
 export const getFunctionsByNameOffset = (functionNames: string[], doc: DocUtil) => {
 	if (!functionNames?.length) {
@@ -77,26 +77,25 @@ export const findByParam = (
 			selectedFunction: methods[0],
 			...createFuncParams(methods[0], skipSelf),
 		}
-	} else {
-		for (const method of methods.filter(
-			(x) => x.input.length > (hasIndex ? (skipSelf ? paramIndex + 1 : paramIndex) : 1),
-		)) {
-			const matchingParam = method.input.find((inputParam, index) => {
-				if (hasIndex) {
-					if (index === paramIndex) {
-						method.selectedInput = skipSelf ? index - 1 : index
-						return true
-					}
-				} else if (!!searchParam?.name && inputParam.name === searchParam.name) {
+	}
+	for (const method of methods.filter(
+		(x) => x.input.length > (hasIndex ? (skipSelf ? paramIndex + 1 : paramIndex) : 1),
+	)) {
+		const matchingParam = method.input.find((inputParam, index) => {
+			if (hasIndex) {
+				if (index === paramIndex) {
 					method.selectedInput = skipSelf ? index - 1 : index
 					return true
 				}
-			})
-
-			if (matchingParam) {
-				selectedFunction = method
-				break
+			} else if (!!searchParam?.name && inputParam.name === searchParam.name) {
+				method.selectedInput = skipSelf ? index - 1 : index
+				return true
 			}
+		})
+
+		if (matchingParam) {
+			selectedFunction = method
+			break
 		}
 	}
 	if (!selectedFunction) {

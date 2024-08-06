@@ -61,10 +61,10 @@ export class ParsedCode {
 	}
 
 	public getInfo(): string {
-		return `### ${this.name}\n${this.getComment()}`
+		return `${this.name}\n${this.getComment()}`
 	}
 	public getShortInfo(): string {
-		return `#### ${this.name}\n${this.getComment()}`
+		return `${this.name}\n${this.getComment()}`
 	}
 
 	public getSelectedItem(offset: number): ParsedCode {
@@ -182,7 +182,7 @@ export class ParsedCode {
 				while (this.isCommentLine(document, currentLine)) {
 					let content = document.getText(this.getLineRange(currentLine)).trimStart()
 					const inherits = content.match(/(?<=@inheritdoc\s)(\w+)/g)
-					if (inherits?.length > 0) {
+					if (inherits?.length) {
 						const inheritFrom = inherits[0]
 						const inheritDoc = this.document.getAllContracts().find((d) => d.name === inheritFrom)
 						if (inheritDoc) {

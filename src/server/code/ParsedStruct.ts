@@ -1,16 +1,16 @@
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
+import { type CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { providerRequest } from "../providers/utils/common"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
-import { ParsedDeclarationType } from "./ParsedDeclarationType"
-import { ParsedDocument } from "./ParsedDocument"
-import { ParsedEnum } from "./ParsedEnum"
+import type { ParsedContract } from "./ParsedContract"
+import type { ParsedDeclarationType } from "./ParsedDeclarationType"
+import type { ParsedDocument } from "./ParsedDocument"
+import type { ParsedEnum } from "./ParsedEnum"
 import { ParsedFunction } from "./ParsedFunction"
 import { ParsedParameter } from "./ParsedParameter"
 import { ParsedStructVariable } from "./ParsedStructVariable"
-import { ParsedUsing } from "./ParsedUsing"
-import { Element, ElementParams, LiteralMapping } from "./types"
+import type { ParsedUsing } from "./ParsedUsing"
+import type { Element, ElementParams, LiteralMapping } from "./types"
 import { valueTypeReg } from "./utils/ParsedCodeTypeHelper"
 
 export class ParsedStruct extends ParsedCode {
@@ -118,9 +118,8 @@ export class ParsedStruct extends ParsedCode {
 			const variableSelected = this.getVariableSelected(offset)
 			if (variableSelected !== undefined) {
 				return variableSelected
-			} else {
-				return this
 			}
+			return this
 		}
 		return null
 	}
@@ -130,9 +129,8 @@ export class ParsedStruct extends ParsedCode {
 			const variableSelected = this.getVariableSelected(offset)
 			if (variableSelected !== undefined) {
 				return variableSelected.getSelectedTypeReferenceLocation(offset)
-			} else {
-				return [TypeReference.create(true)]
 			}
+			return [TypeReference.create(true)]
 		}
 		return [TypeReference.create(false)]
 	}
@@ -204,9 +202,8 @@ export class ParsedStruct extends ParsedCode {
 			const selectedProperty = this.getSelectedProperty(offset)
 			if (selectedProperty !== undefined) {
 				return selectedProperty.getAllReferencesToThis(documents)
-			} else {
-				return this.getAllReferencesToThis(documents)
 			}
+			return this.getAllReferencesToThis(documents)
 		}
 		return []
 	}
@@ -223,12 +220,12 @@ export class ParsedStruct extends ParsedCode {
 	}
 	public getDetail() {
 		return this.isGlobal
-			? `(File level) ${this.getParsedObjectType()}: ${this.getElementInfo()}`
+			? `(file-level) ${this.getParsedObjectType()}: ${this.getElementInfo()}`
 			: `${this.getParsedObjectType()}: ${this.getElementInfo()}`
 	}
 
 	public override getParsedObjectType(): string {
-		return "Struct"
+		return "struct"
 	}
 	public getElementInfo() {
 		let storageType = ""

@@ -1,12 +1,13 @@
+import { getFunctionSelector } from "viem"
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
-import { ParsedCustomType } from "./ParsedCustomType"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedContract } from "./ParsedContract"
+import type { ParsedCustomType } from "./ParsedCustomType"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedParameter } from "./ParsedParameter"
-import { ParsedStruct } from "./ParsedStruct"
-import { Element } from "./types"
+import type { ParsedStruct } from "./ParsedStruct"
+import type { Element } from "./types"
 
 export class ParsedError extends ParsedCode {
 	public input: ParsedParameter[] = []
@@ -58,11 +59,8 @@ export class ParsedError extends ParsedCode {
 			}
 
 			const foundResult = TypeReference.filterFoundResults(results)
-			if (foundResult.length > 0) {
-				return foundResult
-			} else {
-				return [TypeReference.create(true)]
-			}
+			if (foundResult.length) return foundResult
+			return [TypeReference.create(true)]
 		}
 		return [TypeReference.create(false)]
 	}
@@ -82,14 +80,28 @@ export class ParsedError extends ParsedCode {
 	}
 
 	public override getParsedObjectType(): string {
-		return "Error"
+		return "error"
 	}
+	// console.debug(this.input.map((x) => x.type.name))
+	// console.debug(this.input.map((x) => x.type.abiType))
+	// const quick = `${this.name}(${this.input.map((x) => x.type.abiType).join(",")})`
+	// console.debug(quick)
+	// console.debug(getFunctionSelector(quick))
 
-	public override getInfo(): string {
-		const elementType = this.getParsedObjectType()
-		return `### ${elementType}: ${
-			this.name
-		}\n#### ${this.getContractNameOrGlobal()}\n\t${this.getSignature()} \n\n${this.getComment()}`
+	public override getInfo(extra?: string): string {
+		// return `(${elementType}) : ${
+		// 	this.name
+		// }\n ${this.getContractNameOrGlobal()}\n\t${this.getSignature()} \n\n${this.getComment()}`
+		return this.createInfo(
+			this.getRootName(),
+			"",
+			`${this.getSelector() + (extra ? extra : "")} | ${getFunctionSelector(this.getSelector())}`,
+			this.contract
+				? `${this.contract.getContractTypeName(this.contract.contractType)} ${this.getParsedObjectType()}`.toLowerCase()
+				: "",
+			true,
+			false,
+		)
 	}
 
 	public getDeclaration(): string {

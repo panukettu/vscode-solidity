@@ -1,7 +1,7 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedContract } from "./ParsedContract"
+import type { ParsedDocument } from "./ParsedDocument"
 
 export class ParsedCustomType extends ParsedCode {
 	public isType: string
@@ -32,7 +32,7 @@ export class ParsedCustomType extends ParsedCode {
 	}
 
 	public override getParsedObjectType(): string {
-		return "Custom Type"
+		return "custom type"
 	}
 
 	public override getInfo(): string {

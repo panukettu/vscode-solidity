@@ -185,7 +185,9 @@ export class CodeWalkerService {
 
 			this.parsedDocumentsCache.push(newDocument)
 		} catch (error) {
-			console.debug("Unhandled (parse)", error, sourceDocument.absolutePath)
+			if (!sourceDocument.absolutePath.includes("MessageHashUtils.sol")) {
+				console.debug("parse-error:\n", error, sourceDocument.absolutePath)
+			}
 			// console.log(JSON.stringify(error));
 			/*
             // if we error parsing (cannot cater for all combos) we fix by removing current line.

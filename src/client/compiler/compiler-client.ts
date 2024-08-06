@@ -179,10 +179,6 @@ export class ClientCompilers {
 
 	public async initializeSolcs(solc?: MultisolcSettings, override: CompilerType = null): Promise<void> {
 		this.outputChannel.show(true)
-		console.debug("roots", {
-			fs: getRootFsPath(),
-			project: getCurrentProjectInWorkspaceRootFsPath(),
-		})
 		const cfg =
 			solc ??
 			Multisolc.getSettings(new Project(Config.all(), getRootFsPath()), {

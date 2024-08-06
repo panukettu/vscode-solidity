@@ -85,6 +85,12 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 								command: CLIENT_COMMAND_LIST["solidity.lens.function.selector"],
 								arguments: [document, range, line],
 							}),
+							new vscode.CodeLens(range, {
+								title: "selectors",
+								tooltip: "Preview error selector in this file",
+								command: CLIENT_COMMAND_LIST["solidity.lens.error.selectors"],
+								arguments: [document, range, line],
+							}),
 						)
 					}
 				}
@@ -150,6 +156,12 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 									tooltip: "Preview the bytes4 selector",
 									command: CLIENT_COMMAND_LIST["solidity.lens.function.selector"],
 									arguments: [document, range],
+								}),
+								new vscode.CodeLens(range, {
+									title: "selectors",
+									tooltip: "Preview all function selectors in this file",
+									command: CLIENT_COMMAND_LIST["solidity.lens.function.selectors"],
+									arguments: [document, range, line],
 								}),
 								new vscode.CodeLens(range, {
 									title: "natspec",

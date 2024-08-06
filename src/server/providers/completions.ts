@@ -1,8 +1,8 @@
 import { DocUtil } from "@server/utils/text-document"
-import * as vscode from "vscode-languageserver"
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
+import type * as vscode from "vscode-languageserver"
+import { CompletionItem, type CompletionItemKind } from "vscode-languageserver"
 import { DotCompletionService } from "../code/utils/dotCompletionService"
-import { CodeWalkerService } from "../codewalker"
+import type { CodeWalkerService } from "../codewalker"
 import { settings } from "../server-config"
 import { getGlobalKeywordCompletions } from "./utils/completion/globals"
 import {
@@ -81,7 +81,8 @@ export const getCompletionItems = (
 			if (ctx.pos.triggers.searchFiles) {
 				// console.debug("file search handler")
 				return handleFileSearch(docUtil, completionItems, ctx.pos, settings.rootPath)
-			} else if (ctx.pos.triggers.innerImport) {
+			}
+			if (ctx.pos.triggers.innerImport) {
 				// console.debug("inner import handler")
 				try {
 					return handleInnerImportCompletion(

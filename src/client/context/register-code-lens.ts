@@ -2,7 +2,12 @@ import type { ClientState } from "@client/client-state"
 import { commandClearDiagnostics } from "@client/commands/command-clear-diagnostics"
 import { commandNatspec } from "@client/commands/command-create-natspec"
 import { commandFuncsig } from "@client/commands/command-funcsig"
-import { commandKeccak256 } from "@client/commands/command-keccak256"
+import {
+	commandDecode,
+	commandEncode,
+	commandKeccak256,
+	commandKeccak256Input,
+} from "@client/commands/command-keccak256"
 import { commandExecTest } from "@client/commands/command-test-execute"
 import { commandTestInfo } from "@client/commands/command-test-info"
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
@@ -36,7 +41,15 @@ const registerCodeLensCommands = (state: ClientState) => [
 	),
 	vscode.commands.registerCommand(
 		CLIENT_COMMAND_LIST["solidity.lens.function.selector"],
-		errorWrapper(commandFuncsig(state)),
+		errorWrapper(commandFuncsig(state, "function.selector")),
+	),
+	vscode.commands.registerCommand(
+		CLIENT_COMMAND_LIST["solidity.lens.function.selectors"],
+		errorWrapper(commandFuncsig(state, "function.selectors")),
+	),
+	vscode.commands.registerCommand(
+		CLIENT_COMMAND_LIST["solidity.lens.error.selectors"],
+		errorWrapper(commandFuncsig(state, "error.selectors")),
 	),
 	vscode.commands.registerCommand(
 		CLIENT_COMMAND_LIST["solidity.lens.function.natspec"],
@@ -52,6 +65,9 @@ const registerCodeLensCommands = (state: ClientState) => [
 	),
 	vscode.commands.registerCommand(
 		CLIENT_COMMAND_LIST["solidity.lens.string.keccak256"],
-		errorWrapper(commandKeccak256(state)),
+		errorWrapper(commandKeccak256),
 	),
+	vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.input.keccak256"], commandKeccak256Input),
+	vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.input.encode"], commandEncode),
+	vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.input.decode"], commandDecode),
 ]

@@ -1,13 +1,13 @@
 import { regex2, regexNamed, regexUnnamed } from "@shared/regexp"
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
-import { TypeReference } from "../search/TypeReference"
-import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
+import type { TypeReference } from "../search/TypeReference"
+import type { ParsedCode } from "./ParsedCode"
+import type { ParsedContract } from "./ParsedContract"
 import { ParsedDeclarationType } from "./ParsedDeclarationType"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedFunction } from "./ParsedFunction"
 import { ParsedVariable } from "./ParsedVariable"
-import { ElementParams } from "./types"
+import type { ElementParams } from "./types"
 import { getTypeString } from "./utils/ParsedCodeTypeHelper"
 
 const getNatspecPrefix = (text: string) => {
@@ -21,15 +21,17 @@ function pluralize(word: string) {
 	const wordLower = word.toLowerCase()
 	if (/[^aeiou]y$/i.test(wordLower)) {
 		return word.replace(/y$/i, "ies")
-	} else if (/[sxz]$/i.test(wordLower) || /[^aeioudgkprt]h$/i.test(wordLower)) {
-		return `${word}es`
-	} else if (/[^aeiou]o$/i.test(wordLower)) {
-		return `${word}es`
-	} else if (wordLower.toLowerCase() === "child") {
-		return "children"
-	} else {
-		return `${word}s`
 	}
+	if (/[sxz]$/i.test(wordLower) || /[^aeioudgkprt]h$/i.test(wordLower)) {
+		return `${word}es`
+	}
+	if (/[^aeiou]o$/i.test(wordLower)) {
+		return `${word}es`
+	}
+	if (wordLower.toLowerCase() === "child") {
+		return "children"
+	}
+	return `${word}s`
 }
 export class ParsedParameter extends ParsedVariable {
 	public parent: ParsedCode
@@ -159,9 +161,8 @@ export class ParsedParameter extends ParsedVariable {
 		if (this.isCurrentElementedSelected(offset)) {
 			if (this.type.isCurrentElementedSelected(offset)) {
 				return this.type.getAllReferencesToSelected(offset, documents)
-			} else {
-				return this.getAllReferencesToThis(documents)
 			}
+			return this.getAllReferencesToThis(documents)
 		}
 		return []
 	}
@@ -169,9 +170,8 @@ export class ParsedParameter extends ParsedVariable {
 	public override getAllReferencesToObject(parsedCode: ParsedCode): TypeReference[] {
 		if (this.isTheSame(parsedCode)) {
 			return [this.createFoundReferenceLocationResult()]
-		} else {
-			return this.type.getAllReferencesToObject(parsedCode)
 		}
+		return this.type.getAllReferencesToObject(parsedCode)
 	}
 
 	public override getAllReferencesToThis(documents: ParsedDocument[]): TypeReference[] {
@@ -221,7 +221,8 @@ export class ParsedParameter extends ParsedVariable {
 	public override getParsedObjectType(): string {
 		if (this.isInput) {
 			return "input param"
-		} else if (this.isOutput) {
+		}
+		if (this.isOutput) {
 			return "output param"
 		}
 		return "param"
@@ -304,7 +305,7 @@ export class ParsedParameter extends ParsedVariable {
 			infoText = onlyParam ? `(${info})` : `(...${info})`
 		} else if (this.isOutput) {
 			const hasInput = this.parent instanceof ParsedFunction && this.parent.input.length > 0
-			infoText = (hasInput ? "(...)" : "()") + `: ${this.getElementInfo(useActive, isActive)}`
+			infoText = `${hasInput ? "(...)" : "()"}: ${this.getElementInfo(useActive, isActive)}`
 		} else {
 			infoText = `: ${this.getElementInfo(useActive, isActive)}`
 		}

@@ -1,7 +1,7 @@
 import { DocUtil } from "@server/utils/text-document"
 import { nameRegexp } from "@shared/regexp"
 import * as vscode from "vscode-languageserver/node"
-import { CodeWalkerService } from "../codewalker"
+import type { CodeWalkerService } from "../codewalker"
 import { findByParam, getFunctionsByNameOffset } from "./utils/functions"
 import { isLeavingFunctionParams } from "./utils/matchers"
 

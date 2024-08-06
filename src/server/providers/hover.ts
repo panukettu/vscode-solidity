@@ -4,8 +4,8 @@ import { DocUtil } from "@server/utils/text-document"
 import { keccak256Regexp } from "@shared/regexp"
 import { keccak256, toBytes } from "viem"
 import * as vscode from "vscode-languageserver"
-import { ParsedExpression, ParsedExpressionIdentifier } from "../code/ParsedExpression"
-import { CodeWalkerService } from "../codewalker"
+import { ParsedExpression, type ParsedExpressionIdentifier } from "../code/ParsedExpression"
+import type { CodeWalkerService } from "../codewalker"
 import { getReferences, handleParsedExpression } from "./definition"
 import { useProviderHelper } from "./utils/common"
 import { isComment } from "./utils/matchers"
@@ -24,10 +24,12 @@ export const provideHover = (document: vscode.TextDocument, position: vscode.Pos
 					value: `### ${keccak256(toBytes(keccak256Regexp().exec(text)[0]))}`,
 				},
 			}
-		} else if (isComment(text)) {
+		}
+		if (isComment(text)) {
 			reset()
 			return null
-		} else if (selectedDocument != null) {
+		}
+		if (selectedDocument != null) {
 			const result = getHover(item, selectedDocument, docUtil, reset)
 
 			if (result) return result
@@ -45,11 +47,10 @@ const getHover = (item: ParsedCode, selectedDocument: ParsedDocument, docUtil: a
 	if (!item) {
 		reset?.()
 		return null
-	} else {
-		if (item.getHover) {
-			reset?.()
-			return item.getHover()
-		}
+	}
+	if (item.getHover) {
+		reset?.()
+		return item.getHover()
 	}
 	return getHoverExpression(item, selectedDocument, docUtil, reset)
 }
@@ -82,8 +83,9 @@ const getHoverExpression = (item: any, selectedDocument: ParsedDocument, docUtil
 	if (res.contents?.value) {
 		reset?.()
 		return res
-	} else if (itemExp.parent) {
-		const parentMapping = item.parent?.reference?.element?.literal?.literal?.to?.literal
+	}
+	if (itemExp.parent) {
+		// const parentMapping = item.parent?.reference?.element?.literal?.literal?.to?.literal
 		// const allFound = selectedDocument.brute(item.name, true)
 		const def = getReferences(docUtil)
 		reset()

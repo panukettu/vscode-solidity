@@ -1,6 +1,4 @@
-import type { ParsedCode } from "@server/code/ParsedCode"
-import type { ParsedDocument } from "@server/code/ParsedDocument"
-import { DocUtil } from "@server/utils/text-document"
+import type { DocUtil } from "@server/utils/text-document"
 import * as vscode from "vscode-languageserver/node"
 import { globalNames } from "./utils/completion/globals"
 

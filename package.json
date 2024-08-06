@@ -71,7 +71,7 @@
 		"prettier": "^3.3.2",
 		"prettier-plugin-solidity": "^1.3.1",
 		"solc": "^0.8.26",
-		"solhint": "^3.6.2",
+		"solhint": "^5.0.3",
 		"viem": "^1.21.4",
 		"vscode-languageclient": "^9.0.1",
 		"vscode-languageserver": "^9.0.1",
@@ -394,6 +394,18 @@
 				"category": "Solidity"
 			},
 			{
+				"title": "Preview Selectors in File",
+				"enablement": "resourceExtname == .sol",
+				"command": "solidity.lens.function.selectors",
+				"category": "Solidity"
+			},
+			{
+				"title": "Preview Error Selectors in File",
+				"enablement": "resourceExtname == .sol",
+				"command": "solidity.lens.error.selectors",
+				"category": "Solidity"
+			},
+			{
 				"title": "Run Test Function",
 				"enablement": "resourceExtname == .sol",
 				"command": "solidity.lens.function.test",
@@ -420,6 +432,24 @@
 				"title": "Preview String Hash",
 				"enablement": "resourceExtname == .sol",
 				"command": "solidity.lens.string.keccak256",
+				"category": "Solidity"
+			},
+			{
+				"title": "Preview Hash",
+				"enablement": "resourceExtname == .sol",
+				"command": "solidity.input.keccak256",
+				"category": "Solidity"
+			},
+			{
+				"title": "Encode Data",
+				"enablement": "resourceExtname == .sol",
+				"command": "solidity.input.encode",
+				"category": "Solidity"
+			},
+			{
+				"title": "Decode Data",
+				"enablement": "resourceExtname == .sol",
+				"command": "solidity.input.decode",
 				"category": "Solidity"
 			},
 			{

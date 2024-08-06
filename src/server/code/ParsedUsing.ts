@@ -1,8 +1,8 @@
-import { TypeReference } from "../search/TypeReference"
+import type { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
+import type { ParsedContract } from "./ParsedContract"
 import { ParsedDeclarationType } from "./ParsedDeclarationType"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 
 export class ParsedUsing extends ParsedCode {
 	public for: ParsedDeclarationType

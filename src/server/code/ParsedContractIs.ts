@@ -1,8 +1,8 @@
-import { Location } from "vscode-languageserver"
+import type { Location } from "vscode-languageserver"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedContract } from "./ParsedContract"
+import type { ParsedDocument } from "./ParsedDocument"
 
 export class ParsedContractIs extends ParsedCode {
 	private contractReference: ParsedContract = null
@@ -50,11 +50,10 @@ export class ParsedContractIs extends ParsedCode {
 	public override getAllReferencesToObject(parsedCode: ParsedCode): TypeReference[] {
 		if (this.isTheSame(parsedCode)) {
 			return [this.createFoundReferenceLocationResult()]
-		} else {
-			const reference = this.getContractReference()
-			if (reference?.isTheSame(parsedCode)) {
-				return [this.createFoundReferenceLocationResult()]
-			}
+		}
+		const reference = this.getContractReference()
+		if (reference?.isTheSame(parsedCode)) {
+			return [this.createFoundReferenceLocationResult()]
 		}
 	}
 
@@ -62,8 +61,7 @@ export class ParsedContractIs extends ParsedCode {
 		const reference = this.getContractReference()
 		if (reference) {
 			return reference.getInfo()
-		} else {
-			return `### contract: ${this.name}`
 		}
+		return `(contract) ${this.name}`
 	}
 }

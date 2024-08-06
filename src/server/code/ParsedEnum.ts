@@ -1,7 +1,7 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedContract } from "./ParsedContract"
+import type { ParsedDocument } from "./ParsedDocument"
 
 export class ParsedEnum extends ParsedCode {
 	public items: string[] = []
@@ -40,10 +40,10 @@ export class ParsedEnum extends ParsedCode {
 	}
 
 	public override getParsedObjectType(): string {
-		return "Enum"
+		return "enum"
 	}
 
 	public override getInfo(): string {
-		return `(${this.getParsedObjectType()}) ${this.name}\n#### ${this.getContractNameOrGlobal()}\n${this.getComment()}`
+		return `(${this.getParsedObjectType()}) ${this.name}\n${this.getContractNameOrGlobal()}\n${this.getComment()}`
 	}
 }

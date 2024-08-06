@@ -1,4 +1,4 @@
-import path from "node:path"
+import { createDetails } from "@shared/util"
 import { Location, Range } from "vscode-languageserver"
 import { URI } from "vscode-uri"
 import { TypeReference } from "../search/TypeReference"
@@ -13,10 +13,53 @@ export class ParsedImport extends ParsedCode {
 	public isFullAs = false
 
 	public override getInfo(): string {
+		const doc = this.documentReference
+		const details = createDetails(
+			{
+				num: doc.innerContracts.length,
+				str: "contracts",
+			},
+			{
+				num: doc.functions.length,
+				str: "free-funcs",
+			},
+			{
+				num: doc.structs.length,
+				str: "structs",
+			},
+			{
+				num: doc.constants.length,
+				str: "consts",
+			},
+			{
+				num: doc.enums.length,
+				str: "enums",
+			},
+			{
+				num: doc.events.length,
+				str: "events",
+			},
+			{
+				num: doc.errors.length,
+				str: "errors",
+			},
+			{
+				num: doc.customTypes.length,
+				str: "user-types",
+			},
+		)
+
+		const allImports = doc
+			.getAllImportables()
+			.map((x, i, self) => {
+				if (i % 2 === 0) return `${x.name}${self[i + 1] ? `, ${self[i + 1].name}` : ""}`
+			})
+			.filter(Boolean)
+			.join("\n")
 		return this.createInfo(
 			"",
 			"",
-			`${this.symbols.length > 0 ? this.symbols.length : ""} from ${this.from}`,
+			`${this.symbols.length ?? ""} from ${this.from}\nexports\n${details}\n${allImports}`,
 			undefined,
 			true,
 			false,

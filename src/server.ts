@@ -2,7 +2,9 @@ import { getCodeActionFixes } from "@server/actions/server-code-actions"
 import { provideHover } from "@server/providers/hover"
 import { provideSignatureHelp } from "@server/providers/signatures"
 import { validateAllDocuments, validateDocument } from "@server/server-diagnostics"
+import type { CommandParamsBase } from "@server/server-types"
 import { DocUtil } from "@server/utils/text-document"
+import { isInputCommand } from "@shared/server-commands"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import * as vscode from "vscode-languageserver/node"
 import { DidChangeConfigurationNotification } from "vscode-languageserver/node"
@@ -10,10 +12,9 @@ import { getCompletionItems } from "./server/providers/completions"
 import { getDefinition } from "./server/providers/definition"
 import { getAllReferencesToItem } from "./server/providers/references"
 import { providerParams } from "./server/providers/utils/common"
-import { executeCommand } from "./server/server-commands"
+import { execInputCommand, executeCommand } from "./server/server-commands"
 import { compilerInitialized, configureServerCachePath } from "./server/server-compiler"
 import { getConfig, handleConfigChange, handleInitialize, handleInitialized, settings } from "./server/server-config"
-import type { CommandParamsBase } from "./server/server-types"
 import { getCodeWalkerService, initCommon } from "./server/server-utils"
 
 export const documents = new vscode.TextDocuments(TextDocument)
@@ -80,15 +81,20 @@ connection.onSignatureHelp((handler) => {
 })
 
 connection.onExecuteCommand((params) => {
-	const [document, range] = params.arguments as CommandParamsBase
+	console.debug("Execute command", params, isInputCommand(params.command))
+	const args = params.arguments
+
+	if (isInputCommand(params.command)) {
+		return execInputCommand(params)
+	}
+
+	const [document, range] = args as CommandParamsBase
+
 	document && initCommon(document)
+	const walker = getCodeWalkerService()
+	const uri = document?.uri ? documents.get(document.uri.external) : undefined
 	try {
-		return executeCommand(
-			getCodeWalkerService(),
-			params,
-			document?.uri ? documents.get(document.uri.external) : undefined,
-			range ? vscode.Range.create(range[0], range[1]) : undefined,
-		)
+		return executeCommand(walker, params, uri, range ? vscode.Range.create(range[0], range[1]) : undefined)
 	} catch (e) {
 		console.debug("Unhandled", e.message)
 		return null

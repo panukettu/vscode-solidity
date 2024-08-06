@@ -1,4 +1,5 @@
 import { ContractType } from "@shared/enums"
+import { createDetails } from "@shared/util"
 import { type CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { TypeReference } from "../search/TypeReference"
 import type { IParsedExpressionContainer } from "./IParsedExpressionContainer"
@@ -734,9 +735,8 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 
 			completionItem.insertText = this.name
 
-			completionItem.detail = this.document.sourceDocument.project.diffFromRoot(
-				this.document.sourceDocument.absolutePath,
-			)
+			const diff = this.document.sourceDocument.project.diffFromRoot(this.document.sourceDocument.absolutePath)
+			completionItem.detail = diff
 			completionItem.documentation = this.getMarkupInfo(true)
 			this.completionItem = completionItem
 		}
@@ -746,7 +746,58 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 		return this.createShortInfo("", `${this.name}`, true)
 	}
 	public override getInfo(): string {
-		return this.createInfo("", this.name, `: ${this.document.sourceDocument.absolutePath}`, undefined, true, false)
+		const totalFuncs = this.getAllFunctions(false, false).length
+		const localFuncs = this.functions.length
+
+		const funcItems =
+			totalFuncs !== localFuncs ? `${localFuncs} local funcs, ${totalFuncs} total funcs` : `${totalFuncs} total funcs`
+		const totalVars = this.getAllStateVariables().length
+		const localVars = this.stateVariables.length
+		const varItems =
+			totalVars !== localVars ? `${localVars} local vars, ${totalVars} total vars` : `${totalVars} total vars`
+		const details = [
+			{
+				num: this.structs.length,
+				str: "structs",
+			},
+			{
+				num: this.enums.length,
+				str: "enums",
+			},
+			{
+				num: this.customTypes.length,
+				str: "user-types",
+			},
+			{
+				num: this.contractIsStatements.length,
+				str: "inherits",
+			},
+			{
+				num: this.events.length,
+				str: "events",
+			},
+			{
+				num: this.errors.length,
+				str: "errors",
+			},
+		]
+			.sort((a, b) => b.num - a.num)
+			.filter((x) => x.num)
+
+		const text = details
+			.map((d, i, self) => {
+				if (i % 2 === 0) return `${d.num} ${d.str}${self[i + 1] ? `, ${self[i + 1].num} ${self[i + 1].str}` : ""}`
+			})
+			.filter(Boolean)
+			.join("\n")
+		return this.createInfo(
+			"",
+			this.name,
+			`: ${this.document.sourceDocument.project.diffFromRoot(this.document.sourceDocument.absolutePath)}${totalFuncs ? `\n${funcItems}` : ""}${totalVars ? `\n${varItems}` : ""}\n${text}`,
+			undefined,
+			true,
+			false,
+		)
 	}
 
 	public override getParsedObjectType(): string {
@@ -837,11 +888,11 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 	public getContractTypeName(contractType: ContractType) {
 		switch (contractType) {
 			case ContractType.Contract:
-				return "Contract"
+				return "contract"
 			case ContractType.Interface:
-				return "Interface"
+				return "interface"
 			case ContractType.Library:
-				return "Library"
+				return "library"
 			default:
 				break
 		}

@@ -1,10 +1,10 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
-import { TypeReference } from "../search/TypeReference"
-import { ParsedDocument } from "./ParsedDocument"
-import { ParsedFunction } from "./ParsedFunction"
+import type { TypeReference } from "../search/TypeReference"
+import type { ParsedDocument } from "./ParsedDocument"
+import type { ParsedFunction } from "./ParsedFunction"
 import { ParsedParameter } from "./ParsedParameter"
 import { ParsedVariable } from "./ParsedVariable"
-import { BodyElement } from "./types"
+import type { BodyElement } from "./types"
 
 export class ParsedFunctionVariable extends ParsedVariable {
 	public function: ParsedFunction
@@ -36,15 +36,14 @@ export class ParsedFunctionVariable extends ParsedVariable {
 		if (this.isCurrentElementedSelected(offset)) {
 			if (this.type.isCurrentElementedSelected(offset)) {
 				return this.type.getAllReferencesToSelected(offset, documents)
-			} else {
-				return this.getAllReferencesToThis()
 			}
+			return this.getAllReferencesToThis()
 		}
 		return []
 	}
 
 	public override getParsedObjectType(): string {
-		return "Local Variable"
+		return "local var"
 	}
 	public override getInfo(comments?: boolean): string {
 		const elemInfo = this.getElementInfo()
@@ -52,7 +51,7 @@ export class ParsedFunctionVariable extends ParsedVariable {
 		return this.createInfo(
 			this.function.getRootName(),
 			this.function.name,
-			(hasInputs ? "(...): " : `(): `) + `${elemInfo}`,
+			`${hasInputs ? "(...): " : "(): "}${elemInfo}`,
 			undefined,
 			comments,
 			comments,
@@ -72,7 +71,7 @@ export class ParsedFunctionVariable extends ParsedVariable {
 	}
 	public getElementInfo(): string {
 		const storageType = this.getStorageType()
-		return this.type.getTypeSignature() + " " + (storageType || "") + this.name
+		return `${this.type.getTypeSignature()} ${storageType || ""}${this.name}`
 	}
 
 	public getSignature(): string {

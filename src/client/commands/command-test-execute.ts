@@ -1,6 +1,6 @@
 import { Config } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
-import { Lens } from "@client/client-types"
+import type { Lens } from "@client/client-types"
 import { execForgeTestFunction } from "@client/lens/foundry/executors/test-executor"
 import {
 	initDecorations,
@@ -12,7 +12,6 @@ import {
 import { clearAllStatusBars, createStatusBarTest } from "@client/ui/statusbar"
 import { ExecStatus } from "@shared/enums"
 import * as vscode from "vscode"
-import { CLIENT_COMMAND_LIST } from "./commands"
 
 // Executes the test function command
 export const commandExecTest =

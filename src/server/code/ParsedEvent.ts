@@ -1,10 +1,10 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedContract } from "./ParsedContract"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedContract } from "./ParsedContract"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedParameter } from "./ParsedParameter"
-import { Element } from "./types"
+import type { Element } from "./types"
 
 export class ParsedEvent extends ParsedCode {
 	public input: ParsedParameter[] = []
@@ -49,11 +49,8 @@ export class ParsedEvent extends ParsedCode {
 			const foundResult = TypeReference.filterFoundResults(
 				this.input.flatMap((x) => x.getSelectedTypeReferenceLocation(offset)),
 			)
-			if (foundResult.length > 0) {
-				return foundResult
-			} else {
-				return [TypeReference.create(true)]
-			}
+			if (foundResult.length) return foundResult
+			return [TypeReference.create(true)]
 		}
 		return [TypeReference.create(false)]
 	}
@@ -73,7 +70,7 @@ export class ParsedEvent extends ParsedCode {
 	}
 
 	public override getParsedObjectType(): string {
-		return "Event"
+		return "event"
 	}
 
 	public getElementInfo(): string {

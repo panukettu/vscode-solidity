@@ -45,14 +45,10 @@ export class Project {
 			rootPath,
 		)
 
-		console.debug("Project Remappings:", this.remappings)
-
 		this.solc = {
 			compiler: config.compiler,
 			settings: config.compilerSettings,
 		}
-
-		console.debug("Project Solc Settings:", this.solc)
 
 		this.projectPackage = createDefaultPackage(this)
 
@@ -211,7 +207,7 @@ export class Project {
 		return path.join(this.rootPath, paths)
 	}
 	public diffFromRoot(paths: string) {
-		return paths.replace(this.rootPath, "")
+		return paths.replace(this.rootPath, "").slice(1)
 	}
 
 	public getCustomExcludes() {

@@ -1,6 +1,12 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import type { MinimalURI, ScopedURI } from "./types"
+
+type Stat = { num: number; str: string }
+export function createDetails(...stats: Stat[]): string {
+	const items = stats.filter((s) => s.num)
+	return `[${items.map((s) => `${s.num} ${s.str}`).join(" / ")}]`
+}
 // import { URI } from 'vscode-uri';
 export const toScopedURI = (scope: string, uri: MinimalURI): ScopedURI => `${scope}-${uri.toString()}`
 // export const fromScopedURI = (scopedURI: ScopedURI): { scope: string; uri: vscode.Uri } => {

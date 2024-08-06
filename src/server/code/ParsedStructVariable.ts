@@ -1,13 +1,13 @@
 import { CompletionItem } from "vscode-languageserver"
 import { providerRequest } from "../providers/utils/common"
-import { ParsedContract } from "./ParsedContract"
+import type { ParsedContract } from "./ParsedContract"
 import { ParsedCustomType } from "./ParsedCustomType"
 import { ParsedDeclarationType } from "./ParsedDeclarationType"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedEnum } from "./ParsedEnum"
-import { ParsedFunction } from "./ParsedFunction"
-import { ParsedImport } from "./ParsedImport"
-import { ParsedParameter } from "./ParsedParameter"
+import type { ParsedFunction } from "./ParsedFunction"
+import type { ParsedImport } from "./ParsedImport"
+import type { ParsedParameter } from "./ParsedParameter"
 import { ParsedStruct } from "./ParsedStruct"
 import { ParsedVariable } from "./ParsedVariable"
 import { getTypeString } from "./utils/ParsedCodeTypeHelper"
@@ -77,7 +77,7 @@ export class ParsedStructVariable extends ParsedVariable {
 	}
 
 	public override getParsedObjectType(): string {
-		return "Struct Property"
+		return "struct member"
 	}
 
 	public getElementInfo(): string {
@@ -143,8 +143,7 @@ export class ParsedStructVariable extends ParsedVariable {
 			for (const inner of providerRequest.selectedDocument.innerContracts) {
 				const inputs = inner
 					.getAllFunctions()
-					.map((f) => [...f.input, ...f.output, ...f.variables])
-					.flatMap((f) => f)
+					.flatMap((f) => [...f.input, ...f.output, ...f.variables])
 					.filter((i) => i.element.literal.literal === this.struct.name)
 
 				if (inputs.length > 0) paramArray = paramArray.concat(inputs as any)

@@ -1,6 +1,6 @@
 import { TypeReference } from "../search/TypeReference"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedFunction } from "./ParsedFunction"
 
 export class ParsedModifierArgument extends ParsedCode {
@@ -105,7 +105,7 @@ export class ParsedModifierArgument extends ParsedCode {
 	}
 
 	public override getParsedObjectType(): string {
-		return "Modifier Argument"
+		return "modifier"
 	}
 
 	public override getInfo(): string {
@@ -115,21 +115,7 @@ export class ParsedModifierArgument extends ParsedCode {
 				return foundResults[0].getInfo()
 			}
 
-			return (
-				"### " +
-				this.getParsedObjectType() +
-				": " +
-				this.name +
-				"\n" +
-				"#### " +
-				this.functionParent.getParsedObjectType() +
-				": " +
-				this.functionParent.name +
-				"\n" +
-				"#### " +
-				this.getContractNameOrGlobal() +
-				"\n"
-			)
+			return `(${this.getParsedObjectType()}): ${this.name}\n ${this.functionParent.getParsedObjectType()}: ${this.functionParent.name} (${this.getContractNameOrGlobal()})\n`
 		}
 	}
 }

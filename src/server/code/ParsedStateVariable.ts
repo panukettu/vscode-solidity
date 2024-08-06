@@ -1,7 +1,7 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
-import { ParsedContract } from "./ParsedContract"
+import type { ParsedContract } from "./ParsedContract"
 import { ParsedDeclarationType } from "./ParsedDeclarationType"
-import { ParsedDocument } from "./ParsedDocument"
+import type { ParsedDocument } from "./ParsedDocument"
 import { ParsedVariable } from "./ParsedVariable"
 
 export class ParsedStateVariable extends ParsedVariable {
@@ -35,7 +35,7 @@ export class ParsedStateVariable extends ParsedVariable {
 	}
 
 	public override getParsedObjectType(): string {
-		return "State Variable"
+		return "state var"
 	}
 
 	public override getInfo(): string {
