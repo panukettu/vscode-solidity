@@ -3,14 +3,14 @@ import type * as vscode from "vscode-languageserver/node"
 import { URI } from "vscode-uri"
 import { connection, documents } from "../server"
 import { ServerCompilers } from "./server-compiler"
-import { config as cfg, settings } from "./server-config"
+import { getConfig, settings } from "./server-config"
 import { initCommon } from "./server-utils"
 
 export let validatingAllDocuments = false
 
 const versionMap = new Map<string, number>()
 
-const validateDebounced = debounce(validate, cfg.validation.delay, {
+const validateDebounced = debounce(validate, getConfig().validation.delay, {
 	leading: false,
 	trailing: true,
 })
@@ -38,7 +38,8 @@ export async function validateAllDocuments() {
 
 export async function validate(document: vscode.TextDocument) {
 	initCommon(document)
-	const shouldCompile = cfg.validation.onChange || cfg.validation.onOpen || cfg.validation.onSave
+	const config = getConfig()
+	const shouldCompile = config.validation.onChange || config.validation.onOpen || config.validation.onSave
 
 	const uri = document.uri
 	const filePath = URI.parse(uri).fsPath
@@ -73,10 +74,7 @@ const sendDiagnostics = async (uri: string, diagnostics: vscode.Diagnostic[]) =>
 	)
 }
 const getErrors = async (filePath: string, uri: string, documentText: string) => {
-	const errors = await ServerCompilers.compileWithDiagnostic(filePath, documentText, cfg).catch((err) => {
-		console.debug("compile-diagnostics:", err)
-		throw err
-	})
+	const errors = await ServerCompilers.compileWithDiagnostic(filePath, documentText)
 	const diagnostics = errors.filter((err) => URI.file(err.fileName).toString() === uri)
 
 	const fromOtherFiles = errors

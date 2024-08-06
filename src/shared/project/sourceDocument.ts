@@ -1,9 +1,6 @@
-import { existsSync, readFileSync } from "node:fs"
 import * as path from "node:path"
-import type { Callbacks } from "@shared/compiler/types-solc"
-import { glob } from "glob"
 import { formatPath } from "../util"
-import { type Project, resolveCache } from "./project"
+import type { Project } from "./project"
 
 type Import = {
 	importPath: string
@@ -41,66 +38,11 @@ export class SourceDocument {
 	}
 
 	constructor(absoulePath: string, code: string, project: Project) {
-		this.absolutePath = this.formatDocumentPath(absoulePath)
+		this.absolutePath = formatPath(absoulePath)
 		this.code = code
 		this.unformattedCode = code
 		this.project = project
 		this.imports = new Array<Import>()
-	}
-
-	/**
-	 * Resolve import statement to absolute file path
-	 *
-	 * @param {string} importPath import statement in *.sol contract
-	 * @param {SourceDocument} contract the contract where the import statement belongs
-	 * @returns {string} the absolute path of the imported file
-	 */
-	public resolveImportPath(importPath: string, files: string[], returnEmpty = false): string {
-		if (resolveCache.has(importPath)) return resolveCache.get(importPath)
-		let result = ""
-
-		if (importPath[0] === ".") {
-			result = path.resolve(path.dirname(this.absolutePath), importPath)
-		}
-
-		if (!result) result = this.project.projectPackage.resolveImport(importPath)
-
-		if (!result || result === importPath) {
-			result =
-				this.project?.findImportRemapping(importPath)?.resolveImport(importPath) ??
-				this.project?.findDependencyPackage(importPath)?.resolveImport(importPath)
-		}
-
-		if (!result || result === importPath) {
-			const normalized = importPath.replace(/['"]+/g, "")
-			result = files.find((x) => x.includes(normalized))
-		}
-
-		const out = result && result !== importPath ? this.formatDocumentPath(result) : returnEmpty ? null : importPath
-		if (out && out !== importPath) resolveCache.set(importPath, out)
-		return out
-	}
-
-	public getImportCallback(): Callbacks {
-		this.project.checkCache()
-		const solFiles = this.project.getIncludePathFiles()
-		return {
-			import: (importPath: string) => {
-				const resolved = this.resolveImportPath(importPath, solFiles, true)
-
-				if (resolved && existsSync(resolved)) {
-					resolveCache.set(importPath, resolved)
-					return {
-						contents: readFileSync(resolved).toString(),
-					}
-				}
-
-				const suggestions = this.project.getPossibleImports(this.absolutePath, importPath)
-				return {
-					error: suggestions.length ? `\nSuggestions:\n${suggestions.join("\n ")}` : "\nNo suggestions found.",
-				}
-			},
-		}
 	}
 
 	public getAllImportFromPackages() {
@@ -118,8 +60,11 @@ export class SourceDocument {
 		return SourceDocument.isImportLocal(importPath)
 	}
 
-	public formatDocumentPath(contractPath: string) {
-		return formatPath(contractPath)
+	public resolveImportPath(importPath: string) {
+		return this.project.resolveImport(importPath, this)
+	}
+	public getImportCallback() {
+		return this.project.getImportCallback(this)
 	}
 
 	public replaceDependencyPath(importPath: string, depImportAbsolutePath: string) {
@@ -144,7 +89,7 @@ export class SourceDocument {
 			const importPath = foundImport[3]
 
 			if (this.isImportLocal(importPath)) {
-				const importFullPath = this.formatDocumentPath(path.resolve(path.dirname(this.absolutePath), importPath))
+				const importFullPath = formatPath(path.resolve(path.dirname(this.absolutePath), importPath))
 				this.imports.push({
 					importPath: importFullPath,
 					symbols: symbols,

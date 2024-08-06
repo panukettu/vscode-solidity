@@ -282,24 +282,11 @@ export class ParsedCode {
 	public initCompletionItem(): CompletionItem {
 		const completionItem = CompletionItem.create(this.name)
 		const absolutePath = this.document.sourceDocument.absolutePath
+		completionItem.data.absolutePath = absolutePath
 		const remapping = this.document.sourceDocument.project.findRemappingForFile(absolutePath)
-
-		if (remapping) {
-			completionItem.data = {
-				absolutePath,
-				remappedPath: remapping.createImportFromFile(this.document.sourceDocument.absolutePath),
-			}
-		} else if (this.document.sourceDocument.project.includePaths.length) {
-			completionItem.data = {
-				absolutePath,
-				remappedPath: this.document.sourceDocument.project.findDirectImport(absolutePath),
-			}
-		} else {
-			completionItem.data = {
-				absolutePath: absolutePath,
-				remappedPath: path.relative(path.dirname(absolutePath), this.document.sourceDocument.absolutePath),
-			}
-		}
+		completionItem.data.remappedPath =
+			remapping?.createImportFromFile(absolutePath) ??
+			absolutePath.replace(this.document.sourceDocument.project.rootPath, "")
 		return completionItem
 	}
 
@@ -342,11 +329,6 @@ export class ParsedCode {
 				Range.create(document.positionAt(offset), document.positionAt(offset + this.name.length)),
 			)
 			const item = this.document.getSelectedItem(offset)
-			// console.debug(
-			// 	this.name,
-			// 	"text",
-			// 	this.document.sourceDocument.unformattedCode.substring(offset, offset + this.name.length),
-			// )
 			const result = [
 				{
 					location,

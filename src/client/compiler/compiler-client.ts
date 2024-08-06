@@ -1,13 +1,14 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { Config, getCurrentProjectInWorkspaceRootFsPath } from "@client/client-config"
+import { Config, getCurrentProjectInWorkspaceRootFsPath, getCurrentWorkspaceRootFsPath } from "@client/client-config"
 import type { BaseCommandArgs } from "@client/client-types"
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { Multisolc } from "@shared/compiler/multisolc"
 import type { SolcOutput } from "@shared/compiler/types-solc"
 import { getRemoteSolc, getSolcReleases } from "@shared/compiler/utils"
 import { CompilerType } from "@shared/enums"
-import type { CompileArgs, SolidityConfig } from "@shared/types"
+import { Project } from "@shared/project/project"
+import type { MultisolcSettings, SolidityConfig } from "@shared/types"
 import * as fsex from "fs-extra"
 import * as vscode from "vscode"
 import { errorsToDiagnostics } from "./compiler-diagnostics"
@@ -27,7 +28,7 @@ export class ClientCompilers {
 		return this.multisolc.printInitializedCompilers(this.outputChannel)
 	}
 
-	public async changeSolcType(target: vscode.ConfigurationTarget) {
+	public async setType(target: vscode.ConfigurationTarget) {
 		try {
 			// tslint:disable-next-line:max-line-length
 			const compilers: string[] = [
@@ -116,35 +117,26 @@ export class ClientCompilers {
 		}
 	}
 
-	public async compile(commandArgs: BaseCommandArgs, args: CompileArgs): Promise<Array<string>> {
-		if (!args.solcInput?.sources) {
+	public async compile(commandArgs: BaseCommandArgs, solc: MultisolcSettings): Promise<Array<string>> {
+		if (!solc.input?.sources) {
 			vscode.window.showWarningMessage("No solidity sources to compile!")
 			return
 		}
-		const message = `Compiling ${Object.keys(args.solcInput.sources)?.length} files`
+		const message = `Compiling ${Object.keys(solc.input.sources)?.length} files`
 		vscode.window.showInformationMessage(message)
 		vscode.window.setStatusBarMessage(message)
-
+		if (!this.multisolc.isSolcInitialized(solc.selectedType)) {
+			await this.initializeSolcs(solc)
+		}
+		const fileCallbacks = solc.document.getImportCallback()
 		try {
-			const output = await this.multisolc.compileInputWith(
-				args.solcInput,
-				args.solcType,
-				args.contract.getImportCallback(),
-			)
-
-			this.handleOutputFeedback(output)
-			return this.processCompilationOutput(commandArgs, output, this.outputChannel, args)
+			const output = await this.multisolc.compileInputWith(solc.input, solc.selectedType, fileCallbacks)
+			return this.processCompilationOutput(commandArgs, output, this.outputChannel, solc)
 		} catch (e) {
 			console.debug("Compile:", e.message)
-			this.initializeSolcs(args.solcType).then(async () => {
-				const output = await this.multisolc.compileInputWith(
-					args.solcInput,
-					args.solcType,
-					args.contract.getImportCallback(),
-				)
-				this.handleOutputFeedback(output)
-				return this.processCompilationOutput(commandArgs, output, this.outputChannel, args)
-			})
+			vscode.window.setStatusBarMessage("Unhandled error.", 7500)
+			vscode.window.showErrorMessage(e.message)
+			return []
 		}
 	}
 	private handleOutputFeedback(output: SolcOutput) {
@@ -186,29 +178,32 @@ export class ClientCompilers {
 		}
 	}
 
-	public async initializeSolcs(typeOverride: CompilerType = null): Promise<void> {
+	public async initializeSolcs(solc?: MultisolcSettings, typeOverride: CompilerType = null): Promise<void> {
 		this.outputChannel.show(true)
-		const multisolcConfig = Config.getCompilerOptions(undefined, undefined, typeOverride)
-		const selectedType = typeOverride != null ? typeOverride : multisolcConfig.selectedType
 
-		if (!this.multisolc) {
-			this.multisolc = new Multisolc(multisolcConfig, this.solcCachePath, selectedType)
-		} else {
-			if (this.multisolc.isSolcInitialized(selectedType)) {
-				this.outputCompilerInfo(selectedType)
+		const solcConfig =
+			solc ??
+			Multisolc.getSettings(new Project(Config.getFullConfig(), getCurrentWorkspaceRootFsPath()), undefined, {
+				type: typeOverride,
+			})
+
+		if (!this.multisolc) this.multisolc = new Multisolc(solcConfig, this.solcCachePath)
+		else {
+			if (this.multisolc.isSolcInitialized(solcConfig.selectedType)) {
+				this.outputCompilerInfo(solcConfig.selectedType)
 				return
 			}
 		}
 
 		try {
-			await this.multisolc.initializeSolc(selectedType)
-			this.outputCompilerInfo(selectedType)
+			await this.multisolc.initializeSolc(solcConfig.selectedType)
+			this.outputCompilerInfo(solcConfig.selectedType)
 		} catch (error) {
 			this.outputChannel.appendLine(
-				`Error initializing ${CompilerType[multisolcConfig.selectedType]} solc: ${error} - trying fallback..`,
+				`Error initializing ${CompilerType[solcConfig.selectedType]} solc: ${error} - trying fallback..`,
 			)
 			await this.multisolc.initializeSolc(CompilerType.Extension)
-			this.outputCompilerInfo(selectedType)
+			this.outputCompilerInfo(CompilerType.Extension)
 		}
 	}
 
@@ -216,8 +211,9 @@ export class ClientCompilers {
 		commandArgs: BaseCommandArgs,
 		output: SolcOutput,
 		outputChannel: vscode.OutputChannel,
-		args: CompileArgs,
+		solc: MultisolcSettings,
 	): Promise<Array<string>> {
+		this.handleOutputFeedback(output)
 		await vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"])
 
 		if (Object.keys(output).length === 0) {
@@ -242,10 +238,10 @@ export class ClientCompilers {
 			} else if (errorWarningCounts.warnings > 0) {
 				const files = this.writeCompilationOutputToBuildDirectory(
 					output,
-					args.options.outDir,
-					args.options.sourceDir,
-					args.options.excludePaths,
-					args.contract.absolutePath,
+					solc.outDir,
+					solc.sourceDir,
+					solc.excludePaths,
+					solc.document.absolutePath,
 				)
 				const compilationWithWarningsMessage = `Compiled with ${errorWarningCounts.warnings} warnings.`
 				vscode.window.showWarningMessage(compilationWithWarningsMessage)
@@ -257,10 +253,10 @@ export class ClientCompilers {
 			try {
 				const files = this.writeCompilationOutputToBuildDirectory(
 					output,
-					args.options.outDir,
-					args.options.sourceDir,
-					args.options.excludePaths,
-					args.contract.absolutePath,
+					solc.outDir,
+					solc.sourceDir,
+					solc.excludePaths,
+					solc.document.absolutePath,
 				)
 				const compilationSuccessMessage = "Compiled succesfully."
 				vscode.window.showInformationMessage(compilationSuccessMessage)

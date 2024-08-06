@@ -1,7 +1,7 @@
+import type * as vscode from "vscode-languageserver/node"
 // import { ParsedContract } from "../code/ParsedContract";
-import { ParsedCode } from "../code/ParsedCode"
+import type { ParsedCode } from "../code/ParsedCode"
 
-import * as vscode from "vscode-languageserver/node"
 export class TypeReference {
 	public isCurrentElementSelected: boolean
 	public location: vscode.Location
@@ -16,16 +16,10 @@ export class TypeReference {
 	}
 
 	public static filterFoundResults(results: TypeReference[]): TypeReference[] {
-		const foundResult = results.filter((x) => x.isCurrentElementSelected === true)
-		if (foundResult.length > 0) {
-			const foundLocations = foundResult.filter((x) => x.location != null)
-			if (foundLocations.length > 0) {
-				return foundLocations
-			} else {
-				return [TypeReference.create(true)]
-			}
-		} else {
-			return []
-		}
+		const selecteds = results.filter((x) => x.isCurrentElementSelected)
+		if (!selecteds.length) return []
+		const locations = selecteds.filter((x) => x.location != null)
+		if (!locations.length) return [TypeReference.create(true)]
+		return locations
 	}
 }

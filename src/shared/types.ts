@@ -100,10 +100,11 @@ export type MultisolcSettings = {
 	excludePaths?: string[]
 	localSolcVersion: string
 	remoteSolcVersion: string
-	compilerConfig?: Partial<SolcInput>
+	input?: Partial<SolcInput>
 	npmSolcPackage: string
 	rootPath: string
 	selectedType: CompilerType
+	document?: SourceDocument
 }
 
 export interface ErrorWarningCounts {

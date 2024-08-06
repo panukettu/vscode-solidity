@@ -9,20 +9,28 @@ export const parseOutputLabels = (lineTexts: string[] = []) =>
 	lineTexts
 		.map((line, index) => {
 			const trimmed = line.trim()
+
 			let split = trimmed
 				.split(":")
 				.map((s) => s.trim())
 				.filter(Boolean)
-
 			if (split.length < 2) {
 				split = trimmed
 					.split(" ")
 					.map((s) => s.trim())
 					.filter(Boolean)
-				if (split.length < 2) {
-					return null
-				}
 			}
+
+			let key = split[0]
+
+			if (key?.indexOf("] ") !== -1) {
+				key = key.split(" ")[1]
+			}
+
+			if (key.indexOf("]") !== -1) {
+				key = split[1]
+			}
+
 			if (split[0] === "Error") {
 				const isEqTest = lineTexts[index + 1].indexOf("==") !== -1 || lineTexts[index + 1].indexOf("!=") !== -1
 				return {
@@ -36,13 +44,13 @@ export const parseOutputLabels = (lineTexts: string[] = []) =>
 								.join("\n")
 						: lineTexts[index + 1],
 				}
-			} else {
-				return {
-					type: "Log",
-					severity: 2,
-					key: split[0],
-					value: split.map((s) => s.trim()).join("\n"),
-				}
+			}
+
+			return {
+				type: "Log",
+				severity: 2,
+				key,
+				value: split.map((s) => s.trim()).join("\n"),
 			}
 		})
 		.filter(Boolean)
@@ -57,7 +65,6 @@ export function parseOutputCompilerErrors(
 	const errors: DiagnosticWithFileName[] = []
 
 	let match: string[] | null = null
-	// biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
 	while ((match = regexp.exec(output)) !== null) {
 		errors.push(forgeOutputErrorToDiagnostic(match, getCurrentProjectInWorkspaceRootFsPath()))
 	}

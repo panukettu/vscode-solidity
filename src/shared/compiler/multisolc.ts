@@ -1,6 +1,8 @@
 import { errorToDiagnostic } from "@server/providers/utils/diagnostics"
+import { getConfig } from "@server/server-config"
 import { CompilerType } from "@shared/enums"
 import { Project } from "@shared/project/project"
+import type { SourceDocument } from "@shared/project/sourceDocument"
 import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
 import type { MultisolcSettings, SolidityConfig } from "@shared/types"
 import { ExtensionSolc } from "./location/solc-default"
@@ -72,7 +74,7 @@ export class Multisolc {
 	}
 
 	public async compileInputWith(
-		input: SolcInput,
+		input: Partial<SolcInput>,
 		type: CompilerType = null,
 		callbacks: any = undefined,
 	): Promise<SolcOutput> {
@@ -126,10 +128,19 @@ export class Multisolc {
 		}
 	}
 
-	public async compileWithDiagnostic(filePath: string, documentText: string, config: SolidityConfig) {
+	public async compileWithDiagnostic(filePath: string, documentText: string) {
+		const config = getConfig()
+		if (!this.isSolcInitialized(config.compiler.type)) {
+			await this.initializeSolc(config.compiler.type)
+		}
+
 		if (!this.isRootPathSet()) {
 			const output = await this.compileInputWith({
 				language: "Solidity",
+				settings: {
+					evmVersion: "cancun",
+					remappings: config.project.remappings,
+				},
 				sources: {
 					[filePath]: {
 						content: documentText,
@@ -138,20 +149,54 @@ export class Multisolc {
 			})
 			return output.errors?.map(errorToDiagnostic) ?? []
 		}
-		const contracts = new SourceDocumentCollection()
-		const project = new Project(config, this.rootPath)
 
-		const doc = contracts.addSourceDocumentAndResolveImports(filePath, documentText, project)
-		const input = contracts.getMinimalSolcInput()
+		const project = new Project(config, this.rootPath)
+		const doc = project.contracts.addSourceDocumentAndResolveImports(filePath, documentText, project)
+
+		const fileCallback = project.getImportCallback(doc)
+		const input = project.contracts.getMinimalSolcInput(project.remappings)
+
 		try {
-			const output = await this.compileInputWith(input, config.compiler.type, doc.getImportCallback())
+			const output = await this.compileInputWith(input, config.compiler.type, fileCallback)
 			return output.errors?.map(errorToDiagnostic) ?? []
-		} catch (error) {
-			console.debug("compileWithDiagnostic:", error)
-			this.initializeSolc(config.compiler.type).then(async () => {
-				const output = await this.compileInputWith(input, config.compiler.type, doc.getImportCallback())
-				return output.errors?.map(errorToDiagnostic) ?? []
-			})
+		} catch (error: any) {
+			console.debug("compileWithDiagnostic:", error.message)
+		}
+	}
+
+	public static getSettings(
+		project: Project,
+		document?: SourceDocument,
+		overrides?: {
+			exclusions?: string[]
+			sourceDir?: string
+			type?: CompilerType
+		},
+	): MultisolcSettings {
+		const { cfg } = project
+		cfg.compilerSettings.input?.outputSelection
+			? cfg.compilerSettings.input.outputSelection
+			: (cfg.compilerSettings.input.outputSelection = {
+					"*": { "*": cfg.compilerSettings.output, "": [] },
+				})
+
+		return {
+			input: {
+				language: "Solidity",
+				settings: {
+					...cfg.compilerSettings.input,
+					remappings: cfg.project.remappings.concat(cfg.compilerSettings.input.remappings ?? []),
+				},
+			},
+			document,
+			excludePaths: overrides?.exclusions ?? cfg.project.exclude,
+			rootPath: project?.rootPath,
+			sourceDir: overrides?.sourceDir ?? cfg.project.sources,
+			outDir: project.projectPackage.outDir,
+			remoteSolcVersion: cfg.compiler.remote,
+			localSolcVersion: cfg.compiler.local,
+			npmSolcPackage: cfg.compiler.npm,
+			selectedType: overrides?.type ?? cfg.compiler.type,
 		}
 	}
 }

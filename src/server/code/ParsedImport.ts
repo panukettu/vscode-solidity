@@ -56,13 +56,7 @@ export class ParsedImport extends ParsedCode {
 	public initialiseDocumentReference(parsedDocuments: ParsedDocument[]) {
 		for (let index = 0; index < parsedDocuments.length; index++) {
 			const element = parsedDocuments[index]
-			if (
-				element.sourceDocument.absolutePath ===
-				this.document.sourceDocument.resolveImportPath(
-					this.from,
-					this.document.sourceDocument.project.getProjectSolFiles(),
-				)
-			) {
+			if (element.sourceDocument.absolutePath === this.document.sourceDocument.resolveImportPath(this.from)) {
 				this.documentReference = element
 				if (this.document.importedDocuments.indexOf(element) === -1) {
 					this.document.addImportedDocument(element)
@@ -87,23 +81,14 @@ export class ParsedImport extends ParsedCode {
 
 	public getRelativePath(from: string): string {
 		if (!this.document?.sourceDocument) return ""
-		const result = path.relative(
-			path.dirname(from),
-			this.document.sourceDocument.resolveImportPath(
-				this.from,
-				this.document.sourceDocument.project.getProjectSolFiles(),
-			),
-		)
+		const result = this.document.sourceDocument.resolveImportPath(this.from)
 		if (result.startsWith(".")) return result
 		return `./${result}`
 	}
 
 	public getReferenceLocation(): Location {
 		if (!this.document) return null
-		const path = this.document.sourceDocument.resolveImportPath(
-			this.from,
-			this.document.sourceDocument.project.getProjectSolFiles(),
-		)
+		const path = this.document.sourceDocument.resolveImportPath(this.from)
 		// note: we can use the path to find the referenced source document too.
 		return Location.create(URI.file(path).toString(), Range.create(0, 0, 0, 0))
 	}

@@ -3,7 +3,7 @@ import { URI } from "vscode-uri"
 import { findFirstRootProjectFile } from "../shared/project/project-utils"
 import { CodeWalkerService } from "./codewalker"
 import { ServerCompilers } from "./server-compiler"
-import { config, settings } from "./server-config"
+import { getConfig, settings } from "./server-config"
 
 export let selectedDocument = null
 export let selectedProjectFolder = null
@@ -23,13 +23,17 @@ export function initCommon(document: any) {
 }
 
 export function getCodeWalkerService() {
-	if (codeWalkerService != null) {
-		if (codeWalkerService.rootPath === selectedProjectFolder && deepEqual(codeWalkerService.config, config)) {
-			return codeWalkerService
-		}
+	const config = getConfig()
+
+	if (
+		codeWalkerService &&
+		codeWalkerService?.rootPath === selectedProjectFolder &&
+		deepEqual(codeWalkerService.config, config)
+	) {
+		return codeWalkerService
 	}
-	codeWalkerService = new CodeWalkerService(selectedProjectFolder, config)
-	return codeWalkerService
+
+	return (codeWalkerService = new CodeWalkerService(selectedProjectFolder, config))
 }
 
 export function initWorkspaceRootFolder(uri: string) {
@@ -52,6 +56,8 @@ export function initWorkspaceRootFolder(uri: string) {
 export function initCurrentProjectInWorkspaceRootFsPath(currentDocument: string) {
 	if (!ServerCompilers) throw new Error("2ServerCompilers not initialized")
 	if (!settings) throw new Error("2settings not initialized")
+
+	const config = getConfig()
 
 	if (!config.project.monorepo) {
 		ServerCompilers.rootPath = settings.rootPath

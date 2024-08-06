@@ -1,5 +1,5 @@
-import * as fs from "fs"
-import * as path from "path"
+import * as fs from "node:fs"
+import * as path from "node:path"
 import type { MinimalURI, ScopedURI } from "./types"
 // import { URI } from 'vscode-uri';
 export const toScopedURI = (scope: string, uri: MinimalURI): ScopedURI => `${scope}-${uri.toString()}`
@@ -24,7 +24,7 @@ export function formatPath(contractPath: string) {
  * @returns an array containing unique remappings
  */
 export function replaceRemappings(remappings: string[], replacer: string[]): string[] {
-	remappings.forEach(function (remapping, index) {
+	remappings.forEach((remapping, index) => {
 		const prefix = remapping.split("=")[0]
 		for (const replaceRemapping of replacer) {
 			const replacePrefix = replaceRemapping.split("=")[0]

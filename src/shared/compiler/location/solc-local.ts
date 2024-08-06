@@ -1,4 +1,4 @@
-import { existsSync } from "fs"
+import { existsSync } from "node:fs"
 import { CompilerType } from "@shared/enums"
 import solc from "solc"
 import { SolcLoader } from "./loader"

@@ -29,15 +29,14 @@ export class CodeWalkerService {
 
 	public initDocuments() {
 		if (!this.project) throw new Error("Project not initialized")
-		const sourceDocuments = new SourceDocumentCollection()
 
 		for (const path of this.project.getProjectSolFiles() ?? []) {
-			const item = sourceDocuments.addSourceDocumentAndResolveImports(path, null, this.project)
+			const item = this.project.contracts.addSourceDocumentAndResolveImports(path, null, this.project)
 			this.parseDocumentAsync(item.unformattedCode, false, item)
 		}
 
-		for (const libPath of this.project.getLibSourceFiles()) {
-			const item = sourceDocuments.addSourceDocumentAndResolveImports(libPath, null, this.project)
+		for (const libPath of this.project.getLibSolFiles()) {
+			const item = this.project.contracts.addSourceDocumentAndResolveImports(libPath, null, this.project)
 			this.parseDocumentAsync(item.unformattedCode, true, item)
 		}
 		queueMicrotask(() => {
@@ -49,28 +48,27 @@ export class CodeWalkerService {
 	}
 
 	public initialiseChangedDocuments() {
-		const sourceDocuments = new SourceDocumentCollection()
 		this.project.getProjectSolFiles().forEach((contractPath) => {
-			sourceDocuments.addSourceDocumentAndResolveImports(contractPath, null, this.project)
+			this.project.contracts.addSourceDocumentAndResolveImports(contractPath, null, this.project)
 		})
-		sourceDocuments.documents.forEach((sourceDocumentItem) => {
-			this.parseDocumentChanged(sourceDocumentItem.unformattedCode, false, sourceDocumentItem)
+		this.project.contracts.documents.forEach((doc) => {
+			this.parseDocumentChanged(doc.unformattedCode, false, doc)
 		})
 	}
 
 	public getSelectedDocument(document: vscode.TextDocument, position: vscode.Position): ParsedDocument {
 		let selectedDocument: ParsedDocument
 		let selectedSourceDocument: SourceDocument
-		if (this.project == null) return selectedDocument
+		if (!this.project) return selectedDocument
 
 		const offset = document.offsetAt(position)
-		const documentText = document.getText()
+		const contents = document.getText()
 
 		const cached = this.parsedDocumentsCache.find((x) => {
 			return `file://${x?.sourceDocument.absolutePath}` === document.uri
 		})
 
-		if ((cached && documentText === cached.sourceDocument?.unformattedCode) || cached?.fixedSource) {
+		if ((cached && contents === cached.sourceDocument?.unformattedCode) || cached?.fixedSource) {
 			selectedDocument = cached
 			selectedDocument.initCache(offset)
 			selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache)
@@ -78,11 +76,11 @@ export class CodeWalkerService {
 			const sourceDocuments = new SourceDocumentCollection()
 			selectedSourceDocument = sourceDocuments.addSourceDocumentAndResolveImports(
 				URI.parse(document.uri).fsPath,
-				documentText,
+				contents,
 				this.project,
 			)
 
-			selectedDocument = this.parseSelectedDocument(documentText, offset, position.line, false, selectedSourceDocument)
+			selectedDocument = this.parseSelectedDocument(contents, offset, position.line, false, selectedSourceDocument)
 			selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache)
 		}
 		return selectedDocument

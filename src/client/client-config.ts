@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import type { ContractLevelSolcOutput, SolcInput } from "../shared/compiler/types-solc"
 import { CompilerType } from "../shared/enums"
 import { findFirstRootProjectFile } from "../shared/project/project-utils"
-import type { MultisolcSettings, SolidityConfig } from "../shared/types"
+import type { SolidityConfig } from "../shared/types"
 import { replaceRemappings } from "../shared/util"
 
 // biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
@@ -28,23 +28,21 @@ export class Config {
 		}>("project")
 	}
 	public static getCompiler() {
-		const _compiler = vscode.workspace.getConfiguration("solidity").get<{
+		const compiler = vscode.workspace.getConfiguration("solidity").get<{
 			outDir: string
 			npm: string
 			remote: string
 			local: string
 			type: any
 		}>("compiler")
-		const _compilerSettings = vscode.workspace.getConfiguration("solidity").get<{
-			output: ContractLevelSolcOutput[]
-			input: Partial<SolcInput["settings"]>
-		}>("compilerSettings")
-		if (_compiler.type === "string") {
-			_compiler.type = CompilerType[_compiler.type]
-		}
+
+		if (compiler.type === "string") compiler.type = CompilerType[compiler.type]
 		return {
-			compiler: _compiler,
-			compilerSettings: _compilerSettings,
+			compiler,
+			compilerSettings: vscode.workspace.getConfiguration("solidity").get<{
+				output: ContractLevelSolcOutput[]
+				input: Partial<SolcInput["settings"]>
+			}>("compilerSettings"),
 		}
 	}
 	public static getTestVerbosity() {
@@ -56,35 +54,6 @@ export class Config {
 
 	public static getCompilerType(): CompilerType {
 		return CompilerType[vscode.workspace.getConfiguration("solidity").get<string>("compiler.type")]
-	}
-
-	public static getCompilerOptions(
-		exclusions?: string[],
-		sourceDir?: string | null,
-		overrideType?: CompilerType,
-	): MultisolcSettings {
-		const cfg = Config.getCompiler()
-		cfg.compilerSettings.input.outputSelection
-			? cfg.compilerSettings.input.outputSelection
-			: (cfg.compilerSettings.input.outputSelection = {
-					"*": { "*": cfg.compilerSettings.output, "": [] },
-			  })
-		const project = Config.getProject()
-
-		return {
-			excludePaths: exclusions || project.excludes,
-			rootPath: getCurrentWorkspaceRootFsPath(),
-			sourceDir: sourceDir ? sourceDir : sourceDir === null ? null : Config.getProject().sources,
-			outDir: Config.getOutDir(),
-			compilerConfig: {
-				language: "Solidity",
-				settings: cfg.compilerSettings.input,
-			},
-			remoteSolcVersion: cfg.compiler.remote,
-			localSolcVersion: cfg.compiler.local,
-			npmSolcPackage: cfg.compiler.npm,
-			selectedType: overrideType || cfg.compiler.type,
-		}
 	}
 
 	public static getRemappings() {
@@ -113,12 +82,10 @@ export function getCurrentProjectInWorkspaceRootFsPath() {
 		const projectFolder = findFirstRootProjectFile(currentRootPath, currentDocument.fsPath)
 		if (projectFolder == null) {
 			return currentRootPath
-		} else {
-			return projectFolder
 		}
-	} else {
-		return currentRootPath
+		return projectFolder
 	}
+	return currentRootPath
 }
 
 export function getCurrentWorkspaceRootFsPath() {
@@ -138,7 +105,6 @@ export function getSolidityRemappings(): string[] {
 	const remappings = Config.getRemappings()
 	if (process.platform === "win32") {
 		return replaceRemappings(remappings, Config.getRemappingsWindows())
-	} else {
-		return replaceRemappings(remappings, Config.getRemappingsUnix())
 	}
+	return replaceRemappings(remappings, Config.getRemappingsUnix())
 }

@@ -58,10 +58,12 @@ export const createCompilerDiagnostics = (
 		}
 	}
 
-	const diagnostics = Array.from(diagnosticsMap.entries()).map(([uri, diagnostics]) => {
-		return [uri, diagnostics] as [string, vscode.Diagnostic[]]
-	})
-	vscode.commands.executeCommand(SERVER_COMMANDS_LIST["diagnostic.set"], args[1], args[2], diagnostics)
+	vscode.commands.executeCommand(
+		SERVER_COMMANDS_LIST["diagnostic.set"],
+		args[1],
+		args[2],
+		Array.from(diagnosticsMap.entries()),
+	)
 	return errorWarningCounts
 }
 
@@ -109,16 +111,13 @@ export const createDiagnosticFromLabels = (
 			),
 		)
 
-		const diagnostic = Diagnostic.create(
+		return Diagnostic.create(
 			range,
 			`${item.value}`,
 			item.severity as any,
 			item.severity === 1 ? "assert" : "log",
-			"forge-test",
+			functionName,
 		)
-		diagnostic.source = `${functionName}: ${id}`
-
-		return diagnostic
 	})
 
 	return results.filter(Boolean)

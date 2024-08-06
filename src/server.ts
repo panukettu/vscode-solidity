@@ -3,7 +3,7 @@ import { provideHover } from "@server/providers/hover"
 import { provideSignatureHelp } from "@server/providers/signatures"
 import { validateAllDocuments, validateDocument } from "@server/server-diagnostics"
 import { DocUtil } from "@server/utils/text-document"
-import { resolveCache } from "@shared/project/project"
+import { filesCache } from "@shared/project/project"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import * as vscode from "vscode-languageserver/node"
 import { DidChangeConfigurationNotification } from "vscode-languageserver/node"
@@ -13,7 +13,7 @@ import { getAllReferencesToItem } from "./server/providers/references"
 import { providerParams } from "./server/providers/utils/common"
 import { executeCommand } from "./server/server-commands"
 import { compilerInitialized, configureServerCachePath } from "./server/server-compiler"
-import { config, handleConfigChange, handleInitialize, handleInitialized, settings } from "./server/server-config"
+import { getConfig, handleConfigChange, handleInitialize, handleInitialized, settings } from "./server/server-config"
 import type { CommandParamsBase } from "./server/server-types"
 import { getCodeWalkerService, initCommon } from "./server/server-utils"
 
@@ -101,7 +101,7 @@ connection.onDidChangeWatchedFiles(({ changes }) => {
 	if (!changes.some((change) => change.uri.includes("foundry.toml") || change.uri.includes("solhint.json"))) return
 
 	handleConfigChange({} as any)
-	resolveCache.clear()
+	filesCache.clear()
 	return validateAllDocuments()
 })
 
@@ -114,11 +114,12 @@ connection.onCodeAction((handler) => {
 connection.onDidChangeConfiguration(async (change) => {
 	await handleConfigChange(change)
 	if (settings.linter != null) settings.linter.loadFileConfig(settings.rootPath)
-	resolveCache.clear()
+	filesCache.clear()
 	return validateAllDocuments()
 })
 
 documents.onDidChangeContent(async (event) => {
+	const config = getConfig()
 	if (!config.validation.onChange || event.document.version < 1 || !compilerInitialized) return
 	return validateDocument(event.document)
 })
@@ -136,11 +137,14 @@ documents.onDidClose((event) => {
 })
 
 documents.onDidOpen(async (event) => {
+	const config = getConfig()
 	if (!config.validation.onOpen || !compilerInitialized) return
 	return validateDocument(event.document)
 })
 
 documents.onDidSave(async (event) => {
+	const config = getConfig()
+
 	if (!config.validation.onSave || !compilerInitialized) return
 	return validateDocument(event.document)
 })

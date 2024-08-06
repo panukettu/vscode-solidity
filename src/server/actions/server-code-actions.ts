@@ -2,7 +2,7 @@ import path from "node:path"
 import type { ParsedContract } from "@server/code/ParsedContract"
 import type { ParsedImport } from "@server/code/ParsedImport"
 import { fuzzySearchByName } from "@server/search/fuzzy"
-import { config } from "@server/server-config"
+import { getConfig } from "@server/server-config"
 import { DocUtil } from "@server/utils/text-document"
 import Fuse from "fuse.js"
 import * as vscode from "vscode-languageserver/node"
@@ -421,7 +421,7 @@ const importer: ActionDefinition = {
 
 			if (result.length) {
 				return result.concat(
-					createFuzzyNameFix(doc, diagnostic, doc.wordRange(), config.fuzzLevel.suggestionsWithImport, false),
+					createFuzzyNameFix(doc, diagnostic, doc.wordRange(), getConfig().fuzzLevel.suggestionsWithImport, false),
 				)
 			}
 

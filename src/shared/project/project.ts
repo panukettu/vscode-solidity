@@ -1,13 +1,64 @@
+import { existsSync, readFileSync } from "node:fs"
 import * as path from "node:path"
+import type { Callbacks } from "@shared/compiler/types-solc"
 import type { FoundryConfigParsed, SolidityConfig } from "@shared/types"
+import { formatPath } from "@shared/util"
 import { GlobSync, glob } from "glob"
 import { createLibPackages } from "./dependency-utils"
 import { type Package, createDefaultPackage } from "./package"
 import { getFoundryConfig, getHardhatSourceFolder, loadRemappings } from "./project-utils"
 import { type Remapping, parseRemappings } from "./remapping"
+import type { SourceDocument } from "./sourceDocument"
+import { SourceDocumentCollection } from "./sourceDocuments"
 
-export const resolveCache: Map<string, string> = new Map()
-export let filesCache: string[] = []
+type ImportPath = string
+type Source = string
+
+const cache = {
+	all: new Set<Source>(),
+	project: new Set<Source>(),
+	libs: new Set<Source>(),
+	resolved: new Map<ImportPath, Source>(),
+}
+export const filesCache = {
+	...cache,
+	lastSize: 0,
+	resolver:
+		(importPath: string) =>
+		(...resolved: string[]) => {
+			const result = resolved.find((res) => res && existsSync(path.normalize(res)))
+			if (!result) return null
+			cache.resolved.set(path.normalize(importPath), path.normalize(result))
+			return result
+		},
+	tryResolve: (importPath: ImportPath) => {
+		const source = cache.resolved.get(path.normalize(importPath))
+		if (source) return source
+		return filesCache.resolver(importPath)
+	},
+	find: (str: string, partial = false) => {
+		for (const item of cache.all) if (item === str || (partial && item.includes(str))) return item
+	},
+	clear: () => {
+		cache.all.clear()
+		cache.project.clear()
+		cache.libs.clear()
+		cache.resolved.clear()
+	},
+}
+
+type CacheKey = Exclude<keyof typeof cache, "resolved">
+function ok(res: ReturnType<typeof filesCache.tryResolve>) {
+	return typeof res === "string"
+}
+function cached(files: string[], scope?: CacheKey) {
+	files.forEach((file) => {
+		filesCache.all.add(file)
+		if (scope) filesCache[scope].add(file)
+	})
+	filesCache.lastSize = filesCache.all.size
+	return files
+}
 
 export class Project {
 	public projectPackage: Package
@@ -23,13 +74,16 @@ export class Project {
 	private glob: InstanceType<typeof GlobSync>
 	private globPath: string
 	private absoluteSources: string
+	public contracts: SourceDocumentCollection
 
 	constructor(config: SolidityConfig, rootPath: string) {
 		this.foundryConfig = getFoundryConfig(rootPath)
-		this.rootPath = rootPath
-
 		config.project.sources =
 			config.project.sources || this.foundryConfig?.profile?.src || getHardhatSourceFolder(rootPath)
+		this.libs = config.project.libs.map(formatPath)
+
+		this.contracts = new SourceDocumentCollection()
+		this.rootPath = rootPath
 
 		this.cfg = config
 
@@ -37,20 +91,31 @@ export class Project {
 			new Set((config.project?.includePaths ?? []).concat(this.foundryConfig.profile.include_paths ?? [])),
 		)
 
+		this.cfg.project.remappings = loadRemappings({
+			foundry: this.foundryConfig,
+			cfg: this.cfg,
+			rootPath: this.rootPath,
+		})
+		this.remappings = parseRemappings(this.cfg.project.remappings, rootPath)
+
 		this.projectPackage = createDefaultPackage(
+			this.remappings,
+			path.dirname(rootPath).split(path.sep).pop(),
 			rootPath,
 			config.project.sources,
 			config.compiler.outDir,
 			this.includePaths.length ? this.includePaths : config.project.libs,
 		)
 
-		this.dependencies = createLibPackages(config.project.libs, rootPath, this.projectPackage, config.project.libSources)
+		this.dependencies = createLibPackages(
+			this.remappings,
+			rootPath,
+			config.project.libs,
+			this.projectPackage,
+			config.project.libSources,
+		)
 
-		this.projectPackage.dependencies = this.dependencies
-		this.libs = config.project.libs
-
-		this.remappings = parseRemappings(loadRemappings(this), this)
-		this.absoluteSources = this.projectPackage.getSolSourcesAbsolutePath()
+		this.absoluteSources = this.projectPackage.getSolRootPath()
 		this.globPath = `${this.absoluteSources}/**/*.sol`
 
 		this.glob = new GlobSync(this.globPath, {
@@ -58,71 +123,121 @@ export class Project {
 		})
 	}
 
+	public absoluteFromRoot(paths: string) {
+		if (!paths.includes(this.rootPath)) throw new Error(`Unrelated path: ${paths}. Project: ${this.rootPath}`)
+		return paths.replace(this.rootPath, "")
+	}
+	public fromRoot(paths: string) {
+		return path.join(this.rootPath, paths)
+	}
+	public fromSources(paths: string) {
+		return path.join(this.absoluteSources, paths)
+	}
+	// public getImportCallback(): Callbacks {
+	// 	this.project.checkCache()
+	// 	const solFiles = this.project.getIncludePathFiles()
+	// 	return {
+	// 		import: (importPath: string) => {
+	// 			const resolved = this.resolveImportPath(importPath, solFiles, true)
+
+	// 			if (resolved && existsSync(resolved)) {
+	// 				resolveCache.set(importPath, resolved)
+	// 				return {
+	// 					contents: readFileSync(resolved).toString(),
+	// 				}
+	// 			}
+
+	// 			const suggestions = this.project.getPossibleImports(this.absolutePath, importPath)
+	// 			return {
+	// 				error: suggestions.length ? `\nSuggestions:\n${suggestions.join("\n ")}` : "\nNo suggestions found.",
+	// 			}
+	// 		},
+	// 	}
+	// }
+	public getImportCallback(source?: SourceDocument): Callbacks {
+		return {
+			import: (importPath: string) => {
+				const resolved = this.resolveImport(importPath, source)
+
+				if (resolved && existsSync(resolved)) {
+					cache.resolved.set(importPath, resolved)
+					return {
+						contents: readFileSync(resolved).toString(),
+					}
+				}
+
+				const suggestions = this.getPossibleImports(source.absolutePath, importPath)
+				return {
+					error: suggestions.length ? `\nSuggestions:\n${suggestions.join("\n ")}` : "\nNo suggestions found.",
+				}
+			},
+		}
+	}
+
 	// This will need to add the current package as a parameter to resolve version dependencies
-	public findDependencyPackage(dependencyImport: string) {
-		return this.dependencies.find((depPack: Package) => depPack.isImportForThis(dependencyImport))
+	public findDependencyPackage(importPath: string) {
+		return this.dependencies.find((lib: Package) => lib.isImportForThis(importPath))
 	}
-	private getDefaultExclusions() {
-		return (
-			this.cfg.project.exclude?.length
-				? this.cfg.project.exclude.map((item) => path.join(this.rootPath, "**", item, "/**/*.sol"))
-				: []
-		).concat(["**/node_modules/**/"])
+
+	public resolveImport(importPath: string, source?: SourceDocument): string {
+		if (importPath[0] === "." && source) return path.resolve(path.dirname(source.absolutePath), importPath)
+
+		const resolved = filesCache.tryResolve(importPath)
+		if (ok(resolved)) return resolved
+
+		return resolved(
+			path.resolve(this.rootPath, importPath),
+			this.projectPackage.resolveImport(importPath),
+			this.findImportRemapping(importPath)?.resolveImport(importPath),
+			this.findDependencyPackage(importPath)?.resolveImport(importPath),
+			filesCache.find(importPath.replace(/['"]+/g, ""), true),
+		)
 	}
-	public getLibSourceFiles() {
-		return Array.from(
-			new Set(
-				this.dependencies.flatMap((d) => {
-					const lib = d.getSolSourcesAbsolutePath()
-					return glob.sync(path.join(lib, "/**/*.sol"))
-				}),
-			),
+	private onlyProjectFiles() {
+		const excludes = this.cfg.project.exclude?.map((item) => this.fromRoot(`${item}/**/*.sol`)) ?? []
+		excludes.push(...this.libs.map((lib) => this.fromRoot(`${lib}/**/*.sol`)).concat(excludes, ["**/node_modules/**"]))
+		excludes.push(path.join(this.fromRoot(`${this.projectPackage.outDir}/**`)))
+
+		return excludes
+	}
+
+	// public getIncludePathFiles() {
+	// 	if (!this.includePaths.length) return []
+	// 	const dir = this.includePaths.length > 1 ? `{${this.includePaths.join(",")}}` : this.includePaths[0]
+	// 	if (dir === this.cfg.project.sources) return this.getProjectSolFiles()
+
+	// 	return new GlobSync(`${this.rootPath}/${dir}/**/*.sol`, {
+	// 		ignore: ["**/node_modules/**/"],
+	// 	}).found
+	// }
+
+	public getAllSolFiles() {
+		if (filesCache.all.size) return Array.from(filesCache.all)
+		return cached(this.getProjectSolFiles().concat(this.getLibSolFiles()))
+	}
+	public getProjectSolFiles() {
+		if (filesCache.project.size) return Array.from(filesCache.project)
+		return cached(this._getProjectSolFiles(), "project")
+	}
+
+	public getLibSolFiles() {
+		if (filesCache.libs.size) return Array.from(filesCache.libs)
+		return cached(
+			this.dependencies.flatMap((d) => glob.sync(d.fromRoot("/**/*.sol"))),
+			"libs",
 		)
 	}
 
-	public getIncludePathFiles() {
-		if (!this.includePaths.length) return []
-		const dir = this.includePaths.length > 1 ? `{${this.includePaths.join(",")}}` : this.includePaths[0]
-		if (dir === this.cfg.project.sources) return this.getProjectSolFiles()
-
-		return new GlobSync(`${this.rootPath}/${dir}/**/*.sol`, {
-			ignore: ["**/node_modules/**/"],
-		}).found
-	}
-
-	public checkCache() {
-		if (Date.now() - this.cacheTime > 10000) {
-			filesCache = []
-			this.cacheTime = Date.now()
-		}
-	}
-
-	public getProjectSolFiles() {
-		this.checkCache()
-		if (filesCache.length === 0) {
-			return this._getProjectSolFiles()
-		}
-		return filesCache
-	}
-
 	public _getProjectSolFiles() {
-		const exclusions = this.getDefaultExclusions()
-		if (this.rootPath !== this.absoluteSources) {
-			this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: exclusions })
-
-			return (filesCache = this.glob.found)
-		}
-
-		exclusions.push(path.join(this.rootPath, this.projectPackage.build_dir, "**"))
-		for (const libFolder of this.libs) {
-			exclusions.push(path.join(this.rootPath, libFolder, "**"))
+		const exclusions = this.onlyProjectFiles()
+		if (this.projectPackage.solSources?.length) {
+			return (this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: exclusions })).found
 		}
 
 		for (const x of this.getAllRelativeLibrariesAsExclusionsFromRemappings()) {
 			exclusions.push(x)
 		}
-		this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: exclusions })
-		return (filesCache = this.glob.found)
+		return (this.glob = new GlobSync(this.globPath, { ...this.glob, ignore: exclusions })).found
 	}
 
 	public getAllRelativeLibrariesAsExclusionsFromRemappings(): string[] {
@@ -133,7 +248,7 @@ export class Project {
 		const results: string[] = []
 
 		this.remappings.forEach((mapping) => {
-			const dirLib = mapping.getLibraryPathIfRelative(this.projectPackage.getSolSourcesAbsolutePath())
+			const dirLib = mapping.getLibraryPathIfRelative(this.projectPackage.getSolRootPath())
 			if (dirLib != null && results.find((x) => x === dirLib) == null) {
 				results.push(dirLib)
 			}
@@ -143,7 +258,7 @@ export class Project {
 
 	public getAllRelativeLibrariesRootDirsFromRemappingsAbsolutePaths() {
 		return this.getAllRelativeLibrariesRootDirsFromRemappings().map((x) =>
-			path.resolve(this.projectPackage.getSolSourcesAbsolutePath(), x),
+			path.resolve(this.projectPackage.getSolRootPath(), x),
 		)
 	}
 
@@ -154,23 +269,23 @@ export class Project {
 		return this.sortRemappings(remappings)[0]
 	}
 
-	public findDirectImport(absolutePath: string): string {
-		for (const includePath of this.includePaths) {
-			const includePathResolved = path.resolve(this.rootPath, includePath)
-			if (absolutePath.startsWith(includePathResolved)) {
-				let result = absolutePath.replace(`${includePathResolved}`, "")
-				result = result.startsWith("/") ? result.substring(1) : result
-				if (result.indexOf("/") === 0) return `./${result}`
-				return result
-			}
-		}
-		return absolutePath
-	}
+	// public findDirectImport(absolutePath: string): string {
+	// 	if (!this.includePaths.length) return absolutePath
+	// 	for (const includePath of this.includePaths) {
+	// 		const includePathResolved = path.resolve(this.rootPath, includePath)
+	// 		if (absolutePath.startsWith(includePathResolved)) {
+	// 			let result = absolutePath.replace(`${includePathResolved}`, "")
+	// 			result = result.startsWith("/") ? result.substring(1) : result
+	// 			if (result.indexOf("/") === 0) return `./${result}`
+	// 			return result
+	// 		}
+	// 	}
+	// 	return absolutePath
+	// }
 
 	public findShortestImport(from: string, importPath: string): string {
 		let result = this.findRemappingForFile(importPath)?.createImportFromFile(importPath)
 		if (!result) result = this.findImportRemapping(importPath)?.createImportFromFile(importPath)
-		if (!result) result = this.findDirectImport(importPath)
 		if (result && result !== importPath) return result
 		return path.relative(path.dirname(from), importPath)
 	}

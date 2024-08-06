@@ -1,12 +1,11 @@
-import * as path from "path"
+import * as path from "node:path"
 import { Config, getCurrentProjectInWorkspaceRootFsPath, getCurrentWorkspaceRootFolder } from "@client/client-config"
-import { SourceDocumentCollection } from "@shared/project/sourceDocuments"
-import { formatPath } from "@shared/util"
 import * as vscode from "vscode"
 
-import { ClientState } from "@client/client-state"
-import { BaseCommandArgs } from "@client/client-types"
-import { CompilerType } from "@shared/enums"
+import type { ClientState } from "@client/client-state"
+import type { BaseCommandArgs } from "@client/client-types"
+import { Multisolc } from "@shared/compiler/multisolc"
+import type { CompilerType } from "@shared/enums"
 import { Project } from "@shared/project/project"
 
 export async function compileActiveFile(
@@ -16,9 +15,7 @@ export async function compileActiveFile(
 ): Promise<Array<string>> {
 	const editor = vscode.window.activeTextEditor
 
-	if (!editor) {
-		return // We need something open
-	}
+	if (!editor) return // We need something open
 
 	if (path.extname(editor.document.fileName) !== ".sol") {
 		vscode.window.showWarningMessage("This not a solidity file (*.sol)")
@@ -32,26 +29,18 @@ export async function compileActiveFile(
 	}
 
 	try {
-		const contractsCollection = new SourceDocumentCollection()
-
 		const project = new Project(Config.getFullConfig(), getCurrentProjectInWorkspaceRootFsPath())
-		const contract = contractsCollection.addSourceDocumentAndResolveImports(
+		const document = project.contracts.addSourceDocumentAndResolveImports(
 			editor.document.fileName,
 			editor.document.getText(),
 			project,
 		)
 
-		const packagesPath = project.libs.map((lib) => formatPath(lib))
-		const compilerOpts = Config.getCompilerOptions(packagesPath, null, compilerOverride)
-
-		return state.compilers.compile(args, {
-			solcInput: contractsCollection.getSolcInput(compilerOpts),
-			state,
-			options: compilerOpts,
-			contract,
-			solcType: compilerOverride || Config.getCompilerType(),
-		})
+		const settings = Multisolc.getSettings(project, document, { type: compilerOverride })
+		settings.input.sources = project.contracts.getSolcInputSource()
+		return state.compilers.compile(args, settings)
 	} catch (e) {
-		console.debug("Unhandled:", e.message)
+		console.debug("compileActiveFile:", e.message)
+		return []
 	}
 }

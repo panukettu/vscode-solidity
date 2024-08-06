@@ -1,12 +1,12 @@
 import { ContractType } from "@shared/enums"
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver"
+import { type CompletionItem, CompletionItemKind } from "vscode-languageserver"
 import { TypeReference } from "../search/TypeReference"
-import { IParsedExpressionContainer } from "./IParsedExpressionContainer"
+import type { IParsedExpressionContainer } from "./IParsedExpressionContainer"
 import { ParsedCode } from "./ParsedCode"
-import { ParsedConstant } from "./ParsedConstant"
+import type { ParsedConstant } from "./ParsedConstant"
 import { ParsedContractIs } from "./ParsedContractIs"
 import { ParsedCustomType } from "./ParsedCustomType"
-import { ParsedDeclarationType } from "./ParsedDeclarationType"
+import type { ParsedDeclarationType } from "./ParsedDeclarationType"
 import { ParsedDocument } from "./ParsedDocument"
 import { ParsedEnum } from "./ParsedEnum"
 import { ParsedError } from "./ParsedError"
@@ -16,7 +16,7 @@ import { ParsedFunction } from "./ParsedFunction"
 import { ParsedStateVariable } from "./ParsedStateVariable"
 import { ParsedStruct } from "./ParsedStruct"
 import { ParsedUsing } from "./ParsedUsing"
-import { Element } from "./types"
+import type { Element } from "./types"
 
 export class ParsedContract extends ParsedCode implements IParsedExpressionContainer {
 	public functions: ParsedFunction[] = []
@@ -169,8 +169,8 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 				this.contractType === ContractType.Contract
 					? "contract"
 					: this.contractType === ContractType.Library
-					? "library"
-					: "interface"
+						? "library"
+						: "interface"
 			results = results.concat(x.getSemanticToken(`function.declaration.${type}`)).concat(x.getAllSemanticTokens())
 		})
 
@@ -380,9 +380,8 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 			const foundResult = TypeReference.filterFoundResults(results)
 			if (foundResult.length > 0) {
 				return foundResult
-			} else {
-				return [this.createFoundReferenceLocationResultNoLocation()]
 			}
+			return [this.createFoundReferenceLocationResultNoLocation()]
 		}
 		return [this.createNotFoundReferenceLocationResult()]
 	}
@@ -734,11 +733,10 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 			}
 
 			completionItem.insertText = this.name
-			const path = this.document.sourceDocument.absolutePath.split("/")
-			const fileName = path[path.length - 1]
-			const folderNames = `${(path.length > 3 ? path.slice(-3, -1) : path.slice(-2, -1)).join("/")}/${fileName}`
 
-			completionItem.detail = `${folderNames}`
+			completionItem.detail = this.document.sourceDocument.project.absoluteFromRoot(
+				this.document.sourceDocument.absolutePath,
+			)
 			completionItem.documentation = this.getMarkupInfo(true)
 			this.completionItem = completionItem
 		}
@@ -896,7 +894,6 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 						break
 					default:
 						for (const key in statement) {
-							// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 							if (statement.hasOwnProperty(key)) {
 								const element = statement[key]
 								if (Array.isArray(element)) {
@@ -907,7 +904,6 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 									})
 								} else if (element instanceof Object) {
 									// recursively drill down to elements with start/end e.g. literal type
-									// biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
 									if (element.hasOwnProperty("start") && element.hasOwnProperty("end")) {
 										this.initialiseVariablesMembersEtc(element, statement, null)
 									}

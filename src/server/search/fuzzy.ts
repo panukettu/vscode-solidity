@@ -1,7 +1,7 @@
 import type { ParsedCode } from "@server/code/ParsedCode"
 import { ParsedContract } from "@server/code/ParsedContract"
 import type { ParsedDocument } from "@server/code/ParsedDocument"
-import { config, settings } from "@server/server-config"
+import { getConfig } from "@server/server-config"
 import type { DocUtil } from "@server/utils/text-document"
 import Fuse from "fuse.js"
 
@@ -10,21 +10,27 @@ export const fuzzySearchByName = (
 	from: ParsedContract | ParsedDocument,
 	doc: DocUtil,
 	unique = false,
-	threshold = config.fuzzLevel.suggestions,
+	threshold?: number,
 	wrappingNative?: boolean,
 ) => {
+	const config = getConfig()
+
+	const thresholds = {
+		normal: threshold ?? config.fuzzLevel.suggestions,
+		loose: config.fuzzLevel.suggestionsLoose,
+	}
 	const result: { match: ParsedCode; score: number }[] = []
 
 	if (from instanceof ParsedContract) {
-		result.push(...getMatches(searchStr, from, doc, threshold, unique, wrappingNative))
+		result.push(...getMatches(searchStr, from, doc, thresholds, unique, wrappingNative))
 	} else {
 		const selectedItem = from.getSelectedItem(doc.currentOffset)
 
 		if (selectedItem.contract)
-			return getMatches(searchStr, selectedItem.contract, doc, threshold, unique, wrappingNative)
+			return getMatches(searchStr, selectedItem.contract, doc, thresholds, unique, wrappingNative)
 
 		for (const contract of from.innerContracts) {
-			const matches = getMatches(searchStr, contract, doc, threshold, unique, wrappingNative)
+			const matches = getMatches(searchStr, contract, doc, thresholds, unique, wrappingNative)
 			if (matches.length > 0) {
 				result.push(...matches)
 			}
@@ -38,7 +44,7 @@ const getMatches = (
 	searchStr: string,
 	from: ParsedContract,
 	doc: DocUtil,
-	threshold: number,
+	threshold: { normal: number; loose: number },
 	onlyUniqueNames = false,
 	wrappingNative = false,
 ) => {
@@ -110,30 +116,25 @@ const getMatches = (
 				isCaseSensitive: true,
 				shouldSort: true,
 				includeScore: true,
-				threshold,
+				threshold: threshold.loose,
 			},
 		)
 
-		let result = fuse.search(searchStr)
-		if (!result.length) {
-			result = new Fuse(
-				items.map((m) => m.name),
-				{
-					isCaseSensitive: true,
-					shouldSort: true,
-					includeScore: true,
-					threshold: config.fuzzLevel.suggestionsLoose,
-				},
-			).search(searchStr)
-		}
-		for (const item of result) {
-			const found = items.find((i) => i.name === item.item)
-			matches.push({ match: found, score: item.score })
-		}
+		const searchResult = fuse.search(searchStr)
 
-		return onlyUniqueNames
-			? matches.filter((m, i, a) => a.findIndex((t) => t.match.name === m.match.name) === i)
-			: matches
+		let results = searchResult.filter((r) => {
+			if (r.score === 0) matches.push({ match: items[r.refIndex], score: r.score })
+			return r.score <= threshold.normal
+		})
+
+		if (results.length === 0) results = searchResult
+		results.forEach((r) => {
+			if (r.score <= threshold.loose) {
+				matches.push({ match: items[r.refIndex], score: r.score })
+			}
+		})
+
+		return onlyUniqueNames ? matches.filter((m, i, a) => a.findIndex((t) => t.match === m.match) === i) : matches
 	} catch (e) {
 		console.debug("Fuzz:", e.message)
 	}

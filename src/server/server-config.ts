@@ -1,8 +1,7 @@
-import { execSync } from "node:child_process"
+import { Multisolc } from "@shared/compiler/multisolc"
 import { CompilerType } from "@shared/enums"
-import { resolveCache } from "@shared/project/project"
+import { Project } from "@shared/project/project"
 import { getFoundryConfig, loadRemappings } from "@shared/project/project-utils"
-import { parseRemappings } from "@shared/project/remapping"
 import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import type { MultisolcSettings, SolidityConfig } from "@shared/types"
 import packageJson from "package.json"
@@ -28,12 +27,7 @@ function defaultConfig() {
 		}
 	}
 
-	return {
-		...result,
-		compiler: {
-			...result.compiler,
-		},
-	}
+	return result
 }
 export const settings: ExtendedSettings = {
 	hasWorkspaceFolderCapability: false,
@@ -42,12 +36,17 @@ export const settings: ExtendedSettings = {
 	rootPath: "",
 }
 
-export let config = defaultConfig()
+let serverConfig: SolidityConfig = defaultConfig()
+
+export function getConfig() {
+	if (!serverConfig) return defaultConfig()
+	return serverConfig
+}
 
 export const handleConfigChange = async (change: vscode.DidChangeConfigurationParams) => {
 	await updateConfig({
-		...config,
-		...(await requestConfig()),
+		...serverConfig,
+		...(await createConfig()),
 	})
 }
 export function handleInitialize(params: vscode.InitializeParams): vscode.InitializeResult {
@@ -101,7 +100,7 @@ export function handleInitialize(params: vscode.InitializeParams): vscode.Initia
 	return result
 }
 export async function handleInitialized() {
-	await updateConfig(await requestConfig())
+	await updateConfig(await createConfig())
 
 	if (!settings.hasWorkspaceFolderCapability) return
 
@@ -124,88 +123,49 @@ export async function updateConfig(newConfig: SolidityConfig) {
 	// const sources = newConfig.project.sources ?? foundryCfg?.src ?? getHardhatSourceFolder(settings.rootPath)
 	// const includePaths = Array.from(new Set((config.project.includePaths ?? []).concat(foundryCfg.include_paths ?? [])))
 
-	config = {
-		...newConfig,
-		project: {
-			...config.project,
-			...newConfig.project,
-		},
-	}
-	if (config.linter.type === "solhint") {
-		settings.linter = new SolhintService(settings.rootPath, config.linter.rules)
-		settings.linter.setIdeRules(config.linter.rules)
+	serverConfig = newConfig
+	if (serverConfig.linter.type === "solhint") {
+		settings.linter = new SolhintService(settings.rootPath, serverConfig.linter.rules)
+		settings.linter.setIdeRules(serverConfig.linter.rules)
 	}
 
-	await createServerMultisolc(getCurrentMultisolcSettings(config))
+	await createServerMultisolc(getServerSolcSettings())
 }
 
-export async function requestMultisolcSettings(): Promise<MultisolcSettings> {
-	return getCurrentMultisolcSettings(await requestConfig())
+export function getServerSolcSettings(): MultisolcSettings {
+	return Multisolc.getSettings(new Project(serverConfig, settings.rootPath))
 }
 
-export function getCurrentMultisolcSettings(_config?: SolidityConfig): MultisolcSettings {
-	if (!_config) {
-		_config = config
-	}
-	return {
-		outDir: config.compiler.outDir,
-		compilerConfig: {
-			settings: {
-				optimizer: {
-					enabled: false,
-					runs: 200,
-				},
-				...config.compilerSettings.input,
-			},
-		},
-		rootPath: settings.rootPath,
-		excludePaths: config.project.exclude,
-		sourceDir: config.project.sources,
-		localSolcVersion: config.compiler.local,
-		remoteSolcVersion: config.compiler.remote,
-		npmSolcPackage: config.compiler.npm,
-		selectedType: config.compiler.type,
-	}
-}
-
-async function requestConfig() {
+async function createConfig() {
 	try {
 		const params: vscode.ConfigurationParams = {
 			items: [{ section: "solidity" }],
 		}
-		const cfg = (await connection.sendRequest("workspace/configuration", params)) as [Partial<SolidityConfig>]
-		const [configuration] = cfg
-		const forgetoml = getFoundryConfig(settings.rootPath)
-		return {
-			...configuration,
-			project: {
-				...configuration.project,
-				sources: configuration.project.sources ?? forgetoml?.profile?.src,
-				libs: Array.from(new Set((configuration.project?.libs ?? []).concat(forgetoml?.profile?.libs ?? []))),
-				includePaths: Array.from(
-					new Set((configuration.project?.includePaths ?? []).concat(forgetoml?.profile?.include_paths ?? [])),
-				),
-				remappings: loadRemappings({
-					rootPath: settings.rootPath,
-					cfg: {
-						project: {
-							...configuration.project,
-							remappings: replaceRemappings(
-								configuration.project.remappings,
-								configuration.project.remappingsWindows ?? configuration.project.remappingsUnix ?? [],
-							),
-						},
-					},
-					foundry: getFoundryConfig(settings.rootPath),
-				}),
-			},
-			compiler: {
-				...configuration.compiler,
-				type: CompilerType[configuration.compiler.type] || CompilerType.Extension,
-			},
-		} as SolidityConfig
+		const [cfg] = (await connection.sendRequest("workspace/configuration", params)) as [Partial<SolidityConfig>]
+
+		const foundry = getFoundryConfig(settings.rootPath)
+		cfg.project.libs = merge(cfg.project?.libs, foundry?.profile?.libs)
+		cfg.project.sources = cfg.project.sources ?? foundry?.profile?.src
+		cfg.project.includePaths = merge(cfg.project?.includePaths, foundry?.profile?.include_paths)
+
+		cfg.project.remappings = replaceRemappings(
+			cfg.project.remappings,
+			cfg.project.remappingsWindows ?? cfg.project.remappingsUnix ?? [],
+		)
+		cfg.project.remappings = loadRemappings({
+			rootPath: settings.rootPath,
+			cfg,
+			foundry,
+		})
+
+		cfg.compiler.type = CompilerType[cfg.compiler.type as unknown as string] || CompilerType.Extension
+		return cfg as SolidityConfig
 	} catch (e) {
 		console.debug("No config received:", e.message)
 		return defaultConfig()
 	}
+}
+
+function merge<T>(a: T[] = [], b: T[] = []): T[] {
+	return Array.from(new Set(a.concat(b)))
 }

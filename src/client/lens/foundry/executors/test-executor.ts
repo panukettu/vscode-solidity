@@ -1,4 +1,4 @@
-import * as cp from "child_process"
+import * as cp from "node:child_process"
 import { Config } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
 import type { Lens, ProcessOut, TestExec } from "@client/client-types"
@@ -24,18 +24,15 @@ export async function execForgeTestFunction(
 			const verbosity = !forceTrace ? `-${"v".repeat(tracing)}` : "-vvvvv"
 
 			const wordBound = `${functionName}\\b`
-			if (processMap.has(functionName)) {
-				processMap.get(functionName)?.kill()
-			}
+			if (processMap.has(functionName)) processMap.get(functionName)?.kill()
 
 			processMap.set(
 				functionName,
 				cp.execFile(
 					"forge",
-					["test", "--mt", wordBound, verbosity, "--allow-failure"],
+					["test", "--mt", wordBound, verbosity, "--allow-failure", "--no-rate-limit"],
 					{ cwd: rootPath, maxBuffer: 2048 * 1024 * 10 },
 					(error, stdout, stderr) => {
-						vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"], true, args[1])
 						const result = handleTestExecuteOutput(state, args, {
 							stdout,
 							error,
@@ -57,7 +54,7 @@ export async function execForgeTestFunction(
 export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTestExec, process: ProcessOut) => {
 	try {
 		const [functionName, document, range] = args
-
+		vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"], true, args[1])
 		return parseTestOutput<TestExec.Result, TestExec.Restart, TestExec.Unhandled>({
 			process,
 			args,

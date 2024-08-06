@@ -1,5 +1,5 @@
-import * as fs from "fs"
-import * as https from "https"
+import * as fs from "node:fs"
+import * as https from "node:https"
 import type { SolcList } from "@shared/types"
 
 export function getSolcReleases(): Promise<SolcList["releases"]> {
@@ -31,18 +31,18 @@ export function getRemoteSolc(version: string, savePath: string): Promise<void> 
 	const file = fs.createWriteStream(savePath)
 	return new Promise((resolve, reject) => {
 		const request = https
-			.get(`https://binaries.soliditylang.org/bin/soljson-${version}.js`, function (response) {
+			.get(`https://binaries.soliditylang.org/bin/soljson-${version}.js`, (response) => {
 				if (response.statusCode !== 200) {
 					reject(`Error retrieving solr: ${response.statusMessage}`)
 				} else {
 					response.pipe(file)
-					file.on("finish", function () {
+					file.on("finish", () => {
 						file.close()
 						resolve()
 					})
 				}
 			})
-			.on("error", function (error) {
+			.on("error", (error) => {
 				reject(error)
 			})
 		request.end()

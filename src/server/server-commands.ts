@@ -1,11 +1,11 @@
 import { connection } from "@server"
 import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import { getFunctionSelector, keccak256, toBytes } from "viem"
-import { Diagnostic, ExecuteCommandParams, Range } from "vscode-languageserver"
-import { TextDocument } from "vscode-languageserver-textdocument"
+import type { Diagnostic, ExecuteCommandParams, Range } from "vscode-languageserver"
+import type { TextDocument } from "vscode-languageserver-textdocument"
 import { ParsedError } from "./code/ParsedError"
 import { ParsedFunction } from "./code/ParsedFunction"
-import { CodeWalkerService } from "./codewalker"
+import type { CodeWalkerService } from "./codewalker"
 
 export const executeCommand = (
 	walker: CodeWalkerService,

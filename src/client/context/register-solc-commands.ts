@@ -1,6 +1,5 @@
 import { getCurrentWorkspaceRootFolder } from "@client/client-config"
-import { ClientState } from "@client/client-state"
-import { BaseCommandArgs } from "@client/client-types"
+import type { ClientState } from "@client/client-state"
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { compileActiveFile } from "@client/compiler/compile-active"
 import { compileAllContracts } from "@client/compiler/compile-all"
@@ -14,7 +13,7 @@ const getDocAndRange = () => {
 export function registerSolcCommands(state: ClientState) {
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.changeSolcType"], async () => {
-			state.compilers.changeSolcType(vscode.ConfigurationTarget.Workspace)
+			state.compilers.setType(vscode.ConfigurationTarget.Workspace)
 		}),
 	)
 

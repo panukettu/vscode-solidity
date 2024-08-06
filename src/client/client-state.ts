@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { LanguageClient } from "vscode-languageclient/node"
+import type { LanguageClient } from "vscode-languageclient/node"
 import type { DecorationScope } from "./client-types"
 import { ClientCompilers } from "./compiler/compiler-client"
 export type ClientState = {
