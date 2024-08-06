@@ -84,12 +84,7 @@ export const hashInput = (params: ExecuteCommandParams) => {
 	if (params.command === SERVER_COMMANDS_LIST["input.keccak256"]) {
 		const input = params.arguments[0] as string
 		const hex = isHex(input)
-
-		let hash = input
-		if (hex) hash = keccak256(input)
-		else hash = keccak256(toBytes(input))
-		// sendOutput("keccak256", hash, input)
-		return { hash, hex }
+		return { hash: keccak256(hex ? input : toBytes(input)), hex }
 	}
 }
 
