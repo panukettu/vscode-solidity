@@ -1,3 +1,4 @@
+import { Project } from "@shared/project/project"
 import debounce from "lodash.debounce"
 import type * as vscode from "vscode-languageserver/node"
 import { URI } from "vscode-uri"
@@ -39,6 +40,7 @@ export async function validateAllDocuments() {
 export async function validate(document: vscode.TextDocument) {
 	initCommon(document)
 	const config = getConfig()
+	const project = new Project(config, settings.rootPath)
 	const shouldCompile = config.validation.onChange || config.validation.onOpen || config.validation.onSave
 
 	const uri = document.uri
@@ -48,10 +50,10 @@ export async function validate(document: vscode.TextDocument) {
 	await clearExtras()
 
 	try {
-		const linted = settings.linter?.validate?.(filePath, documentText) ?? []
-		if (!shouldCompile) return sendDiagnostics(uri, linted)
+		const diagnostics = settings.linter?.validate?.(filePath, documentText) ?? []
+		if (!shouldCompile) return sendDiagnostics(uri, diagnostics)
 
-		return sendDiagnostics(uri, linted.concat(await getErrors(filePath, uri, documentText)))
+		return sendDiagnostics(uri, diagnostics.concat(await getErrors(project, filePath, uri, documentText)))
 	} catch (e) {
 		console.debug("Unhandled:", e)
 	}
@@ -73,8 +75,8 @@ const sendDiagnostics = async (uri: string, diagnostics: vscode.Diagnostic[]) =>
 		),
 	)
 }
-const getErrors = async (filePath: string, uri: string, documentText: string) => {
-	const errors = await ServerCompilers.compileWithDiagnostic(filePath, documentText)
+const getErrors = async (project: Project, filePath: string, uri: string, documentText: string) => {
+	const errors = await ServerCompilers.compileWithDiagnostic(project, filePath, documentText)
 	const diagnostics = errors.filter((err) => URI.file(err.fileName).toString() === uri)
 
 	const fromOtherFiles = errors

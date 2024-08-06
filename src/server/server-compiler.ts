@@ -12,7 +12,7 @@ export function configureServerCachePath(path: string) {
 export async function createServerMultisolc(settings: MultisolcSettings) {
 	if (!solcCachePath) throw new Error("solcCachePath not set")
 	ServerCompilers = new Multisolc(settings, solcCachePath)
-	await ServerCompilers.initializeSolc(settings.selectedType)
+	await ServerCompilers.initializeSolc(settings.compiler.type)
 	compilerInitialized = true
 }
 

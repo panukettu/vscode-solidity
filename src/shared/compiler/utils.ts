@@ -93,3 +93,7 @@ export function parseReleaseVersion(version: string): Promise<string> {
 		}
 	})
 }
+
+export function mergeUnique<T>(a: T[] = [], b: T[] = []): T[] {
+	return Array.from(new Set(a.concat(b)))
+}

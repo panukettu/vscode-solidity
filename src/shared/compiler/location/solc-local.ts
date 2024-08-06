@@ -15,17 +15,15 @@ export class LocalSolc extends SolcLoader {
 	}
 
 	public initializeConfig(localPath: string) {
-		if (!this.matchesConfiguration(localPath)) {
-			this.localPath = localPath
-			this.solc = null
-		}
+		if (this.matchesConfiguration(localPath)) return
+
+		this.localPath = localPath
+		this.solc = null
 	}
 
 	public hasValidConfig(): boolean {
-		if (this.localPath?.length > 0) {
-			return this.compilerExistsAtPath(this.localPath)
-		}
-		return false
+		if (!this.localPath?.length) return false
+		return this.compilerExistsAtPath(this.localPath)
 	}
 	public compilerExistsAtPath(localPath: string): boolean {
 		return existsSync(localPath)

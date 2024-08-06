@@ -607,7 +607,7 @@ type BytecodeOutput = {
 	}
 }
 
-export type SolcArgs = { input: Partial<SolcInput>; type?: CompilerType; callbacks?: Callbacks }
+export type SolcArgs = { input: Partial<SolcInput>; type?: CompilerType; callbacks: Callbacks }
 
 export interface SolcOutput {
 	// Optional: not present if no errors/warnings/infos were encountered

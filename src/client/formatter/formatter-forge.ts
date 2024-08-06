@@ -1,4 +1,4 @@
-import * as cp from "child_process"
+import * as cp from "node:child_process"
 import { getCurrentProjectInWorkspaceRootFsPath } from "@client/client-config"
 import * as vscode from "vscode"
 

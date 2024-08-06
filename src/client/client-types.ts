@@ -1,8 +1,8 @@
-import type { ExecFileException } from "child_process"
+import type { ExecFileException } from "node:child_process"
 import type { ExecStatus } from "@shared/enums"
 import type { FunctionName } from "@shared/types"
-import * as vscode from "vscode"
-import { ParsedLogs } from "./lens/foundry/foundry-logs-parser"
+import type * as vscode from "vscode"
+import type { ParsedLogs } from "./lens/foundry/foundry-logs-parser"
 
 export namespace Lens {
 	export type Funcsig = readonly [vscode.TextDocument, vscode.Range]

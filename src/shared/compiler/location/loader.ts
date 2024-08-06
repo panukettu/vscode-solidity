@@ -1,4 +1,4 @@
-import { CompilerType } from "@shared/enums"
+import type { CompilerType } from "@shared/enums"
 import type { SolcWrapper } from "../types-solc"
 export abstract class SolcLoader {
 	public abstract type: CompilerType
@@ -15,9 +15,7 @@ export abstract class SolcLoader {
 	public abstract initializeSolc(): Promise<void>
 
 	public isSolcInitialized(configuration?: string): boolean {
-		if (!this.solc) {
-			return false
-		}
+		if (!this.solc) return false
 		return this.matchesConfiguration(configuration)
 	}
 }

@@ -12,7 +12,7 @@ export async function compileActiveFile(
 	state: ClientState,
 	args: BaseCommandArgs,
 	compilerOverride: CompilerType = null,
-): Promise<Array<string>> {
+) {
 	const editor = vscode.window.activeTextEditor
 
 	if (!editor) return // We need something open
@@ -23,20 +23,23 @@ export async function compileActiveFile(
 	}
 
 	// Check if is folder, if not stop we need to output to a bin folder on rootPath
-	if (getCurrentWorkspaceRootFolder() == null) {
+	if (!getCurrentWorkspaceRootFolder()) {
 		vscode.window.showWarningMessage("You need to open a folder (or workspace) :(")
 		return
 	}
 
-	try {
-		const project = new Project(Config.all(), getCurrentProjectInWorkspaceRootFsPath())
-		const document = project.addSource(editor.document.fileName, editor.document.getText())
+	const project = new Project(Config.all(), getCurrentProjectInWorkspaceRootFsPath())
+	const document = project.addSource(editor.document.fileName, editor.document.getText())
 
-		const settings = Multisolc.getSettings(project, document, {
-			type: compilerOverride,
+	try {
+		const settings = Multisolc.getSettings(project, {
 			sources: project.contracts.getSolcInputSource(),
+			outputs: Multisolc.selectSolcOutputs(project.solc.settings.output),
+			type: compilerOverride,
+			document,
 		})
-		return state.compilers.compile(args, settings)
+
+		return await state.compilers.compile(args, settings, settings.document.getImportCallback())
 	} catch (e) {
 		console.debug("compileActiveFile:", e.message)
 		return []

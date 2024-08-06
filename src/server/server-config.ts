@@ -1,4 +1,6 @@
 import { Multisolc } from "@shared/compiler/multisolc"
+import type { ContractLevelSolcOutput } from "@shared/compiler/types-solc"
+import { mergeUnique } from "@shared/compiler/utils"
 import { CompilerType } from "@shared/enums"
 import { filesCache } from "@shared/project/cache"
 import { Project } from "@shared/project/project"
@@ -14,18 +16,21 @@ import { createServerMultisolc } from "./server-compiler"
 import type { ExtendedSettings } from "./server-types"
 
 function defaultConfig() {
-	const result = {} as SolidityConfig
-	let defaultCompilerType = CompilerType.Extension
+	const json = packageJson.contributes.configuration.properties
+	const compiler = json["solidity.compiler"].default
 
-	for (const key in packageJson.contributes.configuration.properties) {
-		const keys = key.split(".")
-		if (keys[0] === "solidity") {
-			if (key === "solidity.compiler.type") {
-				defaultCompilerType = +CompilerType[packageJson.contributes.configuration.properties[key].default]
-			} else {
-				result[keys[1]] = packageJson.contributes.configuration.properties[key].default
-			}
-		}
+	const result = {
+		compilerSettings: json["solidity.compilerSettings"].default as SolidityConfig["compilerSettings"],
+		compiler: {
+			...compiler,
+			type: compiler.type ?? CompilerType.Extension,
+		},
+	} as SolidityConfig
+
+	for (const key in json) {
+		const parts = key.split(".")
+		if (parts[0] !== "solidity" || parts[1].startsWith("compiler")) continue
+		result[parts[1]] = json[key].default
 	}
 
 	return result
@@ -108,6 +113,7 @@ export async function handleInitialized() {
 
 	connection.workspace.onDidChangeWorkspaceFolders((_event) => {
 		if (!connection.workspace) return
+
 		connection.workspace.onDidChangeWorkspaceFolders((event) => {
 			for (const workspaceFolder of event.removed) {
 				const index = settings.workspaceFolders.findIndex((folder) => folder.uri === workspaceFolder.uri)
@@ -121,20 +127,15 @@ export async function handleInitialized() {
 }
 
 export async function updateConfig(newConfig: SolidityConfig) {
-	// const foundryCfg = getFoundryConfig(settings.rootPath)?.profile
-	// const sources = newConfig.project.sources ?? foundryCfg?.src ?? getHardhatSourceFolder(settings.rootPath)
-	// const includePaths = Array.from(new Set((config.project.includePaths ?? []).concat(foundryCfg.include_paths ?? [])))
-
 	serverConfig = newConfig
 	if (serverConfig.linter.type === "solhint") {
 		settings.linter = new SolhintService(settings.rootPath, serverConfig.linter.rules)
 		settings.linter.setIdeRules(serverConfig.linter.rules)
 	}
-
 	await createServerMultisolc(getServerSolcSettings())
 }
 
-export function getServerSolcSettings(): MultisolcSettings {
+export function getServerSolcSettings() {
 	return Multisolc.getSettings(new Project(serverConfig, settings.rootPath))
 }
 
@@ -143,32 +144,30 @@ async function createConfig() {
 		const params: vscode.ConfigurationParams = {
 			items: [{ section: "solidity" }],
 		}
-		const [cfg] = (await connection.sendRequest("workspace/configuration", params)) as [Partial<SolidityConfig>]
+		const results = (await connection.sendRequest("workspace/configuration", params)) as [Partial<SolidityConfig>]
+		const [cfg] = results
 
 		const foundry = getFoundryConfig(settings.rootPath)
-		cfg.project.libs = merge(cfg.project?.libs, foundry?.profile?.libs)
+		cfg.project.libs = mergeUnique(cfg.project?.libs, foundry?.profile?.libs)
 		cfg.project.sources = cfg.project.sources ?? foundry?.profile?.src
-		cfg.project.includePaths = merge(cfg.project?.includePaths, foundry?.profile?.include_paths)
+		cfg.project.includePaths = mergeUnique(cfg.project?.includePaths, foundry?.profile?.include_paths)
 
-		cfg.project.remappings = replaceRemappings(
-			cfg.project.remappings,
-			cfg.project.remappingsWindows ?? cfg.project.remappingsUnix ?? [],
-		)
 		cfg.project.remappings = loadRemappings(
 			settings.rootPath,
 			cfg.project.useForgeRemappings,
 			cfg.project.libs,
-			cfg.project.remappings,
+			replaceRemappings(cfg.project.remappings, cfg.project.remappingsWindows ?? cfg.project.remappingsUnix ?? []),
 		)
-		console.debug("COMPILER TYPE", typeof cfg.compiler.type, "CORRECT TYPE", typeof CompilerType.Extension)
-		cfg.compiler.type = CompilerType[cfg.compiler.type as unknown as string] || CompilerType.Extension
+		if (typeof cfg.compiler.type === "string") {
+			cfg.compiler.type = CompilerType[cfg.compiler.type as string]
+		}
+
+		if (!cfg.compiler.type) {
+			cfg.compiler.type = CompilerType.Extension
+		}
 		return cfg as SolidityConfig
 	} catch (e) {
 		console.debug("No config received:", e.message)
 		return defaultConfig()
 	}
-}
-
-function merge<T>(a: T[] = [], b: T[] = []): T[] {
-	return Array.from(new Set(a.concat(b)))
 }

@@ -16,29 +16,18 @@ export class Config {
 	}
 
 	public static getProject() {
-		return vscode.workspace.getConfiguration("solidity").get<{
-			excludes: string[]
-			sources: string
-			libs: string[]
-			libSources: string[]
-			remappings: string[]
-			remappingsWindows: string[]
-			remappingsUnix: string[]
-			monorepo: boolean
-		}>("project")
+		return vscode.workspace.getConfiguration("solidity").get<SolidityConfig["project"]>("project")
 	}
 	public static getCompiler() {
-		const compiler = vscode.workspace.getConfiguration("solidity").get<{
-			outDir: string
-			npm: string
-			remote: string
-			local: string
-			type: any
-		}>("compiler")
+		const compiler = vscode.workspace.getConfiguration("solidity").get<SolidityConfig["compiler"]>("compiler")
 
-		if (compiler.type === "string") compiler.type = CompilerType[compiler.type]
+		const compilerType =
+			typeof compiler.type === "number" ? compiler.type : CompilerType[compiler.type as keyof typeof CompilerType]
 		return {
-			compiler,
+			compiler: {
+				...compiler,
+				type: compilerType ?? CompilerType.Extension,
+			},
 			compilerSettings: vscode.workspace.getConfiguration("solidity").get<{
 				output: ContractLevelSolcOutput[]
 				input: Partial<SolcInput["settings"]>
@@ -74,18 +63,11 @@ export class Config {
 }
 
 export function getCurrentProjectInWorkspaceRootFsPath() {
-	const monoreposupport = Config.getMonoRepoSupport()
+	const isMono = Config.getMonoRepoSupport()
 	const rootPath = getRootFsPath()
-	if (monoreposupport) {
-		const editor = vscode.window.activeTextEditor
-		const currentDocument = editor.document.uri
-		const projectFolder = findFirstRootProjectFile(rootPath, currentDocument.fsPath)
-		if (projectFolder == null) {
-			return rootPath
-		}
-		return projectFolder
-	}
-	return rootPath
+	if (!isMono) return rootPath
+
+	return findFirstRootProjectFile(rootPath, vscode.window.activeTextEditor.document.uri.fsPath) ?? rootPath
 }
 
 export function getRootFsPath() {

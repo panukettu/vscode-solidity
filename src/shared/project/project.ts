@@ -1,4 +1,3 @@
-import { hash } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import * as path from "node:path"
 import type { Callbacks, SolcInput } from "@shared/compiler/types-solc"
@@ -14,11 +13,6 @@ import type { SourceDocument } from "./sourceDocument"
 import { SourceDocumentCollection } from "./sourceDocuments"
 
 export class Project {
-	public id: string
-	public static id(config: SolidityConfig, rootPath: string) {
-		return hash("sha256", JSON.stringify(config) + rootPath)
-	}
-
 	public projectPackage: Package
 	public libs: string[]
 	public includePaths: string[]
@@ -36,9 +30,7 @@ export class Project {
 	private glob: InstanceType<typeof GlobSync>
 	private globPath: string
 	public contracts: SourceDocumentCollection
-
 	constructor(config: SolidityConfig, rootPath: string) {
-		this.id = Project.id(config, rootPath)
 		this.rootPath = rootPath
 		this.libs = config.project.libs.map(formatPath)
 		this.excludes = config.project.exclude.map(formatPath)
@@ -53,8 +45,14 @@ export class Project {
 			rootPath,
 		)
 
-		this.solc.compiler = config.compiler
-		this.solc.settings = config.compilerSettings
+		console.debug("Project Remappings:", this.remappings)
+
+		this.solc = {
+			compiler: config.compiler,
+			settings: config.compilerSettings,
+		}
+
+		console.debug("Project Solc Settings:", this.solc)
 
 		this.projectPackage = createDefaultPackage(this)
 
@@ -65,7 +63,6 @@ export class Project {
 		this.glob = new GlobSync(this.globPath, {
 			ignore: ["node_modules/**/"],
 		})
-
 		this.contracts = new SourceDocumentCollection(this)
 	}
 
@@ -103,10 +100,7 @@ export class Project {
 		if (importPath[0] === "." && source) return source.resolveImportPath(importPath)
 
 		const resolved = filesCache.tryResolve(importPath)
-		if (found(resolved)) {
-			console.debug("cached", importPath, resolved)
-			return resolved
-		}
+		if (found(resolved)) return resolved
 
 		return resolved(
 			this.findImportRemapping(importPath)?.resolveImport(importPath),

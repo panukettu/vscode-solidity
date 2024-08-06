@@ -1,7 +1,7 @@
-import * as fs from "fs"
+import * as fs from "node:fs"
 import * as linter from "solhint/lib/index"
 
-import { Diagnostic, DiagnosticSeverity as Severity, Range } from "vscode-languageserver"
+import { type Diagnostic, type Range, DiagnosticSeverity as Severity } from "vscode-languageserver"
 import type { Linter } from "../server-types"
 
 export default class SolhintService implements Linter {

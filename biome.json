@@ -38,7 +38,8 @@
 				"noAssignInExpressions": "off"
 			},
 			"complexity": {
-				"noForEach": "off"
+				"noForEach": "off",
+				"useRegexLiterals": "off"
 			},
 			"style": {
 				"noParameterAssign": "off"

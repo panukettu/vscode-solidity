@@ -3,7 +3,9 @@
 		"module": "commonjs",
 		"outDir": "out",
 		"target": "ES2022",
-		"lib": ["ES2022"],
+		"lib": [
+			"ES2022"
+		],
 		"sourceMap": true,
 		"declaration": false,
 		"experimentalDecorators": true,
@@ -15,14 +17,30 @@
 		"checkJs": true,
 		"allowJs": true,
 		"paths": {
-			"@client": ["src/client"],
-			"@client/*": ["src/client/*"],
-			"@server": ["src/server"],
-			"@server/*": ["src/server/*"],
-			"@shared": ["src/shared"],
-			"@shared/*": ["src/shared/*"]
+			"@client": [
+				"src/client"
+			],
+			"@client/*": [
+				"src/client/*"
+			],
+			"@server": [
+				"src/server"
+			],
+			"@server/*": [
+				"src/server/*"
+			],
+			"@shared": [
+				"src/shared"
+			],
+			"@shared/*": [
+				"src/shared/*"
+			]
 		}
 	},
-	"include": ["src"],
-	"exclude": ["node_modules"]
+	"include": [
+		"src"
+	],
+	"exclude": [
+		"node_modules"
+	]
 }

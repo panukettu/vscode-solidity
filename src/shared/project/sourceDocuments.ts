@@ -1,7 +1,6 @@
 import * as fs from "node:fs"
 import type { SolcInput } from "@shared/compiler/types-solc"
 import type { Project } from "./project"
-import type { Remapping } from "./remapping"
 import { SourceDocument } from "./sourceDocument"
 
 const mockContent = (content: string) => `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n${content}`
@@ -77,7 +76,8 @@ export class SourceDocumentCollection {
 			if (!this.containsSourceDocument(imported.importPath)) {
 				const code = this.readContractCode(imported.importPath)
 				if (code) this.addSourceDocumentAndResolveImports(imported.importPath, code)
-			} else this.addSourceDocumentAndResolveDependencyImport(imported.importPath, contract)
+				else this.addSourceDocumentAndResolveDependencyImport(imported.importPath, contract)
+			}
 		}
 
 		return contract

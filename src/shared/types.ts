@@ -1,6 +1,7 @@
 import type { ClientState } from "@client/client-state"
 import type { Diagnostic } from "vscode-languageclient/node"
-import type { ContractLevelSolcOutput, SolcInput } from "./compiler/types-solc"
+import type { Multisolc } from "./compiler/multisolc"
+import type { Callbacks, ContractLevelSolcOutput, SolcInput } from "./compiler/types-solc"
 import type { CompilerType } from "./enums"
 import type { SourceDocument } from "./project/sourceDocument"
 
@@ -95,16 +96,27 @@ export type InitializationOptions = {
 }
 
 export type MultisolcSettings = {
-	outDir: string
+	input: Partial<SolcInput>
 	sourceDir?: string
 	excludePaths?: string[]
-	localSolcVersion: string
-	remoteSolcVersion: string
-	input?: Partial<SolcInput>
-	npmSolcPackage: string
 	rootPath: string
-	selectedType: CompilerType
 	document?: SourceDocument
+	compiler: {
+		type: CompilerType
+		remote: string
+		local: string
+		npm: string
+		outDir: string
+	}
+}
+
+export type SolcExtras = {
+	document: SourceDocument
+	sources: SolcInput["sources"]
+	exclusions: string[]
+	outputs?: ReturnType<typeof Multisolc.selectSolcOutputs>
+	sourceDir: string
+	type: CompilerType
 }
 
 export interface ErrorWarningCounts {

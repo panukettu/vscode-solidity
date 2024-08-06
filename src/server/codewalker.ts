@@ -1,12 +1,11 @@
 import type * as vscode from "vscode-languageserver"
 import { URI } from "vscode-uri"
 
-import * as fs from "node:fs"
 import * as solparse from "@pkxp/solparse-exp-jb"
 import { documentMap } from "@server/providers/utils/caches"
 import { Project } from "@shared/project/project"
 import type { SourceDocument } from "@shared/project/sourceDocument"
-import { SourceDocumentCollection, mockConsoleSol } from "@shared/project/sourceDocuments"
+import { mockConsoleSol } from "@shared/project/sourceDocuments"
 import type { SolidityConfig } from "@shared/types"
 import { ParsedDocument } from "./code/ParsedDocument"
 

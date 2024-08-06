@@ -4,7 +4,7 @@ import { Config, getCurrentProjectInWorkspaceRootFsPath, getRootFsPath } from "@
 import type { BaseCommandArgs } from "@client/client-types"
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { Multisolc } from "@shared/compiler/multisolc"
-import type { SolcOutput } from "@shared/compiler/types-solc"
+import type { Callbacks, SolcOutput } from "@shared/compiler/types-solc"
 import { getRemoteSolc, getSolcReleases } from "@shared/compiler/utils"
 import { CompilerType } from "@shared/enums"
 import { Project } from "@shared/project/project"
@@ -117,7 +117,7 @@ export class ClientCompilers {
 		}
 	}
 
-	public async compile(commandArgs: BaseCommandArgs, solc: MultisolcSettings): Promise<Array<string>> {
+	public async compile(commandArgs: BaseCommandArgs, solc: MultisolcSettings, callbacks: Callbacks) {
 		if (!solc.input?.sources) {
 			vscode.window.showWarningMessage("No solidity sources to compile!")
 			return
@@ -129,8 +129,8 @@ export class ClientCompilers {
 		try {
 			const output = await this.multisolc.compileWith({
 				input: solc.input,
-				type: solc.selectedType,
-				callbacks: solc.document.getImportCallback(),
+				type: solc.compiler.type,
+				callbacks,
 			})
 			return this.processCompilationOutput(commandArgs, output, this.outputChannel, solc)
 		} catch (e) {
@@ -149,15 +149,13 @@ export class ClientCompilers {
 		}
 	}
 	private outputErrorsToChannel(outputChannel: vscode.OutputChannel, errors: any[]) {
-		for (const error of errors) {
-			outputChannel.appendLine(error.formattedMessage)
-		}
+		for (const error of errors) outputChannel.appendLine(error.formattedMessage)
 		outputChannel.show(true)
 	}
 
-	private outputCompilerInfo(overrideDefaultCompiler: CompilerType = null) {
+	private outputCompilerInfo(override: CompilerType = null) {
 		this.outputChannel.show(true)
-		const compiler = this.multisolc.getCompiler(overrideDefaultCompiler)
+		const compiler = this.multisolc.getCompiler(override)
 		if (compiler.type === CompilerType.File) {
 			this.outputChannel.appendLine(
 				`Using solc from file: '${compiler.getConfiguration()}', version: ${compiler.getVersion()}`,
@@ -181,27 +179,30 @@ export class ClientCompilers {
 
 	public async initializeSolcs(solc?: MultisolcSettings, override: CompilerType = null): Promise<void> {
 		this.outputChannel.show(true)
-
+		console.debug("roots", {
+			fs: getRootFsPath(),
+			project: getCurrentProjectInWorkspaceRootFsPath(),
+		})
 		const cfg =
 			solc ??
-			Multisolc.getSettings(new Project(Config.all(), getRootFsPath()), null, {
+			Multisolc.getSettings(new Project(Config.all(), getRootFsPath()), {
 				type: override,
 			})
 
 		if (!this.multisolc) this.multisolc = new Multisolc(cfg, this.solcCachePath)
 		else {
-			if (this.multisolc.isSolcInitialized(cfg.selectedType)) {
-				this.outputCompilerInfo(cfg.selectedType)
+			if (this.multisolc.isSolcInitialized(cfg.compiler.type)) {
+				this.outputCompilerInfo(cfg.compiler.type)
 				return
 			}
 		}
 
 		try {
-			await this.multisolc.initializeSolc(cfg.selectedType)
-			this.outputCompilerInfo(cfg.selectedType)
+			await this.multisolc.initializeSolc(cfg.compiler.type)
+			this.outputCompilerInfo(cfg.compiler.type)
 		} catch (error) {
 			this.outputChannel.appendLine(
-				`Error initializing ${CompilerType[cfg.selectedType]} solc: ${error} - trying fallback..`,
+				`Error initializing ${CompilerType[cfg.compiler.type]} solc: ${error} - trying fallback..`,
 			)
 			await this.multisolc.initializeSolc(CompilerType.Extension)
 			this.outputCompilerInfo(CompilerType.Extension)
@@ -213,7 +214,7 @@ export class ClientCompilers {
 		output: SolcOutput,
 		outputChannel: vscode.OutputChannel,
 		solc: MultisolcSettings,
-	): Promise<Array<string>> {
+	) {
 		this.handleOutputFeedback(output)
 		await vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"])
 
@@ -237,7 +238,13 @@ export class ClientCompilers {
 				vscode.window.setStatusBarMessage(withErrs)
 				outputChannel.appendLine(withErrs)
 			} else if (errWarns.warnings > 0) {
-				const files = this.emit(output, solc.outDir, solc.sourceDir, solc.excludePaths, solc.document.absolutePath)
+				const files = this.emit(
+					output,
+					solc.compiler.outDir,
+					solc.sourceDir,
+					solc.excludePaths,
+					solc.document?.absolutePath,
+				)
 				const withWarns = `Compiled with ${errWarns.warnings} warnings.`
 				vscode.window.showWarningMessage(withWarns)
 				vscode.window.setStatusBarMessage(withWarns)
@@ -246,7 +253,13 @@ export class ClientCompilers {
 			}
 		} else {
 			try {
-				const files = this.emit(output, solc.outDir, solc.sourceDir, solc.excludePaths, solc.document.absolutePath)
+				const files = this.emit(
+					output,
+					solc.compiler.outDir,
+					solc.sourceDir,
+					solc.excludePaths,
+					solc.document?.absolutePath,
+				)
 				const message = "Compiled succesfully."
 				vscode.window.showInformationMessage(message)
 				vscode.window.setStatusBarMessage(message)

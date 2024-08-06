@@ -33,10 +33,11 @@ export function compileAllContracts(state: ClientState, commandArgs: BaseCommand
 
 	for (const document of remaining) project.addSource(document, null)
 
-	const compilerOpts = Multisolc.getSettings(project, activeSource, {
+	const compilerOpts = Multisolc.getSettings(project, {
 		exclusions: project.libs,
-		sources: project.contracts.getSolcInputSource(),
+		document: activeSource,
+		outputs: Multisolc.selectSolcOutputs(project.solc.settings.output),
 	})
 
-	return state.compilers.compile(commandArgs, compilerOpts)
+	return state.compilers.compile(commandArgs, compilerOpts, project.getImportCallback(activeSource))
 }

@@ -1,5 +1,4 @@
 import { Project } from "@shared/project/project"
-import { deepEqual } from "fast-equals"
 import { URI } from "vscode-uri"
 import { findFirstRootProjectFile } from "../shared/project/project-utils"
 import { CodeWalkerService } from "./codewalker"
@@ -9,7 +8,7 @@ import { getConfig, settings } from "./server-config"
 export let selectedDocument = null
 export let selectedProjectFolder = null
 
-export let codeWalkerService: CodeWalkerService = null
+let walker: CodeWalkerService = null
 
 export function initCommon(document: any) {
 	if (typeof document.uri === "string") {
@@ -25,13 +24,11 @@ export function initCommon(document: any) {
 
 export function getCodeWalkerService() {
 	const config = getConfig()
-
-	if (codeWalkerService?.project.id === Project.id(config, selectedProjectFolder)) {
-		console.debug("REUSING WALKER")
-		return codeWalkerService
+	if (walker?.rootPath && walker.rootPath === walker.project.rootPath) {
+		return walker
 	}
 
-	return (codeWalkerService = new CodeWalkerService(selectedProjectFolder, config))
+	return (walker = new CodeWalkerService(selectedProjectFolder, config))
 }
 
 export function initWorkspaceRootFolder(uri: string) {

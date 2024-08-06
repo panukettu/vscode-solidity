@@ -3,7 +3,6 @@ import { provideHover } from "@server/providers/hover"
 import { provideSignatureHelp } from "@server/providers/signatures"
 import { validateAllDocuments, validateDocument } from "@server/server-diagnostics"
 import { DocUtil } from "@server/utils/text-document"
-import { filesCache } from "@shared/project/cache"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import * as vscode from "vscode-languageserver/node"
 import { DidChangeConfigurationNotification } from "vscode-languageserver/node"
@@ -138,7 +137,7 @@ documents.onDidClose((event) => {
 documents.onDidOpen(async (event) => {
 	const config = getConfig()
 	if (!config.validation.onOpen || !compilerInitialized) return
-	return validateDocument(event.document)
+	// return validateDocument(event.document)
 })
 
 documents.onDidSave(async (event) => {
