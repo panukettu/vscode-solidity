@@ -7,7 +7,8 @@ import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import * as vscode from "vscode"
 
 export const commandClearDiagnostics =
-	(state: ClientState) => async (...args: [boolean, vscode.TextDocument, ...any[]]) => {
+	(state: ClientState) =>
+	async (...args: [boolean, vscode.TextDocument, ...any[]]) => {
 		state.diagnostics.default.clear()
 		clearAllFoundryDiagnosticScopes(state)
 		if (!args[0]) {

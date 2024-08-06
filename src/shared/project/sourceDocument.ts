@@ -13,7 +13,6 @@ export class SourceDocument {
 	public unformattedCode: string
 	public imports: Array<Import>
 	public absolutePath: string
-	public packagePath: string
 	public abi: string
 	public project: Project
 
@@ -37,23 +36,16 @@ export class SourceDocument {
 		return importPath.startsWith(".")
 	}
 
-	constructor(absoulePath: string, code: string, project: Project) {
-		this.absolutePath = formatPath(absoulePath)
+	constructor(project: Project, absolutePath: string, code: string) {
+		this.absolutePath = formatPath(absolutePath)
 		this.code = code
 		this.unformattedCode = code
 		this.project = project
-		this.imports = new Array<Import>()
+		this.imports = []
 	}
 
 	public getAllImportFromPackages() {
-		const importsFromPackages = new Array<string>()
-
-		for (const item of this.imports) {
-			if (!this.isImportLocal(item.importPath)) {
-				importsFromPackages.push(item.importPath)
-			}
-		}
-		return importsFromPackages
+		return this.imports.filter((i) => !this.isImportLocal(i.importPath))
 	}
 
 	public isImportLocal(importPath: string) {
@@ -61,6 +53,7 @@ export class SourceDocument {
 	}
 
 	public resolveImportPath(importPath: string) {
+		if (this.isImportLocal(importPath)) return formatPath(path.resolve(path.dirname(this.absolutePath), importPath))
 		return this.project.resolveImport(importPath, this)
 	}
 	public getImportCallback() {

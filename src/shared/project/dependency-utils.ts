@@ -1,44 +1,28 @@
 import { existsSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
-import { Package, createDefaultPackage } from "./package"
-import type { Remapping } from "./remapping"
+import { Package } from "./package"
+import type { Project } from "./project"
 
-export function createLibPackages(
-	remappings: Remapping[],
-	parentRoot: string,
-	libs: string[],
-	parent: Package,
-	sources: string[],
-) {
-	return libs.flatMap((libDir) => createDependencies(remappings, parentRoot, parent, libDir, sources))
+export function createLibPackages(project: Project) {
+	return project.libs.flatMap((libDir) => createDependencies(project, project.rootPath, libDir, project.projectPackage))
 }
 export function createDependencies(
-	remappings: Remapping[],
-	parentRoot: string,
+	project: Project,
+	prevRoot: string,
+	dir: string,
 	parent: Package,
-	libDir: string,
-	solSources: string[],
-	pkgs: Array<Package> = new Array<Package>(),
+	pkgs: Package[] = [],
 ) {
-	const libPath = path.join(parentRoot, libDir)
-	if (!existsSync(libPath)) return pkgs
+	const fullPath = path.join(prevRoot, dir)
+	if (!existsSync(fullPath)) return pkgs
 
-	for (const lib of getDirectories(libPath)) {
-		const libRoot = path.join(libPath, lib)
-		const sources = solSources.filter((source) => existsSync(path.join(libRoot, source)))
-		const pkg = new Package(
-			remappings,
-			lib,
-			libRoot,
-			sources.length ? sources[0] : undefined,
-			parent.libs,
-			parent.outDir,
-			parent,
-		)
+	for (const installedLib of getDirectories(fullPath)) {
+		const packagePath = path.join(fullPath, installedLib)
+		const pkg = new Package(project, packagePath, parent)
 
 		if (!pkgs.some((existing) => existing.name === pkg.name)) {
 			pkgs.push(pkg)
-			parent.libs.flatMap((nestedDir) => createDependencies(remappings, libRoot, pkg, nestedDir, solSources, pkgs))
+			project.libs.flatMap((nestedDir) => createDependencies(project, packagePath, dir, pkg, pkgs))
 		}
 	}
 

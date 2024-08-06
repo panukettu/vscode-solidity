@@ -11,6 +11,12 @@ export const mockConsoleSol =
 export class SourceDocumentCollection {
 	public documents: Map<string, SourceDocument> = new Map()
 
+	private project: Project
+
+	constructor(project: Project) {
+		this.project = project
+	}
+
 	public static getAllLibraryImports(codeFiles: string[]): string[] {
 		let imports: string[] = []
 		codeFiles.forEach((x) => {
@@ -21,28 +27,6 @@ export class SourceDocumentCollection {
 
 	public containsSourceDocument(contractPath: string) {
 		return this.documents.has(contractPath)
-	}
-
-	public getMinimalSolcInput(remappings?: Remapping[]): SolcInput {
-		return {
-			language: "Solidity",
-			settings: {
-				viaIR: false,
-				evmVersion: "cancun",
-				remappings: remappings?.map((r) => r.value),
-				optimizer: {
-					enabled: false,
-					runs: 0,
-				},
-				outputSelection: {
-					"*": {
-						"": [],
-						"*": [],
-					},
-				},
-			},
-			sources: this.getSourceCodes(true, 300000),
-		}
 	}
 
 	public getSolcInputSource() {
@@ -83,27 +67,26 @@ export class SourceDocumentCollection {
 		return contractsForCompilation
 	}
 
-	public addSourceDocumentAndResolveImports(contractPath: string, code: string | null, project: Project) {
-		const contract = this.addSourceDocument(contractPath, code, project)
+	public addSourceDocumentAndResolveImports(contractPath: string, code: string | null) {
+		const contract = this.addSourceDocument(contractPath, code)
 		if (!contract) return this.documents.get(contractPath)
 
 		contract.resolveImports()
 
 		for (const imported of contract.imports) {
 			if (!this.containsSourceDocument(imported.importPath)) {
-				const importContractCode = this.readContractCode(imported.importPath)
-				if (importContractCode)
-					this.addSourceDocumentAndResolveImports(imported.importPath, importContractCode, project)
-			} else this.addSourceDocumentAndResolveDependencyImport(imported.importPath, contract, project)
+				const code = this.readContractCode(imported.importPath)
+				if (code) this.addSourceDocumentAndResolveImports(imported.importPath, code)
+			} else this.addSourceDocumentAndResolveDependencyImport(imported.importPath, contract)
 		}
 
 		return contract
 	}
 
-	private addSourceDocument(contractPath: string, code: string | null, project: Project) {
+	private addSourceDocument(contractPath: string, code: string | null) {
 		if (this.documents.has(contractPath)) return
 
-		const contract = new SourceDocument(contractPath, code || this.readContractCode(contractPath), project)
+		const contract = new SourceDocument(this.project, contractPath, code || this.readContractCode(contractPath))
 		this.documents.set(contractPath, contract)
 		return contract
 	}
@@ -113,10 +96,9 @@ export class SourceDocumentCollection {
 		return fs.readFileSync(contractPath, "utf8")
 	}
 
-	private addSourceDocumentAndResolveDependencyImport(importPath: string, contract: SourceDocument, project: Project) {
+	private addSourceDocumentAndResolveDependencyImport(importPath: string, contract: SourceDocument) {
 		this.addSourceDocumentAndResolveDependencyImportFromContractFullPath(
-			project.resolveImport(importPath, contract),
-			project,
+			this.project.resolveImport(importPath, contract),
 			contract,
 			importPath,
 		)
@@ -124,7 +106,6 @@ export class SourceDocumentCollection {
 
 	private addSourceDocumentAndResolveDependencyImportFromContractFullPath(
 		resolvedPath: string,
-		project: Project,
 		contract: SourceDocument,
 		parentPath: string,
 	) {
@@ -132,7 +113,7 @@ export class SourceDocumentCollection {
 		if (!this.containsSourceDocument(resolvedPath)) {
 			const importContractCode = this.readContractCode(resolvedPath)
 			if (importContractCode != null) {
-				this.addSourceDocumentAndResolveImports(resolvedPath, importContractCode, project)
+				this.addSourceDocumentAndResolveImports(resolvedPath, importContractCode)
 				contract.replaceDependencyPath(parentPath, resolvedPath)
 			}
 		} else {

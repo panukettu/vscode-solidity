@@ -19,13 +19,15 @@ export function registerCodeLenses(state: ClientState): void {
 	)
 }
 
-const errorWrapper = (fn: (...args: any[]) => any) => (...args: any[]) => {
-	try {
-		return fn(...args)
-	} catch (e) {
-		console.debug("Command", e.message)
+const errorWrapper =
+	(fn: (...args: any[]) => any) =>
+	(...args: any[]) => {
+		try {
+			return fn(...args)
+		} catch (e) {
+			console.debug("Command", e.message)
+		}
 	}
-}
 
 const registerCodeLensCommands = (state: ClientState) => [
 	vscode.commands.registerCommand(

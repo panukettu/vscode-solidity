@@ -297,8 +297,8 @@ export const handleFileSearch = (
 	rootPath: string,
 ) => {
 	const { triggers, line } = trigs
-	const hasSourceDir = doc.walker.config.project.sources !== ""
-	const sourcesDir = `/${doc.walker.config.project.sources}`
+	const hasSourceDir = doc.walker.project.src !== ""
+	const sourcesDir = `/${doc.walker.project.src}`
 	const files = glob.sync(`${rootPath + (hasSourceDir ? sourcesDir : "")}/**/*.sol`)
 	const prefix = line[doc.position.character] === '"' ? "" : '"'
 	const fromIndex = line.indexOf('from "')

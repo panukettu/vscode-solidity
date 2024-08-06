@@ -1,6 +1,6 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { Config, getCurrentProjectInWorkspaceRootFsPath, getCurrentWorkspaceRootFsPath } from "@client/client-config"
+import { Config, getCurrentProjectInWorkspaceRootFsPath, getRootFsPath } from "@client/client-config"
 import type { BaseCommandArgs } from "@client/client-types"
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { Multisolc } from "@shared/compiler/multisolc"
@@ -125,12 +125,13 @@ export class ClientCompilers {
 		const message = `Compiling ${Object.keys(solc.input.sources)?.length} files`
 		vscode.window.showInformationMessage(message)
 		vscode.window.setStatusBarMessage(message)
-		if (!this.multisolc.isSolcInitialized(solc.selectedType)) {
-			await this.initializeSolcs(solc)
-		}
-		const fileCallbacks = solc.document.getImportCallback()
+
 		try {
-			const output = await this.multisolc.compileInputWith(solc.input, solc.selectedType, fileCallbacks)
+			const output = await this.multisolc.compileWith({
+				input: solc.input,
+				type: solc.selectedType,
+				callbacks: solc.document.getImportCallback(),
+			})
 			return this.processCompilationOutput(commandArgs, output, this.outputChannel, solc)
 		} catch (e) {
 			console.debug("Compile:", e.message)
@@ -178,29 +179,29 @@ export class ClientCompilers {
 		}
 	}
 
-	public async initializeSolcs(solc?: MultisolcSettings, typeOverride: CompilerType = null): Promise<void> {
+	public async initializeSolcs(solc?: MultisolcSettings, override: CompilerType = null): Promise<void> {
 		this.outputChannel.show(true)
 
-		const solcConfig =
+		const cfg =
 			solc ??
-			Multisolc.getSettings(new Project(Config.getFullConfig(), getCurrentWorkspaceRootFsPath()), undefined, {
-				type: typeOverride,
+			Multisolc.getSettings(new Project(Config.all(), getRootFsPath()), null, {
+				type: override,
 			})
 
-		if (!this.multisolc) this.multisolc = new Multisolc(solcConfig, this.solcCachePath)
+		if (!this.multisolc) this.multisolc = new Multisolc(cfg, this.solcCachePath)
 		else {
-			if (this.multisolc.isSolcInitialized(solcConfig.selectedType)) {
-				this.outputCompilerInfo(solcConfig.selectedType)
+			if (this.multisolc.isSolcInitialized(cfg.selectedType)) {
+				this.outputCompilerInfo(cfg.selectedType)
 				return
 			}
 		}
 
 		try {
-			await this.multisolc.initializeSolc(solcConfig.selectedType)
-			this.outputCompilerInfo(solcConfig.selectedType)
+			await this.multisolc.initializeSolc(cfg.selectedType)
+			this.outputCompilerInfo(cfg.selectedType)
 		} catch (error) {
 			this.outputChannel.appendLine(
-				`Error initializing ${CompilerType[solcConfig.selectedType]} solc: ${error} - trying fallback..`,
+				`Error initializing ${CompilerType[cfg.selectedType]} solc: ${error} - trying fallback..`,
 			)
 			await this.multisolc.initializeSolc(CompilerType.Extension)
 			this.outputCompilerInfo(CompilerType.Extension)
@@ -217,51 +218,39 @@ export class ClientCompilers {
 		await vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"])
 
 		if (Object.keys(output).length === 0) {
-			const noOutputMessage = "Compilation output is empty."
-			vscode.window.showWarningMessage(noOutputMessage)
-			vscode.window.setStatusBarMessage(noOutputMessage)
-			outputChannel.appendLine(noOutputMessage)
+			const emptyOut = "Compilation output is empty."
+			vscode.window.showWarningMessage(emptyOut)
+			vscode.window.setStatusBarMessage(emptyOut)
+			outputChannel.appendLine(emptyOut)
 			return
 		}
 
 		if (output.errors?.length) {
-			const errorWarningCounts = await errorsToDiagnostics(commandArgs, output.errors)
+			const errWarns = await errorsToDiagnostics(commandArgs, output.errors)
 			this.outputErrorsToChannel(outputChannel, output.errors)
 
-			if (errorWarningCounts.errors > 0) {
-				const compilationWithErrorsMessage = `Compile failed with ${errorWarningCounts.errors} errors`
-				const warningMessage = errorWarningCounts.warnings > 0 ? ` and ${errorWarningCounts.warnings} warnings.` : ""
-				vscode.window.showErrorMessage(compilationWithErrorsMessage + warningMessage)
-				vscode.window.showErrorMessage(compilationWithErrorsMessage)
-				vscode.window.setStatusBarMessage(compilationWithErrorsMessage)
-				outputChannel.appendLine(compilationWithErrorsMessage)
-			} else if (errorWarningCounts.warnings > 0) {
-				const files = this.writeCompilationOutputToBuildDirectory(
-					output,
-					solc.outDir,
-					solc.sourceDir,
-					solc.excludePaths,
-					solc.document.absolutePath,
-				)
-				const compilationWithWarningsMessage = `Compiled with ${errorWarningCounts.warnings} warnings.`
-				vscode.window.showWarningMessage(compilationWithWarningsMessage)
-				vscode.window.setStatusBarMessage(compilationWithWarningsMessage)
-				outputChannel.appendLine(compilationWithWarningsMessage)
+			if (errWarns.errors > 0) {
+				const withErrs = `Compile failed with ${errWarns.errors} errors`
+				const warning = errWarns.warnings > 0 ? ` and ${errWarns.warnings} warnings.` : ""
+				vscode.window.showErrorMessage(withErrs + warning)
+				vscode.window.showErrorMessage(withErrs)
+				vscode.window.setStatusBarMessage(withErrs)
+				outputChannel.appendLine(withErrs)
+			} else if (errWarns.warnings > 0) {
+				const files = this.emit(output, solc.outDir, solc.sourceDir, solc.excludePaths, solc.document.absolutePath)
+				const withWarns = `Compiled with ${errWarns.warnings} warnings.`
+				vscode.window.showWarningMessage(withWarns)
+				vscode.window.setStatusBarMessage(withWarns)
+				outputChannel.appendLine(withWarns)
 				return files
 			}
 		} else {
 			try {
-				const files = this.writeCompilationOutputToBuildDirectory(
-					output,
-					solc.outDir,
-					solc.sourceDir,
-					solc.excludePaths,
-					solc.document.absolutePath,
-				)
-				const compilationSuccessMessage = "Compiled succesfully."
-				vscode.window.showInformationMessage(compilationSuccessMessage)
-				vscode.window.setStatusBarMessage(compilationSuccessMessage)
-				outputChannel.appendLine(compilationSuccessMessage)
+				const files = this.emit(output, solc.outDir, solc.sourceDir, solc.excludePaths, solc.document.absolutePath)
+				const message = "Compiled succesfully."
+				vscode.window.showInformationMessage(message)
+				vscode.window.setStatusBarMessage(message)
+				outputChannel.appendLine(message)
 				return files
 			} catch (e: any) {
 				this.outputChannel.appendLine(e.message)
@@ -278,12 +267,12 @@ export class ClientCompilers {
 		fs.mkdirSync(dirname)
 	}
 
-	private writeCompilationOutputToBuildDirectory(
+	private emit(
 		output: SolcOutput,
 		buildDir: string,
 		sourceDir: string,
 		excludePath?: string[],
-		singleContractFilePath?: string,
+		sourcePath?: string,
 	): Array<string> {
 		const rootPath = getCurrentProjectInWorkspaceRootFsPath()
 		const binPath = path.join(rootPath, buildDir)
@@ -293,23 +282,20 @@ export class ClientCompilers {
 			fs.mkdirSync(binPath)
 		}
 
-		if (singleContractFilePath) {
-			const relativePath = path.relative(rootPath, singleContractFilePath)
+		if (sourcePath) {
+			const relativePath = path.relative(rootPath, sourcePath)
 			const dirName = path.dirname(path.join(binPath, relativePath))
-			const outputCompilationPath = path.join(
-				dirName,
-				`${path.basename(singleContractFilePath, ".sol")}-solc-output.json`,
-			)
-			this.ensureDirectoryExistence(outputCompilationPath)
-			fs.writeFileSync(outputCompilationPath, JSON.stringify(output, null, 4))
+			const out = path.join(dirName, `${path.basename(sourcePath, ".sol")}-solc-output.json`)
+			this.ensureDirectoryExistence(out)
+			fs.writeFileSync(out, JSON.stringify(output, null, 4))
 		} else {
 			const dirName = binPath
-			const outputCompilationPath = path.join(dirName, "solc-output-compile-all" + ".json")
-			this.ensureDirectoryExistence(outputCompilationPath)
-			if (fs.existsSync(outputCompilationPath)) {
-				fs.unlinkSync(outputCompilationPath)
+			const out = path.join(dirName, "solc-output-compile-all" + ".json")
+			this.ensureDirectoryExistence(out)
+			if (fs.existsSync(out)) {
+				fs.unlinkSync(out)
 			}
-			fs.writeFileSync(outputCompilationPath, JSON.stringify(output, null, 4))
+			fs.writeFileSync(out, JSON.stringify(output, null, 4))
 		}
 
 		// iterate through all the sources,
@@ -318,44 +304,30 @@ export class ClientCompilers {
 			// TODO: ALL this validation to a method
 
 			// Output only single contract compilation or all
-			if (!singleContractFilePath || source === singleContractFilePath) {
+			if (!sourcePath || source === sourcePath) {
 				if (!excludePath || !excludePath.some((x) => source.startsWith(x))) {
 					// Output only source directory compilation or all (this will exclude external references)
 					if (!sourceDir || source.startsWith(sourceDir)) {
-						for (const contractName in output.contracts[source]) {
-							if (output.contracts[source].hasOwnProperty(contractName)) {
-								const contract = output.contracts[source][contractName]
+						for (const name in output.contracts[source]) {
+							if (output.contracts[source].hasOwnProperty(name)) {
+								const contract = output.contracts[source][name]
 								const relativePath = path.relative(rootPath, source)
 								const dirName = path.dirname(path.join(binPath, relativePath))
 
-								if (!fs.existsSync(dirName)) {
-									fsex.mkdirsSync(dirName)
-								}
+								if (!fs.existsSync(dirName)) fsex.mkdirsSync(dirName)
 
-								const contractAbiPath = path.join(dirName, `${contractName}.abi`)
-								const contractBinPath = path.join(dirName, `${contractName}.bin`)
-								const contractJsonPath = path.join(dirName, `${contractName}.json`)
+								const abiOut = path.join(dirName, `${name}.abi`)
+								const binOut = path.join(dirName, `${name}.bin`)
+								const jsonOut = path.join(dirName, `${name}.json`)
 
-								if (fs.existsSync(contractAbiPath)) {
-									fs.unlinkSync(contractAbiPath)
-								}
+								if (fs.existsSync(abiOut)) fs.unlinkSync(abiOut)
+								if (fs.existsSync(binOut)) fs.unlinkSync(binOut)
+								if (fs.existsSync(jsonOut)) fs.unlinkSync(jsonOut)
+								if (contract.evm?.bytecode?.object) fs.writeFileSync(binOut, contract.evm.bytecode.object)
+								if (contract.abi) fs.writeFileSync(abiOut, JSON.stringify(contract.abi))
 
-								if (fs.existsSync(contractBinPath)) {
-									fs.unlinkSync(contractBinPath)
-								}
-
-								if (fs.existsSync(contractJsonPath)) {
-									fs.unlinkSync(contractJsonPath)
-								}
-								if (contract.evm?.bytecode?.object) {
-									fs.writeFileSync(contractBinPath, contract.evm.bytecode.object)
-								}
-								if (contract.abi) {
-									fs.writeFileSync(contractAbiPath, JSON.stringify(contract.abi))
-								}
-
-								fs.writeFileSync(contractJsonPath, JSON.stringify(contract, null, 2))
-								compiledFiles.push(contractJsonPath)
+								fs.writeFileSync(jsonOut, JSON.stringify(contract, null, 2))
+								compiledFiles.push(jsonOut)
 							}
 						}
 					}

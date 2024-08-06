@@ -1,99 +1,79 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
+import type { Project } from "./project"
 import type { Remapping } from "./remapping"
-export function createDefaultPackage(
-	remappings: Remapping[],
-	name: string,
-	rootPath: string,
-	solSources = "",
-	outDir = "bin",
-	libs: string[] = [],
-): Package {
-	return new Package(remappings, name, rootPath, solSources, libs, outDir)
+export function createDefaultPackage(project: Project): Package {
+	return new Package(project, project.rootPath)
 }
 
 export class Package {
 	public name: string
 	public version: string
-	public solSources: string
+	public src: string
 	public outDir: string
 	public rootPath: string
+	public srcAbsolute: string
 	public remappings: Remapping[]
 	public dependencies: Package[]
 	public parent: Package | null
 	public libs: string[] = []
+	public srcAlts: string[] = []
+	public internal = false
 
-	constructor(
-		remappings: Remapping[],
-		name: string,
-		rootPath: string,
-		solSources: string,
-		libs: string[],
-		outDir: string,
-		parent?: Package,
-	) {
+	constructor(project: Project, packagePath: string, parent?: Package) {
+		const isProject = project.rootPath === packagePath
+
+		this.name = path.basename(packagePath)
+		this.rootPath = packagePath
 		this.parent = parent
-		this.name = path.basename(parent ? rootPath.replace(parent.rootPath, "") : rootPath)
-		this.solSources = solSources
-		this.rootPath = rootPath
-		// const remappingsParsed = remappings.map((x) => {
-		// 	const base = x.includes(":") ? x.split(":")[1] : x // ignore context
+		this.srcAlts = project.srcLibs
 
-		// 	const [prefix, targetDir] = base.split("=")
-		// 	return { prefix, targetDir, rootPath: path.join(rootPath, targetDir) }
-		// })
-		this.remappings = remappings.filter((r) => r.target.includes(this.name))
-		this.libs = libs.filter((x) => fs.existsSync(path.join(rootPath, x)))
-		this.outDir = outDir
+		this.src = isProject ? project.src : project.srcLibs.find((x) => fs.existsSync(path.join(packagePath, x)))
+
+		this.srcAbsolute = this.src != null ? path.join(packagePath, this.src) : packagePath
+		this.internal = isProject || packagePath.includes(project.srcAbsolute)
+
+		this.libs = !this.internal ? project.libs.filter((x) => fs.existsSync(path.join(packagePath, x))) : []
+		this.remappings = project.remappings.filter((r) => {
+			const targetPath = path.join(project.rootPath, r.target)
+			return isProject ? targetPath.includes(project.srcAbsolute) : targetPath.includes(packagePath)
+		})
+
+		this.outDir = project.solc.compiler.outDir
 	}
 
-	public getSolRootPath() {
-		if (this.solSources || this.solSources === "") {
-			return path.join(this.rootPath, this.solSources)
-		}
-		return this.rootPath
-	}
-
-	public fromRoot(paths: string) {
-		return path.join(this.getSolRootPath(), paths)
+	public fromSources(paths: string) {
+		return path.join(this.srcAbsolute, paths)
 	}
 
 	public isImportForThis(importPath: string) {
-		return !!this.parseImport(importPath)
+		const splitDirectories = importPath.split("/")
+		if (splitDirectories.length <= 1) return
+
+		if (splitDirectories[0] === this.name) {
+			return this.name
+		}
+		const remapping = this.remappings.find((r) => r.isImportForThis(importPath))
+		if (remapping) return remapping.prefix
 	}
 
-	public parseImport(importPath: string) {
-		const parts = importPath.replace(this.rootPath, "").split("/")
-		const base = parts.indexOf(this.name)
+	public resolveImport(importPath: string) {
+		const prefix = this.isImportForThis(importPath)
+		if (!prefix) return null
 
-		if (base === -1) {
-			const remapping = this.remappings.find((r) => r.isImportForThis(importPath) || r.isFileForThis(importPath))
-
-			if (remapping) return { prefix: remapping.prefix, targetDir: remapping.target, rootPath: remapping.basePath }
-		}
-
-		if (base === 0)
-			return {
-				prefix: this.name,
-				targetDir: this.solSources,
-				rootPath: this.getSolRootPath(),
-			}
-
-		if (parts[0].startsWith(".")) {
-			return { prefix: parts.slice(0, base + 1).join(""), targetDir: this.solSources, rootPath: this.getSolRootPath() }
-		}
-
-		return null
-	}
-
-	public resolveImport(importPath: string): string | undefined {
-		const parsed = this.parseImport(importPath)
-		if (!parsed) return null
-
-		const sharedPart = importPath.slice(parsed.prefix.length)
-		const result = path.join(parsed.rootPath, sharedPart)
-
-		if (fs.existsSync(result)) return result
-		return this.libs.map((lib) => path.join(this.rootPath, lib, sharedPart)).find((x) => fs.existsSync(x))
+		const resolvedPath = path.join(this.srcAbsolute, importPath.substring(prefix.length))
+		if (fs.existsSync(resolvedPath)) return resolvedPath
+		return this.srcAlts.find((srcDir) =>
+			fs.existsSync(path.join(this.rootPath, srcDir, importPath.substring(prefix.length))),
+		)
+		// for (let index = 0; index < this.srcAlts.length; index++) {
+		// 	const directory = this.libs[index]
+		// 	if (directory || directory === "") {
+		// 		const fullpath = path.join(this.rootPath, directory, importPath.substring(prefix.length))
+		// 		if (fs.existsSync(fullpath)) {
+		// 			return fullpath
+		// 		}
+		// 	}
+		// }
 	}
 }

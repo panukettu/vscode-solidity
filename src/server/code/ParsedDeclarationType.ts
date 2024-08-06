@@ -36,7 +36,7 @@ export class ParsedDeclarationType extends ParsedCode {
 		// @ts-expect-error
 		return this.element?.array_parts[0]
 			? // @ts-expect-error
-			  String(this.element?.array_parts[0])
+				String(this.element?.array_parts[0])
 			: ""
 	}
 

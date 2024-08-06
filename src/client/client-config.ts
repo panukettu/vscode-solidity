@@ -11,7 +11,7 @@ export class Config {
 		return vscode.workspace.getConfiguration().get<SolidityConfig>("solidity")
 	}
 
-	public static getFullConfig() {
+	public static all() {
 		return { ...Config.getConfig(), ...Config.getCompiler() }
 	}
 
@@ -75,20 +75,20 @@ export class Config {
 
 export function getCurrentProjectInWorkspaceRootFsPath() {
 	const monoreposupport = Config.getMonoRepoSupport()
-	const currentRootPath = getCurrentWorkspaceRootFsPath()
+	const rootPath = getRootFsPath()
 	if (monoreposupport) {
 		const editor = vscode.window.activeTextEditor
 		const currentDocument = editor.document.uri
-		const projectFolder = findFirstRootProjectFile(currentRootPath, currentDocument.fsPath)
+		const projectFolder = findFirstRootProjectFile(rootPath, currentDocument.fsPath)
 		if (projectFolder == null) {
-			return currentRootPath
+			return rootPath
 		}
 		return projectFolder
 	}
-	return currentRootPath
+	return rootPath
 }
 
-export function getCurrentWorkspaceRootFsPath() {
+export function getRootFsPath() {
 	return getCurrentWorkspaceRootFolder()
 }
 

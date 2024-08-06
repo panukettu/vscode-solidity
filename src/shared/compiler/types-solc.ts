@@ -1,3 +1,4 @@
+import type { CompilerType } from "@shared/enums"
 import type { EVMVersion } from "@shared/types"
 import type { ABI, AST } from "@shared/types-abi-ast"
 
@@ -605,6 +606,9 @@ type BytecodeOutput = {
 		}
 	}
 }
+
+export type SolcArgs = { input: Partial<SolcInput>; type?: CompilerType; callbacks?: Callbacks }
+
 export interface SolcOutput {
 	// Optional: not present if no errors/warnings/infos were encountered
 	errors: SolcError[]

@@ -1,3 +1,4 @@
+import { Project } from "@shared/project/project"
 import { deepEqual } from "fast-equals"
 import { URI } from "vscode-uri"
 import { findFirstRootProjectFile } from "../shared/project/project-utils"
@@ -25,11 +26,8 @@ export function initCommon(document: any) {
 export function getCodeWalkerService() {
 	const config = getConfig()
 
-	if (
-		codeWalkerService &&
-		codeWalkerService?.rootPath === selectedProjectFolder &&
-		deepEqual(codeWalkerService.config, config)
-	) {
+	if (codeWalkerService?.project.id === Project.id(config, selectedProjectFolder)) {
+		console.debug("REUSING WALKER")
 		return codeWalkerService
 	}
 

@@ -3,7 +3,7 @@ import { provideHover } from "@server/providers/hover"
 import { provideSignatureHelp } from "@server/providers/signatures"
 import { validateAllDocuments, validateDocument } from "@server/server-diagnostics"
 import { DocUtil } from "@server/utils/text-document"
-import { filesCache } from "@shared/project/project"
+import { filesCache } from "@shared/project/cache"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import * as vscode from "vscode-languageserver/node"
 import { DidChangeConfigurationNotification } from "vscode-languageserver/node"
@@ -101,7 +101,7 @@ connection.onDidChangeWatchedFiles(({ changes }) => {
 	if (!changes.some((change) => change.uri.includes("foundry.toml") || change.uri.includes("solhint.json"))) return
 
 	handleConfigChange({} as any)
-	filesCache.clear()
+
 	return validateAllDocuments()
 })
 
@@ -114,7 +114,6 @@ connection.onCodeAction((handler) => {
 connection.onDidChangeConfiguration(async (change) => {
 	await handleConfigChange(change)
 	if (settings.linter != null) settings.linter.loadFileConfig(settings.rootPath)
-	filesCache.clear()
 	return validateAllDocuments()
 })
 

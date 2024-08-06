@@ -10,14 +10,14 @@ import * as util from "../util"
 import { Project } from "./project"
 
 const packageConfigFileName = "dappFile"
-const remappingConfigFileName = "remappings.txt"
+const txtRemappings = "remappings.txt"
 const brownieConfigFileName = "brownie-config.yaml"
 const hardhatConfigFileName = "hardhat.config.js"
 const truffleConfigFileName = "truffle-config.js"
 const foundryConfigFileName = "foundry.toml"
 
 const projectFilesAtRoot = [
-	remappingConfigFileName,
+	txtRemappings,
 	brownieConfigFileName,
 	foundryConfigFileName,
 	hardhatConfigFileName,
@@ -40,10 +40,7 @@ function readYamlSync(filePath: string) {
 
 export function getHardhatSourceFolder(rootPath: string): string | null {
 	try {
-		const hardhatConfigFile = path.join(rootPath, hardhatConfigFileName)
-		if (!fs.existsSync(hardhatConfigFile)) return null
-		const config = require(hardhatConfigFile)
-		return config?.paths?.sources ?? null
+		return require(path.join(rootPath, hardhatConfigFileName))?.paths?.sources ?? null
 	} catch (e) {
 		return null
 	}
@@ -65,78 +62,60 @@ export function getFoundryConfig(rootPath: string): FoundryConfigParsed | null {
 	}
 }
 
-function getBrownieRemappings(rootPath: string): string[] {
-	const brownieConfigFile = path.join(rootPath, brownieConfigFileName)
-	if (!fs.existsSync(brownieConfigFile)) return null
-
+function getBrownieRemappings(rootPath: string) {
 	try {
+		const brownieConfigFile = path.join(rootPath, brownieConfigFileName)
 		const config = readYamlSync(brownieConfigFile)
 
-		const remappingsLoaded: string[] = config.compiler.solc.remappings
-		if (!remappingsLoaded || remappingsLoaded.length === 0) {
-			return null
-		}
-		const remappings = remappingsLoaded.map((i) => {
-			const [alias, packageID] = i.split("=")
-			if (packageID.startsWith("/")) {
-				// correct processing for imports defined with global path
-				return `${alias}=${packageID}`
-			}
-			return `${alias}=${path.join(os.homedir(), ".brownie", "packages", packageID)}`
-		})
-		return remappings
-		// biome-ignore lint/suspicious/noShadowRestrictedNames: <explanation>
-	} catch (TypeError) {
-		return null
+		return (
+			(config.compiler?.solc?.remappings as string[]) ??
+			[].map((i) => {
+				const [alias, packageID] = i.split("=")
+				if (packageID.startsWith("/")) return `${alias}=${packageID}` // correct processing for imports defined with global path
+				return `${alias}=${path.join(os.homedir(), ".brownie", "packages", packageID)}`
+			})
+		)
+	} catch (err: any) {
+		return []
 	}
 }
 
 function getRemappingsTxt(rootPath: string) {
-	const remappingsFile = path.join(rootPath, remappingConfigFileName)
-	if (!fs.existsSync(remappingsFile)) return null
 	try {
-		const remappings = []
-		const fileContent = fs.readFileSync(remappingsFile, "utf8")
-		const remappingsLoaded = fileContent.split(/\r\n|\r|\n/) // split lines
-		if (remappingsLoaded && remappingsLoaded.length > 0) {
-			for (let i = 0; i < remappingsLoaded.length; i++) {
-				const line = remappingsLoaded[i]
-				if (line.length > 0) remappings.push(line)
-			}
-		}
-		return remappings
+		return fs
+			.readFileSync(path.join(rootPath, txtRemappings), "utf8")
+			.split(/\r\n|\r|\n/)
+			.filter((l) => l.length)
 	} catch (e) {
-		console.debug("Unhandled (remappings.txt)", e.message)
-		return null
+		return []
 	}
 }
-function getLibRemappings(libFolder?: string): string[] {
-	const configs = glob.sync(`${path.join(libFolder)}/**/foundry.toml`, { ignore: ["**/node_modules/**"] })
-	if (!configs.length) return []
+// function getLibRemappings(libFolder?: string): string[] {
+// 	const configs = glob.sync(`${path.join(libFolder)}/**/foundry.toml`, { ignore: ["**/node_modules/**"] })
+// 	if (!configs.length) return []
 
-	const folders = configs.map((c) => path.dirname(c))
-	if (!folders.length) return []
+// 	return (
+// 		configs
+// 			?.flatMap((loc) => {
+// 				const dir = path.dirname(loc)
+// 				const remappings = getFoundryConfig(dir)?.profile?.remappings ?? []
+// 				return remappings.map((r) => {
+// 					const [remap, target] = r.split("=")
+// 					return `${remap}=${dir}/${target}`
+// 				})
+// 			})
+// 			.filter((r) => r?.length) ?? []
+// 	)
+// }
 
-	return folders
-		.flatMap((f) => {
-			const remappings = getFoundryConfig(f)?.profile?.remappings
-			if (!remappings) return []
-			return remappings.map((r) => {
-				const [remap, target] = r.split("=")
-				return `${remap}=${f}/${target}`
-			})
-		})
-		.filter((r) => r && r.length > 0)
-}
-export function loadRemappings(p: {
-	rootPath: string
-	foundry?: FoundryConfigParsed
-	cfg?: Partial<SolidityConfig>
-}): string[] {
-	if (p.foundry?.profile && p.cfg?.project.useForgeRemappings) {
-		const libs = p.cfg?.project?.libs ?? []
-		const forgeRemaps = (execSync("forge remappings", { cwd: p.rootPath }).toString().split("\n") ?? []).filter(Boolean)
-		return Array.from(new Set(forgeRemaps.concat(libs.flatMap((l) => getLibRemappings(l)))))
-	}
-	return p.cfg.project.remappings ?? getRemappingsTxt(p.rootPath) ?? getBrownieRemappings(p.rootPath) ?? []
+export function loadRemappings(
+	rootPath: string,
+	useForge: boolean,
+	libs: string[],
+	remappings: string[] = [],
+): string[] {
+	if (!useForge) return remappings.concat(getRemappingsTxt(rootPath) ?? getBrownieRemappings(rootPath) ?? [])
+
+	const result = (execSync("forge remappings", { cwd: rootPath }).toString().split("\n") ?? []).filter(Boolean)
+	return Array.from(new Set(remappings.concat(result)))
 }

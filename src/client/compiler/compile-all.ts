@@ -16,7 +16,7 @@ export function compileAllContracts(state: ClientState, commandArgs: BaseCommand
 	}
 	const rootPath = getCurrentProjectInWorkspaceRootFsPath()
 
-	const project = new Project(Config.getFullConfig(), rootPath)
+	const project = new Project(Config.all(), rootPath)
 
 	// Process open Text Documents first as it is faster (We might need to save them all first? Is this assumed?)
 	const [activeDocument] = commandArgs
@@ -25,22 +25,18 @@ export function compileAllContracts(state: ClientState, commandArgs: BaseCommand
 		if (!isPathSubdirectory(rootPath, document.fileName)) continue
 		if (path.extname(document.fileName) !== ".sol") continue
 
-		const doc = project.contracts.addSourceDocumentAndResolveImports(document.fileName, document.getText(), project)
-		if (activeDocument.fileName === document.fileName) {
-			activeSource = doc
-		}
+		const doc = project.addSource(document.fileName, document.getText())
+		if (activeDocument.fileName === document.fileName) activeSource = doc
 	}
 
 	const remaining = (project?.getProjectSolFiles() ?? []).filter((f) => !project.contracts.containsSourceDocument(f))
 
-	for (const document of remaining) {
-		project.contracts.addSourceDocumentAndResolveImports(document, null, project)
-	}
+	for (const document of remaining) project.addSource(document, null)
 
 	const compilerOpts = Multisolc.getSettings(project, activeSource, {
 		exclusions: project.libs,
+		sources: project.contracts.getSolcInputSource(),
 	})
-	compilerOpts.input.sources = project.contracts.getSolcInputSource()
 
 	return state.compilers.compile(commandArgs, compilerOpts)
 }

@@ -336,16 +336,16 @@ export class ParsedParameter extends ParsedVariable {
 				this.type.name !== "address"
 					? `The ${name} (${this.type.name}).`
 					: name.indexOf("address") !== -1
-					? `The ${name}.`
-					: `The ${name} address.`
+						? `The ${name}.`
+						: `The ${name} address.`
 			const arrayParts = this.type.getArrayParts()
 			return arraySig
 				? `List of ${arrayParts ? `${arrayParts} ` : ""}${pluralize(this.type.name)}.`
 				: this.isInput
-				? inputText
-				: this.name
-				? `${prefix} value.`
-				: `Result of ${this.parent.name}.`
+					? inputText
+					: this.name
+						? `${prefix} value.`
+						: `Result of ${this.parent.name}.`
 		}
 		return this.type.name + arraySig
 	}

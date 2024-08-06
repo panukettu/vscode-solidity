@@ -29,15 +29,13 @@ export async function compileActiveFile(
 	}
 
 	try {
-		const project = new Project(Config.getFullConfig(), getCurrentProjectInWorkspaceRootFsPath())
-		const document = project.contracts.addSourceDocumentAndResolveImports(
-			editor.document.fileName,
-			editor.document.getText(),
-			project,
-		)
+		const project = new Project(Config.all(), getCurrentProjectInWorkspaceRootFsPath())
+		const document = project.addSource(editor.document.fileName, editor.document.getText())
 
-		const settings = Multisolc.getSettings(project, document, { type: compilerOverride })
-		settings.input.sources = project.contracts.getSolcInputSource()
+		const settings = Multisolc.getSettings(project, document, {
+			type: compilerOverride,
+			sources: project.contracts.getSolcInputSource(),
+		})
 		return state.compilers.compile(args, settings)
 	} catch (e) {
 		console.debug("compileActiveFile:", e.message)

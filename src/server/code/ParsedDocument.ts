@@ -332,6 +332,7 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		for (const item of this.innerContracts) {
 			item.initialiseExtendContracts()
 		}
+		return this
 	}
 	public initCache(offset: number) {
 		this.selectedElement = this.findElementByOffset(this.element.body, offset)

@@ -1,5 +1,6 @@
 import { Multisolc } from "@shared/compiler/multisolc"
 import { CompilerType } from "@shared/enums"
+import { filesCache } from "@shared/project/cache"
 import { Project } from "@shared/project/project"
 import { getFoundryConfig, loadRemappings } from "@shared/project/project-utils"
 import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
@@ -44,6 +45,7 @@ export function getConfig() {
 }
 
 export const handleConfigChange = async (change: vscode.DidChangeConfigurationParams) => {
+	filesCache.clearAll()
 	await updateConfig({
 		...serverConfig,
 		...(await createConfig()),
@@ -152,12 +154,13 @@ async function createConfig() {
 			cfg.project.remappings,
 			cfg.project.remappingsWindows ?? cfg.project.remappingsUnix ?? [],
 		)
-		cfg.project.remappings = loadRemappings({
-			rootPath: settings.rootPath,
-			cfg,
-			foundry,
-		})
-
+		cfg.project.remappings = loadRemappings(
+			settings.rootPath,
+			cfg.project.useForgeRemappings,
+			cfg.project.libs,
+			cfg.project.remappings,
+		)
+		console.debug("COMPILER TYPE", typeof cfg.compiler.type, "CORRECT TYPE", typeof CompilerType.Extension)
 		cfg.compiler.type = CompilerType[cfg.compiler.type as unknown as string] || CompilerType.Extension
 		return cfg as SolidityConfig
 	} catch (e) {

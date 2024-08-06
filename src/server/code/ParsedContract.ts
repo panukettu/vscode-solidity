@@ -734,7 +734,7 @@ export class ParsedContract extends ParsedCode implements IParsedExpressionConta
 
 			completionItem.insertText = this.name
 
-			completionItem.detail = this.document.sourceDocument.project.absoluteFromRoot(
+			completionItem.detail = this.document.sourceDocument.project.diffFromRoot(
 				this.document.sourceDocument.absolutePath,
 			)
 			completionItem.documentation = this.getMarkupInfo(true)

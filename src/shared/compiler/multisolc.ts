@@ -9,7 +9,7 @@ import { ExtensionSolc } from "./location/solc-default"
 import { LocalSolc } from "./location/solc-local"
 import { NPMSolc } from "./location/solc-npm"
 import { RemoteSolc } from "./location/solc-remote"
-import type { SolcInput, SolcOutput } from "./types-solc"
+import type { SolcArgs, SolcInput, SolcOutput } from "./types-solc"
 
 export class Multisolc {
 	public rootPath: string
@@ -73,21 +73,17 @@ export class Multisolc {
 		await compiler.initializeSolc()
 	}
 
-	public async compileInputWith(
-		input: Partial<SolcInput>,
-		type: CompilerType = null,
-		callbacks: any = undefined,
-	): Promise<SolcOutput> {
+	public async compileWith(args: SolcArgs): Promise<SolcOutput> {
 		try {
-			const compiler = this.getCompiler(type)
+			const compiler = this.getCompiler(args.type)
 
 			if (!compiler?.solc?.compile) {
-				await this.initializeSolc(type)
-				return await this.compileInputWith(input, type, callbacks)
+				await this.initializeSolc(args.type)
 			}
 
-			const result = JSON.parse(compiler.solc.compile(JSON.stringify(input), callbacks)) as SolcOutput
+			const result = JSON.parse(compiler.solc.compile(JSON.stringify(args.input), args.callbacks)) as SolcOutput
 			if (result?.errors?.length) result.errors = result.errors.filter((error) => error.errorCode !== "3805")
+
 			return result
 		} catch (e) {
 			console.debug("Unhandled (compile):", e)
@@ -135,15 +131,16 @@ export class Multisolc {
 		}
 
 		if (!this.isRootPathSet()) {
-			const output = await this.compileInputWith({
-				language: "Solidity",
-				settings: {
-					evmVersion: "cancun",
-					remappings: config.project.remappings,
-				},
-				sources: {
-					[filePath]: {
-						content: documentText,
+			const output = await this.compileWith({
+				input: {
+					language: "Solidity",
+					settings: {
+						evmVersion: "cancun",
+					},
+					sources: {
+						[filePath]: {
+							content: documentText,
+						},
 					},
 				},
 			})
@@ -151,13 +148,13 @@ export class Multisolc {
 		}
 
 		const project = new Project(config, this.rootPath)
-		const doc = project.contracts.addSourceDocumentAndResolveImports(filePath, documentText, project)
-
-		const fileCallback = project.getImportCallback(doc)
-		const input = project.contracts.getMinimalSolcInput(project.remappings)
 
 		try {
-			const output = await this.compileInputWith(input, config.compiler.type, fileCallback)
+			const output = await this.compileWith({
+				input: project.getMinSolcInput(),
+				type: config.compiler.type,
+				callbacks: project.getImportCallback(project.addSource(filePath, documentText)),
+			})
 			return output.errors?.map(errorToDiagnostic) ?? []
 		} catch (error: any) {
 			console.debug("compileWithDiagnostic:", error.message)
@@ -168,35 +165,36 @@ export class Multisolc {
 		project: Project,
 		document?: SourceDocument,
 		overrides?: {
+			sources?: SolcInput["sources"]
 			exclusions?: string[]
 			sourceDir?: string
 			type?: CompilerType
 		},
 	): MultisolcSettings {
-		const { cfg } = project
-		cfg.compilerSettings.input?.outputSelection
-			? cfg.compilerSettings.input.outputSelection
-			: (cfg.compilerSettings.input.outputSelection = {
-					"*": { "*": cfg.compilerSettings.output, "": [] },
-				})
-
+		const { settings, compiler } = project.solc
+		const { input, output } = settings
+		if (!input?.outputSelection)
+			input.outputSelection = {
+				"*": { "*": output, "": [] },
+			}
 		return {
 			input: {
 				language: "Solidity",
+				sources: overrides?.sources,
 				settings: {
-					...cfg.compilerSettings.input,
-					remappings: cfg.project.remappings.concat(cfg.compilerSettings.input.remappings ?? []),
+					...input,
+					remappings: project.getRawRemappings().concat(input.remappings ?? []),
 				},
 			},
 			document,
-			excludePaths: overrides?.exclusions ?? cfg.project.exclude,
-			rootPath: project?.rootPath,
-			sourceDir: overrides?.sourceDir ?? cfg.project.sources,
+			excludePaths: (overrides?.exclusions ?? []).concat(project.excludes),
+			rootPath: project.rootPath,
+			sourceDir: overrides.sourceDir ?? project.src,
 			outDir: project.projectPackage.outDir,
-			remoteSolcVersion: cfg.compiler.remote,
-			localSolcVersion: cfg.compiler.local,
-			npmSolcPackage: cfg.compiler.npm,
-			selectedType: overrides?.type ?? cfg.compiler.type,
+			remoteSolcVersion: compiler.remote,
+			localSolcVersion: compiler.local,
+			npmSolcPackage: compiler.npm,
+			selectedType: overrides?.type ?? compiler.type,
 		}
 	}
 }

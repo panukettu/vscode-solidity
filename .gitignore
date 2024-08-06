@@ -8,5 +8,5 @@ tmp
 .nyc_output
 coverage
 *.vsix
-
+temp
 soljson-v0.*.js

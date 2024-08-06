@@ -14,16 +14,10 @@ export class CodeWalkerService {
 	public initialized: boolean
 	public project: Project
 	public rootPath: string
-	public config: SolidityConfig
 	public parsedDocumentsCache: ParsedDocument[] = []
 
 	constructor(rootPath: string, config: SolidityConfig) {
-		this.rootPath = rootPath
-		this.config = config
-		if (this.rootPath != null) {
-			this.project = new Project(this.config, this.rootPath)
-			this.config = this.project.cfg
-		}
+		if ((this.rootPath = rootPath) != null) this.project = new Project(config, this.rootPath)
 		this.initDocuments()
 	}
 
@@ -31,12 +25,12 @@ export class CodeWalkerService {
 		if (!this.project) throw new Error("Project not initialized")
 
 		for (const path of this.project.getProjectSolFiles() ?? []) {
-			const item = this.project.contracts.addSourceDocumentAndResolveImports(path, null, this.project)
+			const item = this.project.contracts.addSourceDocumentAndResolveImports(path, null)
 			this.parseDocumentAsync(item.unformattedCode, false, item)
 		}
 
 		for (const libPath of this.project.getLibSolFiles()) {
-			const item = this.project.contracts.addSourceDocumentAndResolveImports(libPath, null, this.project)
+			const item = this.project.contracts.addSourceDocumentAndResolveImports(libPath, null)
 			this.parseDocumentAsync(item.unformattedCode, true, item)
 		}
 		queueMicrotask(() => {
@@ -49,7 +43,7 @@ export class CodeWalkerService {
 
 	public initialiseChangedDocuments() {
 		this.project.getProjectSolFiles().forEach((contractPath) => {
-			this.project.contracts.addSourceDocumentAndResolveImports(contractPath, null, this.project)
+			this.project.contracts.addSourceDocumentAndResolveImports(contractPath, null)
 		})
 		this.project.contracts.documents.forEach((doc) => {
 			this.parseDocumentChanged(doc.unformattedCode, false, doc)
@@ -58,7 +52,6 @@ export class CodeWalkerService {
 
 	public getSelectedDocument(document: vscode.TextDocument, position: vscode.Position): ParsedDocument {
 		let selectedDocument: ParsedDocument
-		let selectedSourceDocument: SourceDocument
 		if (!this.project) return selectedDocument
 
 		const offset = document.offsetAt(position)
@@ -71,19 +64,16 @@ export class CodeWalkerService {
 		if ((cached && contents === cached.sourceDocument?.unformattedCode) || cached?.fixedSource) {
 			selectedDocument = cached
 			selectedDocument.initCache(offset)
-			selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache)
-		} else {
-			const sourceDocuments = new SourceDocumentCollection()
-			selectedSourceDocument = sourceDocuments.addSourceDocumentAndResolveImports(
-				URI.parse(document.uri).fsPath,
-				contents,
-				this.project,
-			)
-
-			selectedDocument = this.parseSelectedDocument(contents, offset, position.line, false, selectedSourceDocument)
-			selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache)
+			return selectedDocument.initialiseDocumentReferences(this.parsedDocumentsCache)
 		}
-		return selectedDocument
+
+		return this.parseSelectedDocument(
+			contents,
+			offset,
+			position.line,
+			false,
+			this.project.contracts.addSourceDocumentAndResolveImports(URI.parse(document.uri).fsPath, contents),
+		).initialiseDocumentReferences(this.parsedDocumentsCache)
 	}
 
 	public parseSelectedDocument(
