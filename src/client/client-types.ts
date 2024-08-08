@@ -15,7 +15,6 @@ export namespace Lens {
 }
 export type BaseCommandArgs = readonly [vscode.TextDocument, vscode.Range]
 export type ParseStdOutArgs<T, R = T, U = T> = {
-	state: ClientState
 	process: ProcessOut
 	args: readonly [string, ...any[]]
 	scope?: string

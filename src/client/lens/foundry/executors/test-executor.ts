@@ -52,7 +52,6 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 		const [functionName, document, range] = args
 
 		return parseTestOutput<TestExec.Result, TestExec.Restart, TestExec.Unhandled>({
-			state,
 			process,
 			args,
 			onPass: (result) => {
