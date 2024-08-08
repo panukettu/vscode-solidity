@@ -441,7 +441,7 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 		return this.createInfo(
 			this.getRootName(),
 			"",
-			`${this.getSignature(false, activeParam) + (extra ? extra : "")} | | ${getFunctionSelector(this.getSelector())}`,
+			`${this.getSignature(false, activeParam) + (extra ? extra : "")} (${getFunctionSelector(this.getSelector())})`,
 			this.contract
 				? `${this.contract.getContractTypeName(this.contract.contractType)} ${this.getParsedObjectType()}`.toLowerCase()
 				: "",

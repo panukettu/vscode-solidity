@@ -1,9 +1,13 @@
 import type { ExecFileException } from "node:child_process"
 import type { ParseStdOutArgs, TestExec } from "@client/client-types"
+import { clearDiagnostics } from "@client/commands/diagnostics"
 import { ExecStatus } from "@shared/enums"
 import { formatOutput } from "@shared/regexp"
 import logUtils, { getLineIndexFinder, getLinesFinder, keywords, toDefaultFormat, toLines } from "./foundry-logs-parser"
-
+const CONSOLE_LOG_ADDR = "0x000000000000000000636F6e736F6c652e6c6f67"
+const VM_ADDR = "0x7109709ECfa91a80626fF3989D68f67F5b1DD12D"
+const DEPLOYER_NONCE_1 = "0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496"
+// address constant fSender = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
 export const parseTestOutput = <T, R = T, U = T>({
 	process,
 	args,
@@ -14,32 +18,36 @@ export const parseTestOutput = <T, R = T, U = T>({
 	onCompilerError,
 	onRestart,
 }: ParseStdOutArgs<T, R, U>) => {
-	const { stdout, stderr, error } = process
-	const [id] = args
+	try {
+		const { stdout, stderr, error } = process
+		const [id] = args
 
-	const output = error ? (error.killed ? stdout : stderr) : stdout
+		const output = !!error && !error?.message?.includes("Compilation") && !error?.killed ? stderr : stdout
 
-	const formatted = formatOutput(output)
-	const lines = toLines(formatted)
-	const results = getTestResults(lines, id, process.error)
+		const formatted = formatOutput(output)
+		const lines = toLines(formatted)
 
-	if (results.status === ExecStatus.Pass) {
-		return onPass(results, formatted)
-	}
-	if (results.status === ExecStatus.SetupFail) {
-		return onSetupFail(results, formatted)
-	}
-	if (results.status === ExecStatus.Fail) {
-		return onFail(results, formatted)
-	}
-	if (results.status === ExecStatus.Restart) {
-		return onRestart(results, formatted)
-	}
-	if (results.status === ExecStatus.CompilerError) {
-		return onCompilerError(results, formatted, process.error)
-	}
-	if (results.status === ExecStatus.Error) {
-		return onUnhandled(results, formatted, process.error)
+		const results = getTestResults(lines, id, process.error)
+
+		results.status !== ExecStatus.Error && clearDiagnostics({ keepDecor: true, doc: args[1] })
+
+		if (results.status === ExecStatus.Pass) {
+			return onPass(results, formatted)
+		}
+		if (results.status === ExecStatus.SetupFail) {
+			return onSetupFail(results, formatted)
+		}
+		if (results.status === ExecStatus.Fail) {
+			return onFail(results, formatted)
+		}
+		if (results.status === ExecStatus.CompilerError) {
+			return onCompilerError(results, formatted, process.error)
+		}
+		if (results.status === ExecStatus.Restart) return onRestart(results, formatted)
+
+		if (results.status === ExecStatus.Error) return onUnhandled(results, formatted, process.error)
+	} catch (e) {
+		console.debug("parseTestOutput fail:", e)
 	}
 }
 
@@ -131,6 +139,6 @@ export const getTestResults = (
 			},
 		}
 	} catch (e) {
-		console.debug("Test results", e.message)
+		console.debug("test-results fail:", e.message)
 	}
 }

@@ -11,13 +11,12 @@ import { useProviderHelper } from "./utils/common"
 import { isComment } from "./utils/matchers"
 
 export const provideHover = (document: vscode.TextDocument, position: vscode.Position, walker: CodeWalkerService) => {
+	const docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
+	const { range, reset } = useProviderHelper("hover", docUtil)
 	try {
-		const docUtil = new DocUtil(document, DocUtil.positionRange(position), walker)
-		const { range, offset, reset } = useProviderHelper("hover", docUtil)
 		const [item, selectedDocument] = docUtil.getSelected()
 		const text = document.getText(range)
 		if (keccak256Regexp().test(text)) {
-			reset()
 			return {
 				contents: {
 					kind: vscode.MarkupKind.Markdown,
@@ -25,41 +24,31 @@ export const provideHover = (document: vscode.TextDocument, position: vscode.Pos
 				},
 			}
 		}
-		if (isComment(text)) {
-			reset()
-			return null
-		}
+		if (isComment(text)) return null
 		if (selectedDocument != null) {
-			const result = getHover(item, selectedDocument, docUtil, reset)
-
+			const result = getHover(item, selectedDocument, docUtil)
 			if (result) return result
 		}
 
-		reset()
 		return null
 	} catch (e) {
 		// console.debug('hover', e);
 		return null
+	} finally {
+		reset()
 	}
 }
 
-const getHover = (item: ParsedCode, selectedDocument: ParsedDocument, docUtil: any, reset?: any) => {
-	if (!item) {
-		reset?.()
-		return null
-	}
-	if (item.getHover) {
-		reset?.()
-		return item.getHover()
-	}
-	return getHoverExpression(item, selectedDocument, docUtil, reset)
+const getHover = (item: ParsedCode, selectedDocument: ParsedDocument, docUtil: DocUtil) => {
+	if (!item) return null
+	if (item.getHover) return item.getHover()
+	return getHoverExpression(item, selectedDocument, docUtil)
 }
 
-const getHoverExpression = (item: any, selectedDocument: ParsedDocument, docUtil: any, reset?: any) => {
+const getHoverExpression = (item: ParsedCode, selectedDocument: ParsedDocument, docUtil: DocUtil) => {
 	if (item instanceof ParsedExpression) {
 		const results = handleParsedExpression(selectedDocument, item, docUtil)
 		if (results?.length && results[0].getHover) {
-			reset?.()
 			return results[0].getHover()
 		}
 	}
@@ -80,40 +69,36 @@ const getHoverExpression = (item: any, selectedDocument: ParsedDocument, docUtil
 
 	const res = itemExp.getHover()
 	// @ts-expect-error
-	if (res.contents?.value) {
-		reset?.()
-		return res
-	}
+	if (res.contents?.value) return res
 	if (itemExp.parent) {
-		// const parentMapping = item.parent?.reference?.element?.literal?.literal?.to?.literal
-		// const allFound = selectedDocument.brute(item.name, true)
 		const def = getReferences(docUtil)
-		reset()
 		return def[0].getHover()
-
-		// if (allFound.length === 0) {
-		// 	reset()
-		// 	return null
-		// }
-		// for (const found of allFound) {
-		// 	// @ts-expect-error
-		// 	if (found.struct && found.struct?.name === parentMapping) {
-		// 		const res = found.getHover()
-		// 		// @ts-expect-error
-		// 		if (res.contents?.value) {
-		// 			reset()
-		// 			return res
-		// 		}
-		// 	} else {
-		// 		const parentInScope = selectedFunction.findTypeInScope(
-		// 			// @ts-expect-error
-		// 			found.parent?.name,
-		// 		)
-		// 		if (parentInScope) {
-		// 			reset()
-		// 			return found.getHover()
-		// 		}
-		// 	}
-		// }
 	}
 }
+
+// const parentMapping = item.parent?.reference?.element?.literal?.literal?.to?.literal
+// const allFound = selectedDocument.brute(item.name, true)
+// if (allFound.length === 0) {
+// 	reset()
+// 	return null
+// }
+// for (const found of allFound) {
+// 	// @ts-expect-error
+// 	if (found.struct && found.struct?.name === parentMapping) {
+// 		const res = found.getHover()
+// 		// @ts-expect-error
+// 		if (res.contents?.value) {
+// 			reset()
+// 			return res
+// 		}
+// 	} else {
+// 		const parentInScope = selectedFunction.findTypeInScope(
+// 			// @ts-expect-error
+// 			found.parent?.name,
+// 		)
+// 		if (parentInScope) {
+// 			reset()
+// 			return found.getHover()
+// 		}
+// 	}
+// }

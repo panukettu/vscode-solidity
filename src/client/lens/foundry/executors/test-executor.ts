@@ -2,10 +2,8 @@ import * as cp from "node:child_process"
 import { Config } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
 import type { Lens, ProcessOut, TestExec } from "@client/client-types"
-import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
 import { gasCache } from "@client/utils/gas"
 import { ExecStatus } from "@shared/enums"
-import * as vscode from "vscode"
 import { createCompilerDiagnostics, createTestDiagnostics } from "../diagnostics/foundry-diagnostics"
 import { parseTestOutput } from "../foundry-test-stdout-parser"
 
@@ -23,15 +21,13 @@ export async function execForgeTestFunction(
 			const tracing = Config.getTestVerbosity() ?? 2
 			const verbosity = !forceTrace ? `-${"v".repeat(tracing)}` : "-vvvvv"
 
-			const wordBound = `${functionName}\\b`
 			if (processMap.has(functionName)) processMap.get(functionName)?.kill()
-
 			processMap.set(
 				functionName,
 				cp.execFile(
 					"forge",
-					["test", "--mt", wordBound, verbosity, "--allow-failure", "--no-rate-limit"],
-					{ cwd: rootPath, maxBuffer: 2048 * 1024 * 10 },
+					["test", "--mt", `${functionName}\\\\b`, verbosity, "--allow-failure", "--no-rate-limit"],
+					{ cwd: rootPath, maxBuffer: 2048 * 1024 * 10, shell: true },
 					(error, stdout, stderr) => {
 						const result = handleTestExecuteOutput(state, args, {
 							stdout,
@@ -44,7 +40,7 @@ export async function execForgeTestFunction(
 				),
 			)
 		} catch (e) {
-			console.debug("ExecForgeTest", e.message)
+			console.debug(`forge-test-unhandled (${args[0]}): `, e.message)
 			reject(e)
 			processMap.clear()
 		}
@@ -54,8 +50,9 @@ export async function execForgeTestFunction(
 export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTestExec, process: ProcessOut) => {
 	try {
 		const [functionName, document, range] = args
-		vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"], true, args[1])
+
 		return parseTestOutput<TestExec.Result, TestExec.Restart, TestExec.Unhandled>({
+			state,
 			process,
 			args,
 			onPass: (result) => {
@@ -133,7 +130,7 @@ export const handleTestExecuteOutput = (state: ClientState, args: Lens.ForgeTest
 				}
 			},
 			onCompilerError: (result, output, error) => {
-				createCompilerDiagnostics(state, args, result, output)
+				createCompilerDiagnostics(output)
 				const isStackTooDeep = !!result.out.infos.stackTooDeep
 				if (isStackTooDeep) {
 					return {

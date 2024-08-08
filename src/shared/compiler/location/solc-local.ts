@@ -2,6 +2,7 @@ import { existsSync } from "node:fs"
 import { CompilerType } from "@shared/enums"
 import solc from "solc"
 import { SolcLoader } from "./loader"
+
 export class LocalSolc extends SolcLoader {
 	private localPath: string
 	public type = CompilerType.File

@@ -15,9 +15,6 @@ export class Config {
 		return { ...Config.getConfig(), ...Config.getCompiler() }
 	}
 
-	public static getProject() {
-		return vscode.workspace.getConfiguration("solidity").get<SolidityConfig["project"]>("project")
-	}
 	public static getCompiler() {
 		const compiler = vscode.workspace.getConfiguration("solidity").get<SolidityConfig["compiler"]>("compiler")
 
@@ -37,12 +34,8 @@ export class Config {
 	public static getTestVerbosity() {
 		return vscode.workspace.getConfiguration("solidity").get<number>("test.verbosity")
 	}
-	public static getOutDir() {
-		return vscode.workspace.getConfiguration("solidity").get<string>("compiler.outDir")
-	}
-
-	public static getCompilerType(): CompilerType {
-		return CompilerType[vscode.workspace.getConfiguration("solidity").get<string>("compiler.type")]
+	public static getDownloadsDir() {
+		return vscode.workspace.getConfiguration("solidity").get<string>("project.downloads")
 	}
 
 	public static getRemappings() {
@@ -60,12 +53,14 @@ export class Config {
 	public static getMonoRepoSupport(): boolean {
 		return vscode.workspace.getConfiguration("solidity").get<boolean>("project.monorepo")
 	}
+	public static shouldOpenProblemsPane(): boolean {
+		return vscode.workspace.getConfiguration("solidity").get<boolean>("validation.autoOpenProblems")
+	}
 }
 
 export function getCurrentProjectInWorkspaceRootFsPath() {
-	const isMono = Config.getMonoRepoSupport()
 	const rootPath = getRootFsPath()
-	if (!isMono) return rootPath
+	if (!Config.getMonoRepoSupport()) return rootPath
 
 	return findFirstRootProjectFile(rootPath, vscode.window.activeTextEditor.document.uri.fsPath) ?? rootPath
 }

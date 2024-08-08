@@ -447,6 +447,14 @@ export function getAbiCompletionItems(): CompletionItem[] {
 		},
 		{
 			detail:
+				"encodeCall(function,(...)) returns (bytes): ABI-encodes arguments of the contract function with type checking",
+			insertText: "encodeCall(${1:function}, (${2:args}));",
+			insertTextFormat: 2,
+			kind: CompletionItemKind.Method,
+			label: "encodeCall",
+		},
+		{
+			detail:
 				"encodeWithSelector(bytes4,...) returns (bytes): ABI-encodes the given arguments starting from the second and prepends the given four-byte selector",
 			insertText: "encodeWithSelector(${1:bytes4}, ${2:arg});",
 			insertTextFormat: 2,

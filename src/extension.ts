@@ -1,14 +1,13 @@
 // import 'tsconfig-paths/register';
 import { setupClientState } from "@client/client-state"
-import { registerCodeActions } from "@client/context/register-code-actions"
-import { registerCodeLenses } from "@client/context/register-code-lens"
-import { registerConfigSetters } from "@client/context/register-config-setters"
-import { registerDocumentProviders } from "@client/context/register-document-providers"
-import { registerSolcCommands } from "@client/context/register-solc-commands"
-import * as path from "path"
+import { registerCommands, registerProviders } from "@client/commands/commands-register"
+import { registerConfigSetters } from "@client/commands/commands-config"
+import { registerSolcCommands } from "@client/commands/commands-solc"
+import * as path from "node:path"
 import * as vscode from "vscode"
 import { RevealOutputChannelOn, type LanguageClientOptions } from "vscode-languageclient"
-import { LanguageClient, TransportKind, type ServerOptions } from "vscode-languageclient/node"
+import { LanguageClient, SettingMonitor, TransportKind, type ServerOptions } from "vscode-languageclient/node"
+import { openProblemsPane } from "@client/commands/diagnostics"
 
 function server(context: vscode.ExtensionContext): LanguageClient {
 	const serverModule = path.join(__dirname, "./server.js")
@@ -40,10 +39,13 @@ function server(context: vscode.ExtensionContext): LanguageClient {
 			// Notify the server about file changes to '.sol.js files contain in the workspace (TODO node, linter)
 			fileEvents: [
 				vscode.workspace.createFileSystemWatcher(
+					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "*solhint.json"),
+				),
+				vscode.workspace.createFileSystemWatcher(
 					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "foundry.toml"),
 				),
 				vscode.workspace.createFileSystemWatcher(
-					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "hardhat.config.js"),
+					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "hardhat.config.*"),
 				),
 			],
 		},
@@ -54,20 +56,35 @@ function server(context: vscode.ExtensionContext): LanguageClient {
 	}
 
 	const client = new LanguageClient("solidity", "Solidity Language Server", serverOptions, clientOptions)
-	client.start()
-	// Push the disposable to the context's subscriptions so that the
-	// client can be deactivated on extension deactivation
-	context.subscriptions.push(client)
+	client.onRequest("activeTextDocument", () => {
+		return vscode.window.activeTextEditor.document
+	})
+
+	client.onRequest("activeSelection", () => {
+		return vscode.window.activeTextEditor.selection
+	})
+
+	client.onRequest("workspaceFolders", () => {
+		return vscode.workspace.workspaceFolders
+	})
+
+	client.onRequest("openProblemsPane", () => {
+		return openProblemsPane()
+	})
+
+	client.onRequest("workspaceRoot", () => {
+		return vscode.workspace.workspaceFolders[0].uri.fsPath
+	})
+
+	context.subscriptions.push(new SettingMonitor(client, "solidity.lsp.enabled").start())
 	return client
 }
 
 export function activate(context: vscode.ExtensionContext) {
 	const state = setupClientState(context)
-	state.client = server(context)
-
-	registerDocumentProviders(state)
+	state.lsp = server(context)
+	registerProviders(state)
 	registerSolcCommands(state)
 	registerConfigSetters(state)
-	registerCodeActions(state)
-	registerCodeLenses(state)
+	registerCommands(state)
 }

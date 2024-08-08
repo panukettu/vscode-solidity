@@ -489,6 +489,10 @@ export class ParsedCode {
 		return ""
 	}
 
+	public getSelector(): string {
+		return ""
+	}
+
 	protected mergeArrays<Type>(first: Type[], second: Type[]): Type[] {
 		for (let i = 0; i < second.length; i++) {
 			if (first.indexOf(second[i]) === -1) {

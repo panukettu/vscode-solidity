@@ -24,7 +24,6 @@ export default defineConfig(async (opts) => {
 					"axios",
 					"fs-extra",
 					"glob",
-					"fast-equals",
 					"solc",
 					"solhint",
 					"lodash.debounce",

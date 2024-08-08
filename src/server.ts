@@ -1,22 +1,22 @@
 import { getCodeActionFixes } from "@server/actions/server-code-actions"
+import { request } from "@server/handlers/requests"
 import { provideHover } from "@server/providers/hover"
 import { provideSignatureHelp } from "@server/providers/signatures"
 import { validateAllDocuments, validateDocument } from "@server/server-diagnostics"
 import type { CommandParamsBase } from "@server/server-types"
 import { DocUtil } from "@server/utils/text-document"
-import { isInputCommand } from "@shared/server-commands"
+import type { ClientRequests } from "@shared/types-request"
 import { TextDocument } from "vscode-languageserver-textdocument"
 import * as vscode from "vscode-languageserver/node"
 import { DidChangeConfigurationNotification } from "vscode-languageserver/node"
+import { execInputCommand, executeCommand } from "./server/handlers/commands"
 import { getCompletionItems } from "./server/providers/completions"
 import { getDefinition } from "./server/providers/definition"
 import { getAllReferencesToItem } from "./server/providers/references"
 import { providerParams } from "./server/providers/utils/common"
-import { execInputCommand, executeCommand } from "./server/server-commands"
 import { compilerInitialized, configureServerCachePath } from "./server/server-compiler"
 import { getConfig, handleConfigChange, handleInitialize, handleInitialized, settings } from "./server/server-config"
 import { getCodeWalkerService, initCommon } from "./server/server-utils"
-
 export const documents = new vscode.TextDocuments(TextDocument)
 
 let hasConfigurationCapability = false
@@ -43,13 +43,17 @@ connection.onInitialized(async (params) => {
 	if (hasConfigurationCapability) {
 		connection.client.register(DidChangeConfigurationNotification.type, undefined)
 	}
+
+	connection.sendNotification("initialized")
 })
-connection.onRequest("CompilerError", (params) => {
-	console.debug("CompilerError", params)
-})
+
 /* -------------------------------------------------------------------------- */
 /*                                   Actions                                  */
 /* -------------------------------------------------------------------------- */
+connection.onRequest("request", async (params: ClientRequests) => {
+	return request[params.type](params.args as any)
+})
+
 connection.onCompletion((handler) => {
 	initCommon(handler.textDocument)
 	return [...new Set(getCompletionItems(...providerParams(handler)))]
@@ -81,20 +85,12 @@ connection.onSignatureHelp((handler) => {
 })
 
 connection.onExecuteCommand((params) => {
-	console.debug("Execute command", params, isInputCommand(params.command))
 	const args = params.arguments
-
-	if (isInputCommand(params.command)) {
-		return execInputCommand(params)
-	}
-
 	const [document, range] = args as CommandParamsBase
-
 	document && initCommon(document)
-	const walker = getCodeWalkerService()
 	const uri = document?.uri ? documents.get(document.uri.external) : undefined
 	try {
-		return executeCommand(walker, params, uri, range ? vscode.Range.create(range[0], range[1]) : undefined)
+		return executeCommand(params, uri, range ? vscode.Range.create(range[0], range[1]) : undefined)
 	} catch (e) {
 		console.debug("Unhandled", e.message)
 		return null
@@ -143,7 +139,7 @@ documents.onDidClose((event) => {
 documents.onDidOpen(async (event) => {
 	const config = getConfig()
 	if (!config.validation.onOpen || !compilerInitialized) return
-	// return validateDocument(event.document)
+	return validateDocument(event.document)
 })
 
 documents.onDidSave(async (event) => {

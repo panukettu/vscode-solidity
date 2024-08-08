@@ -664,6 +664,17 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		return selectedItem
 	}
 
+	public getAllFunctionsAndErrors(): (ParsedError | ParsedFunction)[] {
+		const result: (ParsedError | ParsedFunction)[] = this.getAllGlobalErrors()
+		return result
+			.concat(
+				this.getAllGlobalFunctions(false).concat(
+					this.innerContracts.flatMap<any>((x) => [...x.getAllFunctions(false), ...x.errors]),
+				),
+			)
+			.filter((v, i, a) => a.findIndex((x) => x === v) === i)
+	}
+
 	public override getAllReferencesToObject(parsedCode: ParsedCode): TypeReference[] {
 		let results: TypeReference[] = []
 

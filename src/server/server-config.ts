@@ -17,14 +17,17 @@ import type { ExtendedSettings } from "./server-types"
 function defaultConfig() {
 	const json = packageJson.contributes.configuration.properties
 	const compiler = json["solidity.compiler"].default
-
+	// const validations = json["solidity.validation"].default
+	if (typeof compiler.type === "string") {
+		compiler.type = CompilerType[compiler.type]
+	}
 	const result = {
 		compilerSettings: json["solidity.compilerSettings"].default as SolidityConfig["compilerSettings"],
 		compiler: {
 			...compiler,
 			type: compiler.type ?? CompilerType.Extension,
 		},
-	} as SolidityConfig
+	} as unknown as SolidityConfig
 
 	for (const key in json) {
 		const parts = key.split(".")

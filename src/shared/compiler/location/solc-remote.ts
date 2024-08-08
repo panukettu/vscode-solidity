@@ -4,6 +4,7 @@ import { CompilerType } from "@shared/enums"
 import solc from "solc"
 import { getRemoteSolc, parseReleaseVersion } from "../utils"
 import { SolcLoader } from "./loader"
+
 export class RemoteSolc extends SolcLoader {
 	private version: string
 	private solcCachePath: string

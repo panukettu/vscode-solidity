@@ -1,4 +1,4 @@
-import { ClientState } from "@client/client-state"
+import type { ClientState } from "@client/client-state"
 import type { DecorArgs } from "@client/client-types"
 import * as vscode from "vscode"
 
@@ -86,6 +86,7 @@ type RunArgs<T> = {
 	scope: string
 	line: number
 }
+
 export const runDecorated = async <T>(
 	document: vscode.TextDocument,
 	state: ClientState,

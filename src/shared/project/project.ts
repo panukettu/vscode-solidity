@@ -26,6 +26,7 @@ export class Project {
 	public solc: {
 		settings: SolidityConfig["compilerSettings"]
 		compiler: SolidityConfig["compiler"]
+		ignoreErrorCodes?: string[]
 	}
 	private glob: InstanceType<typeof GlobSync>
 	private globPath: string
@@ -38,6 +39,7 @@ export class Project {
 
 		this.src = config.project.sources || this.foundryConfig?.profile?.src || getHardhatSourceFolder(rootPath)
 		this.srcLibs = config.project.libSources
+
 		this.srcAbsolute = path.join(rootPath, this.src)
 
 		this.remappings = parseRemappings(
@@ -48,6 +50,7 @@ export class Project {
 		this.solc = {
 			compiler: config.compiler,
 			settings: config.compilerSettings,
+			ignoreErrorCodes: config.validation?.ignoreErrorCodes?.map(String) ?? [],
 		}
 
 		this.projectPackage = createDefaultPackage(this)

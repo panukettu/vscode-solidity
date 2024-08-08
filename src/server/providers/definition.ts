@@ -26,17 +26,18 @@ export const handleParsedExpression = (document: ParsedDocument, currentItem: Pa
 		// const typeRefParent = document.brute(parent.name)
 		const typeRefParent = getParentRef(util)
 		for (const ref of typeRefParent) {
-			if (ref instanceof ParsedVariable) {
-				if (ref.type.isContract && ref.type.importRef) {
-					const contract = ref.type.importRef.documentReference.innerContracts.find((c) => c.name === ref.type.name)
-					if (contract) {
-						const foundMethods = contract.findMethodsInScope(currentItem.name).filter((f) => f?.getLocation)
-						if (!foundMethods.length) continue
-						return foundMethods
-					}
-				}
+			if (!ref || !(ref instanceof ParsedVariable)) continue
+
+			if (ref.type.isContract && ref.type.importRef) {
+				const contract = ref.type.importRef.documentReference.innerContracts.find((c) => c.name === ref.type.name)
+				if (!contract) continue
+
+				const foundMethods = contract.findMethodsInScope(currentItem.name).filter((f) => f?.getLocation)
+				if (!foundMethods.length) continue
+				return foundMethods
 			}
 		}
+
 		return []
 	}
 	const foundMethods = parentContract.findMethodsInScope(currentItem.name).filter((f) => f?.getLocation)
@@ -55,10 +56,7 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 
 		if (currentItem instanceof ParsedExpression && currentItem.parent) {
 			const result = handleParsedExpression(selectedDoc, currentItem, docUtil)
-			if (result?.length) {
-				clearCaches()
-				return result.map((x) => x.getLocation())
-			}
+			if (result?.length) return result.map((x) => x.getLocation())
 		}
 
 		const references = currentItem.getSelectedTypeReferenceLocation(currentOffset)
@@ -74,21 +72,19 @@ export const getDefinition = (document: vscode.TextDocument, position: vscode.Po
 			}
 			if (!foundLocations.length) {
 				const item = selectedDoc.findTypeInScope(currentItem.name)
-				if (item?.getLocation) {
-					foundLocations.push(item.getLocation())
-				}
+				if (item?.getLocation) foundLocations.push(item.getLocation())
 			}
 		}
 		currentOffset = 0
 		currentItem = undefined
-		clearCaches()
 		return removeDuplicates(foundLocations)
 	} catch (e) {
-		clearCaches()
 		currentOffset = 0
 		currentItem = undefined
 		console.debug("definition", e.message)
 		return null
+	} finally {
+		clearCaches()
 	}
 }
 

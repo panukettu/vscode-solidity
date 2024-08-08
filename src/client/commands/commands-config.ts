@@ -1,5 +1,5 @@
-import { ClientState } from "@client/client-state"
-import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
+import type { ClientState } from "@client/client-state"
+import { CLIENT_COMMAND_LIST } from "@client/commands/commands-list"
 import type { SolidityConfig } from "@shared/types"
 import * as vscode from "vscode"
 
@@ -46,9 +46,10 @@ export function registerConfigSetters(state: ClientState): void {
 			vscode.workspace.getConfiguration("solidity").update("validation", { ...getValidation(), onOpen: false }, false)
 		}),
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.disableAllValidation"], () => {
+			const prev = getValidation()
 			vscode.workspace
 				.getConfiguration("solidity")
-				.update("validation", { onSave: false, onOpen: false, onChange: false }, false)
+				.update("validation", { ...prev, onSave: false, onOpen: false, onChange: false }, false)
 		}),
 	)
 }

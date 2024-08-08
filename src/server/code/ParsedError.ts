@@ -82,16 +82,8 @@ export class ParsedError extends ParsedCode {
 	public override getParsedObjectType(): string {
 		return "error"
 	}
-	// console.debug(this.input.map((x) => x.type.name))
-	// console.debug(this.input.map((x) => x.type.abiType))
-	// const quick = `${this.name}(${this.input.map((x) => x.type.abiType).join(",")})`
-	// console.debug(quick)
-	// console.debug(getFunctionSelector(quick))
 
 	public override getInfo(extra?: string): string {
-		// return `(${elementType}) : ${
-		// 	this.name
-		// }\n ${this.getContractNameOrGlobal()}\n\t${this.getSignature()} \n\n${this.getComment()}`
 		return this.createInfo(
 			this.getRootName(),
 			"",

@@ -2,8 +2,12 @@ import type { ExecFileException } from "node:child_process"
 import type { ExecStatus } from "@shared/enums"
 import type { FunctionName } from "@shared/types"
 import type * as vscode from "vscode"
+import type { ClientState } from "./client-state"
+import type { CLIENT_COMMAND_LIST } from "./commands/commands-list"
 import type { ParsedLogs } from "./lens/foundry/foundry-logs-parser"
 
+type ClientCommand = keyof typeof CLIENT_COMMAND_LIST
+export type CommandInfo = readonly [ClientCommand, (...args: any[]) => any]
 export namespace Lens {
 	export type Funcsig = readonly [vscode.TextDocument, vscode.Range]
 	export type Natspec = readonly [vscode.TextDocument, vscode.Range]
@@ -11,6 +15,7 @@ export namespace Lens {
 }
 export type BaseCommandArgs = readonly [vscode.TextDocument, vscode.Range]
 export type ParseStdOutArgs<T, R = T, U = T> = {
+	state: ClientState
 	process: ProcessOut
 	args: readonly [string, ...any[]]
 	scope?: string

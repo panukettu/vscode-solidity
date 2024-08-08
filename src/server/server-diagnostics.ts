@@ -3,6 +3,7 @@ import debounce from "lodash.debounce"
 import type * as vscode from "vscode-languageserver/node"
 import { URI } from "vscode-uri"
 import { connection, documents } from "../server"
+import { request } from "./handlers/requests"
 import { ServerCompilers } from "./server-compiler"
 import { getConfig, settings } from "./server-config"
 import { initCommon } from "./server-utils"
@@ -51,9 +52,9 @@ export async function validate(document: vscode.TextDocument) {
 
 	try {
 		const diagnostics = settings.linter?.validate?.(filePath, documentText) ?? []
-		if (!shouldCompile) return sendDiagnostics(uri, diagnostics)
-
-		return sendDiagnostics(uri, diagnostics.concat(await getErrors(project, filePath, uri, documentText)))
+		if (!shouldCompile) return request["diagnostics.set"]({ diagnostics: [[uri, diagnostics]] })
+		const result = diagnostics.concat(await compileToDiagnostics(project, filePath, uri, documentText))
+		return request["diagnostics.set"]({ diagnostics: [[uri, result], ...externals.entries()] })
 	} catch (e) {
 		console.debug("Unhandled:", e)
 	}
@@ -66,16 +67,7 @@ const clearExtras = async () => {
 	externals.clear()
 }
 
-const sendDiagnostics = async (uri: string, diagnostics: vscode.Diagnostic[]) => {
-	return Promise.all(
-		[connection.sendDiagnostics({ uri, diagnostics })].concat(
-			[...externals.entries()].map(([extURI, extras]) =>
-				connection.sendDiagnostics({ uri: extURI, diagnostics: extras }),
-			),
-		),
-	)
-}
-const getErrors = async (project: Project, filePath: string, uri: string, documentText: string) => {
+const compileToDiagnostics = async (project: Project, filePath: string, uri: string, documentText: string) => {
 	const errors = await ServerCompilers.compileWithDiagnostic(project, filePath, documentText)
 	const diagnostics = errors.filter((err) => URI.file(err.fileName).toString() === uri)
 

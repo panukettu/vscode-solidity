@@ -1,6 +1,6 @@
 import type { BaseCommandArgs } from "@client/client-types"
+import { sendDiagnostics } from "@client/commands/diagnostics"
 import type { SolcError } from "@shared/compiler/types-solc"
-import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import * as vscode from "vscode"
 import { errorToDiagnostic } from "../../server/providers/utils/diagnostics"
 import type { ErrorWarningCounts } from "../../shared/types"
@@ -53,6 +53,8 @@ export async function errorsToDiagnostics(args: BaseCommandArgs, errors: SolcErr
 	const diagnostics = Array.from(diagnosticMap.entries()).map(([uri, diagnostics]) => {
 		return [uri.fsPath, diagnostics] as [string, vscode.Diagnostic[]]
 	})
-	vscode.commands.executeCommand(SERVER_COMMANDS_LIST["diagnostic.set"], args[0], args[1], diagnostics)
+
+	await sendDiagnostics({ diagnostics })
+
 	return errorWarningCounts
 }

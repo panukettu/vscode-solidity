@@ -6,6 +6,12 @@ _Disclaimer_: bugs likely
 
 ## LATEST
 
+- new command, find by selector: finds error/function from workspace by its 4-byte selector
+- new config, project.downloads: set folder for etherscan command output.
+- new config, solidity.lsp.enabled: enable/disable the language server.
+- new config, solidity.validation.autoOpenProblems: opens problem panel if diagnostics were sent from compilation.
+- new config, solidity.validation.ignoreErrorCodes: ignores some error codes from compiler.
+
 ### 0.9.1
 
 - new command: keccak256 from input (cmd+shift+p -> hash)

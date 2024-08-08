@@ -1,7 +1,9 @@
 import type { ClientState } from "@client/client-state"
 import type { Diagnostic } from "vscode-languageclient/node"
+import type { Range } from "vscode-languageserver-textdocument"
+import type { URI } from "vscode-uri"
 import type { Multisolc } from "./compiler/multisolc"
-import type { Callbacks, ContractLevelSolcOutput, SolcInput } from "./compiler/types-solc"
+import type { ContractLevelSolcOutput, SolcInput } from "./compiler/types-solc"
 import type { CompilerType } from "./enums"
 import type { SourceDocument } from "./project/sourceDocument"
 
@@ -11,6 +13,7 @@ export type FoundryConfigParsed = {
 	fmt?: FoundryConfig["fmt"] | null
 	rpc_endpoints?: FoundryConfig["rpc_endpoints"] | null
 }
+
 export type FoundryCoreConfig = {
 	src: string
 	script: string
@@ -47,13 +50,13 @@ export type FoundryConfig = {
 		  }
 		| undefined
 }
-
-export type MinimalURI = { toString(skipEncoding?: boolean): string }
+export type DiagnosticsCollection = [uri: string, diagnostics: { message: string; range: Range }[]][]
+export type MinimalURI = { toString(skipEncoding?: boolean): string; uri?: string | MinimalURI }
 export type FunctionName<N extends string = string, A extends string = string> = `${N}(${A})`
-
-type URI = string
+export type FileKind = MinimalURI | string | { uri: string } | { uri: MinimalURI }
+type PATH = string
 type Scope = string
-export type ScopedURI = `${Scope}-${URI}`
+export type ScopedURI = `${Scope}-${PATH}`
 
 export type SolcVersion = `${number}.${number}.${number}`
 export type Prerelease = `nightly-${number}.${number}.${number}`
@@ -71,6 +74,7 @@ export type EVMVersion =
 	| "paris"
 	| "shanghai"
 	| "cancun"
+
 export type SolcList = {
 	builds: {
 		path: string
@@ -84,22 +88,12 @@ export type SolcList = {
 	latestRelease: SolcVersion
 }
 
-export type CompileArgs = {
-	solcInput: SolcInput
-	state: ClientState
-	options: MultisolcSettings
-	contract?: SourceDocument
-	solcType?: CompilerType
-}
-export type InitializationOptions = {
-	solcCachePath: string
-}
-
 export type MultisolcSettings = {
 	input: Partial<SolcInput>
 	sourceDir?: string
 	excludePaths?: string[]
 	rootPath: string
+	ignoreErrorCodes: string[]
 	document?: SourceDocument
 	compiler: {
 		type: CompilerType
@@ -116,6 +110,7 @@ export type SolcExtras = {
 	exclusions: string[]
 	outputs?: ReturnType<typeof Multisolc.selectSolcOutputs>
 	sourceDir: string
+	ignoreErrorCodes: string[]
 	type: CompilerType
 }
 
@@ -139,6 +134,8 @@ export interface SolidityConfig {
 		onChange: boolean
 		onOpen: boolean
 		delay: number
+		autoOpenProblems: boolean
+		ignoreErrorCodes: number[]
 	}
 	test: {
 		verbosity: number
@@ -159,6 +156,7 @@ export interface SolidityConfig {
 	project: {
 		exclude: string[]
 		sources: string
+		downloads: string
 		libs: string[]
 		libSources: string[]
 		includePaths: string[]

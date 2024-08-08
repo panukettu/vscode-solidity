@@ -1,4 +1,3 @@
-import { Project } from "@shared/project/project"
 import { URI } from "vscode-uri"
 import { findFirstRootProjectFile } from "../shared/project/project-utils"
 import { CodeWalkerService } from "./codewalker"

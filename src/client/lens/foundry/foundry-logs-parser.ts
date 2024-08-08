@@ -210,10 +210,10 @@ export const toLines = (stdout: string) =>
 		.split("\n")
 // lines.findIndex((line) => line.includes(s) !== -1);
 export const toDefaultFormat = (s: string) => {
-	if (s.indexOf("Right:") !== -1) {
+	if (s.indexOf("Right") !== -1) {
 		return ` - ${s.trim()}\n`
 	}
-	if (s.indexOf("Left:") !== -1) {
+	if (s.indexOf("Left") !== -1) {
 		return ` - ${s.trim()}`
 	}
 	if (s.indexOf("Assertion Failed") !== -1) {

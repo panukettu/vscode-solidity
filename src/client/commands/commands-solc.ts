@@ -1,15 +1,17 @@
 import { getCurrentWorkspaceRootFolder } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
-import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
+import { CLIENT_COMMAND_LIST } from "@client/commands/commands-list"
 import { compileActiveFile } from "@client/compiler/compile-active"
 import { compileAllContracts } from "@client/compiler/compile-all"
 import { CompilerType } from "@shared/enums"
 import * as vscode from "vscode"
+
 const getDocAndRange = () => {
 	const textDocument = vscode.window.activeTextEditor.document
 	const selection = vscode.window.activeTextEditor.selection
 	return [textDocument, new vscode.Range(selection.start, selection.end)] as const
 }
+
 export function registerSolcCommands(state: ClientState) {
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.changeSolcType"], async () => {

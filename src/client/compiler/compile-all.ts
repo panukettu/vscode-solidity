@@ -36,6 +36,7 @@ export function compileAllContracts(state: ClientState, commandArgs: BaseCommand
 	const compilerOpts = Multisolc.getSettings(project, {
 		exclusions: project.libs,
 		document: activeSource,
+		sources: project.contracts.getSolcInputSource(),
 		outputs: Multisolc.selectSolcOutputs(project.solc.settings.output),
 	})
 

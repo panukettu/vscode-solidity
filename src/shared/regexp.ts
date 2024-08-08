@@ -5,7 +5,7 @@
 
 export const remapRegexp = () => /((?<context>[\S]+)\:)?(?<prefix>[\S]+)=(?<target>.+)/g
 export const solcErrorRegexp = () => /Error.*?\((\d+)\).*?:.*?(.+)\n.*?\S+.(.+):(\d+):(\d+)/gm
-
+export const labelRegexp = () => /(?<ctx>\[.*?\])?\s?(?<key>.*?)?\s(?<value>.*?)$/g
 export const solcOutputRegexp = () =>
 	/(error|Error |Note|Warning)(?:.\s|\s?)(\((.*?)\))?:\s?(.*?)\n.*-->\W+(.*?):(\d+):(\d+):.*?\n.*?\n.*?\S+\s+(?=\w)(.*?(?=\W))\n|(Error) \((\d+)\): (.+)\n.*?\S+.(.+):(\d+):(\d+)/g
 

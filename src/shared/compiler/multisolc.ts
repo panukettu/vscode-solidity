@@ -1,14 +1,12 @@
 import { errorToDiagnostic } from "@server/providers/utils/diagnostics"
 import { CompilerType } from "@shared/enums"
 import type { Project } from "@shared/project/project"
-import type { SourceDocument } from "@shared/project/sourceDocument"
-import type { MultisolcSettings, SolcExtras, SolidityConfig } from "@shared/types"
+import type { MultisolcSettings, SolcExtras } from "@shared/types"
 import { ExtensionSolc } from "./location/solc-default"
 import { LocalSolc } from "./location/solc-local"
 import { NPMSolc } from "./location/solc-npm"
 import { RemoteSolc } from "./location/solc-remote"
-import type { ContractLevelSolcOutput, SolcArgs, SolcInput, SolcOutput } from "./types-solc"
-import { mergeUnique } from "./utils"
+import type { ContractLevelSolcOutput, SolcArgs, SolcOutput } from "./types-solc"
 
 export class Multisolc {
 	public rootPath: string
@@ -17,7 +15,7 @@ export class Multisolc {
 	public remote: RemoteSolc
 	public extension: ExtensionSolc
 	public type: CompilerType
-	public settings: MultisolcSettings
+	public settings: MultisolcSettings["compiler"]
 	public outputChannel: any
 
 	constructor(settings: MultisolcSettings, cachePath?: string, typeOverride?: CompilerType) {
@@ -27,7 +25,7 @@ export class Multisolc {
 		this.remote = new RemoteSolc(cachePath)
 		this.extension = new ExtensionSolc()
 		this.type = typeOverride || settings.compiler.type
-		this.settings = settings
+		this.settings = settings.compiler
 		this.initExternalCompilers(settings, typeOverride)
 	}
 
@@ -46,13 +44,13 @@ export class Multisolc {
 				result = this.extension.isSolcInitialized()
 				break
 			case CompilerType.NPM:
-				result = this.npm.isSolcInitialized(this.settings.compiler.npm)
+				result = this.npm.isSolcInitialized(this.settings.npm)
 				break
 			case CompilerType.File:
-				result = this.local.isSolcInitialized(this.settings.compiler.local)
+				result = this.local.isSolcInitialized(this.settings.local)
 				break
 			case CompilerType.Remote:
-				result = this.remote.isSolcInitialized(this.settings.compiler.remote)
+				result = this.remote.isSolcInitialized(this.settings.remote)
 				break
 		}
 
@@ -64,7 +62,7 @@ export class Multisolc {
 		this.remote.initializeConfig(settings.compiler.remote)
 		this.local.initializeConfig(settings.compiler.local)
 		this.type = typeOverride || settings.compiler.type
-		this.settings = settings
+		this.settings = settings.compiler
 	}
 
 	public async initializeSolc(type: CompilerType): Promise<void> {
@@ -79,7 +77,9 @@ export class Multisolc {
 			}
 
 			const result = JSON.parse(compiler.solc.compile(JSON.stringify(args.input), args.callbacks)) as SolcOutput
-			if (result?.errors?.length) result.errors = result.errors.filter((error) => error.errorCode !== "3805")
+			if (result?.errors?.length && args.ignoreErrorCodes?.length) {
+				result.errors = result.errors.filter((error) => !args.ignoreErrorCodes?.includes(error.errorCode))
+			}
 
 			return result
 		} catch (e) {
@@ -103,13 +103,13 @@ export class Multisolc {
 	}
 
 	public printInitializedCompilers(channel: any) {
-		if (this.npm.isSolcInitialized(this.settings.compiler.npm)) {
+		if (this.npm.isSolcInitialized(this.settings.npm)) {
 			channel.appendLine(`Compiler type: ${CompilerType[CompilerType.NPM]} solc version: ${this.npm.getVersion()}`)
 		}
-		if (this.local.isSolcInitialized(this.settings.compiler.local)) {
+		if (this.local.isSolcInitialized(this.settings.local)) {
 			channel.appendLine(`Compiler type: ${CompilerType[CompilerType.File]} solc version: ${this.local.getVersion()}`)
 		}
-		if (this.remote.isSolcInitialized(this.settings.compiler.remote)) {
+		if (this.remote.isSolcInitialized(this.settings.remote)) {
 			channel.appendLine(
 				`Compiler type: ${CompilerType[CompilerType.Remote]} solc version: ${this.remote.getVersion()}`,
 			)
@@ -123,6 +123,7 @@ export class Multisolc {
 
 	public async compileWithDiagnostic(project: Project, filePath: string, documentText: string) {
 		const callbacks = project.contracts.addSourceDocumentAndResolveImports(filePath, documentText).getImportCallback()
+		const args = { callbacks, ignoreErrorCodes: project.solc.ignoreErrorCodes }
 		if (!this.isRootPathSet()) {
 			const result = await this.compileWith({
 				input: {
@@ -133,7 +134,7 @@ export class Multisolc {
 						},
 					},
 				},
-				callbacks,
+				...args,
 			})
 			return result.errors?.map(errorToDiagnostic) ?? []
 		}
@@ -141,13 +142,13 @@ export class Multisolc {
 		const input = project.getMinSolcInput()
 
 		try {
-			return (await this.compileWith({ input, callbacks })).errors?.map(errorToDiagnostic) ?? []
+			return (await this.compileWith({ input, ...args })).errors?.map(errorToDiagnostic) ?? []
 		} catch (error: any) {
 			if (this.isSolcInitialized(project.solc.compiler.type)) return []
 
 			await this.initializeSolc(project.solc.compiler.type)
 
-			const output = await this.compileWith({ input, callbacks })
+			const output = await this.compileWith({ input, ...args })
 			return output?.errors?.map(errorToDiagnostic) ?? []
 		}
 	}
@@ -172,6 +173,7 @@ export class Multisolc {
 				},
 				sources: extras?.sources,
 			},
+			ignoreErrorCodes: (extras?.ignoreErrorCodes ?? project.solc.ignoreErrorCodes).map(String),
 			document: extras?.document,
 			excludePaths: (extras?.exclusions ?? []).concat(project.excludes),
 			rootPath: project.rootPath,

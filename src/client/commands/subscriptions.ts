@@ -1,8 +1,7 @@
-import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
-import { LensProvider } from "@client/context/register-code-lens"
+import { CLIENT_COMMAND_LIST } from "@client/commands/commands-list"
+import { LensProvider } from "@client/commands/commands-register"
 import * as vscode from "vscode"
 
-// const versionMap = new Map<string, number>()
 export const executeOnSave = () =>
 	vscode.workspace.onDidSaveTextDocument(async (document) => {
 		if (document.languageId !== "solidity") return

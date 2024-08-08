@@ -2,7 +2,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { Config, getCurrentProjectInWorkspaceRootFsPath, getRootFsPath } from "@client/client-config"
 import type { BaseCommandArgs } from "@client/client-types"
-import { CLIENT_COMMAND_LIST } from "@client/commands/commands"
+import { clearDiagnostics } from "@client/commands/diagnostics"
 import { Multisolc } from "@shared/compiler/multisolc"
 import type { Callbacks, SolcOutput } from "@shared/compiler/types-solc"
 import { getRemoteSolc, getSolcReleases } from "@shared/compiler/utils"
@@ -130,6 +130,7 @@ export class ClientCompilers {
 			const output = await this.multisolc.compileWith({
 				input: solc.input,
 				type: solc.compiler.type,
+				ignoreErrorCodes: solc.ignoreErrorCodes,
 				callbacks,
 			})
 			return this.processCompilationOutput(commandArgs, output, this.outputChannel, solc)
@@ -212,7 +213,7 @@ export class ClientCompilers {
 		solc: MultisolcSettings,
 	) {
 		this.handleOutputFeedback(output)
-		await vscode.commands.executeCommand(CLIENT_COMMAND_LIST["solidity.diagnostics.clear"])
+		await clearDiagnostics()
 
 		if (Object.keys(output).length === 0) {
 			const emptyOut = "Compilation output is empty."
@@ -267,15 +268,6 @@ export class ClientCompilers {
 		}
 	}
 
-	private ensureDirectoryExistence(filePath: string) {
-		const dirname = path.dirname(filePath)
-		if (fs.existsSync(dirname)) {
-			return true
-		}
-		this.ensureDirectoryExistence(dirname)
-		fs.mkdirSync(dirname)
-	}
-
 	private emit(
 		output: SolcOutput,
 		buildDir: string,
@@ -285,25 +277,21 @@ export class ClientCompilers {
 	): Array<string> {
 		const rootPath = getCurrentProjectInWorkspaceRootFsPath()
 		const binPath = path.join(rootPath, buildDir)
-		const compiledFiles: Array<string> = new Array<string>()
+		fsex.ensureDirSync(binPath)
 
-		if (!fs.existsSync(binPath)) {
-			fs.mkdirSync(binPath)
-		}
+		const compiledFiles: Array<string> = new Array<string>()
 
 		if (sourcePath) {
 			const relativePath = path.relative(rootPath, sourcePath)
 			const dirName = path.dirname(path.join(binPath, relativePath))
 			const out = path.join(dirName, `${path.basename(sourcePath, ".sol")}-solc-output.json`)
-			this.ensureDirectoryExistence(out)
+			fsex.ensureDirSync(path.dirname(out))
 			fs.writeFileSync(out, JSON.stringify(output, null, 4))
 		} else {
 			const dirName = binPath
 			const out = path.join(dirName, "solc-output-compile-all" + ".json")
-			this.ensureDirectoryExistence(out)
-			if (fs.existsSync(out)) {
-				fs.unlinkSync(out)
-			}
+			if (fs.existsSync(out)) fs.unlinkSync(out)
+			fsex.ensureDirSync(path.dirname(out))
 			fs.writeFileSync(out, JSON.stringify(output, null, 4))
 		}
 
@@ -323,7 +311,7 @@ export class ClientCompilers {
 								const relativePath = path.relative(rootPath, source)
 								const dirName = path.dirname(path.join(binPath, relativePath))
 
-								if (!fs.existsSync(dirName)) fsex.mkdirsSync(dirName)
+								fsex.ensureDirSync(dirName)
 
 								const abiOut = path.join(dirName, `${name}.abi`)
 								const binOut = path.join(dirName, `${name}.bin`)
