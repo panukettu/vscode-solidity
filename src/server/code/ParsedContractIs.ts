@@ -48,10 +48,10 @@ export class ParsedContractIs extends ParsedCode {
 	}
 
 	public override getAllReferencesToObject(parsedCode: ParsedCode): TypeReference[] {
-		if (this.isTheSame(parsedCode)) {
-			return [this.createFoundReferenceLocationResult()]
-		}
 		const reference = this.getContractReference()
+		if (this.isTheSame(parsedCode)) {
+			return [reference.createFoundReferenceLocationResult()]
+		}
 		if (reference?.isTheSame(parsedCode)) {
 			return [this.createFoundReferenceLocationResult()]
 		}

@@ -165,15 +165,15 @@ export class Project {
 		return this.getAllRelativeLibRoots().map((x) => path.resolve(this.srcAbsolute, x))
 	}
 
-	public findImportRemapping(importPath: string): Remapping {
+	public findImportRemapping(importPath: string): Remapping | null {
 		// const remappings = importRemappings("@openzeppelin/=lib/openzeppelin-contracts//\r\nds-test/=lib/ds-test/src/", this);
 		const remappings = this.remappings.filter((mapping) => mapping.isImportForThis(importPath))
 		if (!remappings?.length) return null
-		return this.sortRemappings(remappings)[0]
+		return this.sortRemappings(remappings)?.[0]
 	}
 
-	public findRemappingForFile(filePath: string): Remapping {
-		return this.findRemappingsForFile(filePath, 0)[0]
+	public findRemappingForFile(filePath: string): Remapping | undefined {
+		return this.findRemappingsForFile(filePath, 0)?.[0]
 	}
 
 	public findRemappingsForFile(filePath: string, count: number): Remapping[] {

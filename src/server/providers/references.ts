@@ -46,6 +46,7 @@ export const getAllReferencesToItem = (docs: DocUtil) => {
 			clearCaches()
 			res(removeDuplicates(result.filter((x) => x.range != null && x.uri)))
 		} catch (e) {
+			console.debug(e)
 			providerRequest.selectedDocument = null
 			providerRequest.currentOffset = 0
 			clearCaches()

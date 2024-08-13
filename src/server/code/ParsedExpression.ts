@@ -113,6 +113,14 @@ export class ParsedExpression extends ParsedCode {
 					}
 					return expressionIdentifier
 				}
+				case "IncompleteStatement": {
+					const expression = new ParsedExpressionIdentifier()
+					const name = element.body.trim().split(".")[0]
+					expression.initialiseExpression({ ...element, name }, document, contract, child, expressionContainer)
+					expression.initReference()
+					console.debug(`IncompleteStatement: ${name}`, expression)
+					return expression
+				}
 			}
 		}
 		return null
@@ -135,12 +143,9 @@ export class ParsedExpression extends ParsedCode {
 	protected initialiseVariablesMembersEtc(statement: any, parentStatement: any) {
 		if (statement.type !== undefined && statement.type != null) {
 			switch (statement.type) {
-				case "CallExpression": // e.g. Func(x, y)
-					ParsedExpression.createFromElement(statement, this.document, this.contract, this, this.expressionContainer)
-					break
-				case "MemberExpression": // e.g. x.y x.f(y) arr[1] map['1'] arr[i] map[k]
-					ParsedExpression.createFromElement(statement, this.document, this.contract, this, this.expressionContainer)
-					break
+				case "IncompleteStatement":
+				case "CallExpression":
+				case "MemberExpression":
 				case "Identifier":
 					ParsedExpression.createFromElement(statement, this.document, this.contract, this, this.expressionContainer)
 					break
@@ -303,9 +308,9 @@ export class ParsedExpressionCall extends ParsedExpression {
 					}
 					this.reference = locate(
 						this.parent.document,
-						"getAllContracts",
+						"getAllImportables",
 						(item) => item.getInnerMethodCalls().find((c) => c.name === name),
-						this.parent.document?.innerContracts,
+						this.parent.document?.getAllImportables(),
 					)
 				} catch (e) {
 					try {
@@ -492,6 +497,8 @@ export class ParsedExpressionIdentifier extends ParsedExpression {
 					this.reference = foundResults[0]
 				}
 			}
+
+			if (!this.reference) this.reference = this.document.getAllImportables().find((x) => x.name === this.name)
 		}
 	}
 
@@ -570,7 +577,7 @@ export function locate<Item, Result>(
 			}
 		}
 	}
-	for (const item of document.getAllContracts()) {
+	for (const item of document.getAllImportables()) {
 		const result = check(item as Item)
 		if (result) {
 			return result

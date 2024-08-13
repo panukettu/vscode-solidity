@@ -588,6 +588,14 @@ export class ParsedFunction extends ParsedCode implements IParsedExpressionConta
 						}
 						break
 					}
+					case "IncompleteStatement": {
+						const isDot = statement.body.split(".")
+						if (isDot.length > 1) {
+							const created = ParsedExpression.createFromElement(statement, this.document, this.contract, child, this)
+							created && this.expressions.push(created)
+						}
+						break
+					}
 					case "Identifier": {
 						this.expressions.push(
 							ParsedExpression.createFromElement(statement, this.document, this.contract, child, this),

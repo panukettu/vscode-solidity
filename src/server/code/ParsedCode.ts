@@ -282,11 +282,13 @@ export class ParsedCode {
 	public initCompletionItem(): CompletionItem {
 		const completionItem = CompletionItem.create(this.name)
 		const absolutePath = this.document.sourceDocument.absolutePath
-		completionItem.data.absolutePath = absolutePath
 		const remapping = this.document.sourceDocument.project.findRemappingForFile(absolutePath)
-		completionItem.data.remappedPath =
-			remapping?.createImportFromFile(absolutePath) ??
-			absolutePath.replace(this.document.sourceDocument.project.rootPath, "")
+		completionItem.data = {
+			absolutePath,
+			remappedPath:
+				remapping?.createImportFromFile(absolutePath) ??
+				absolutePath.replace(this.document.sourceDocument.project.rootPath, ""),
+		}
 		return completionItem
 	}
 

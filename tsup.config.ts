@@ -14,7 +14,7 @@ export default defineConfig(async (opts) => {
 		format: "cjs",
 		outDir: "./out/src",
 		platform: "node",
-		sourcemap: false,
+		sourcemap: true,
 		bundle: true,
 		noExternal: opts.watch
 			? []
@@ -41,7 +41,7 @@ export default defineConfig(async (opts) => {
 		treeshake: true,
 		splitting: true,
 		tsconfig: "./tsconfig.json",
-		minify: true,
+		minify: false,
 		clean: true,
 		async onSuccess() {
 			console.debug("copying files....")

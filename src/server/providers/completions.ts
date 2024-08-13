@@ -44,10 +44,8 @@ export const getCompletionItems = (
 				ctx.matchers = dotStartMatchers(ctx.pos.line, position, ctx.pos.triggers.dotStart)
 				const globals = getGlobalKeywordCompletions(ctx.pos.line, position.character - 1)
 				// console.debug({ ctx })
-				if (globals.length > 0) {
-					// console.debug("global handler")
-					completionItems = completionItems.concat(globals)
-				} else if (ctx.matchers.useCustomFunctionCompletion || ctx.matchers.useCustomFuncParamsCompletion) {
+				if (globals.length > 0) completionItems = completionItems.concat(globals)
+				if (ctx.matchers.useCustomFunctionCompletion || ctx.matchers.useCustomFuncParamsCompletion) {
 					// console.debug("custom func handler")
 					try {
 						completionItems = completionItems.concat(handleCustomFunctionCompletion(docUtil, ctx.matchers, ctx.pos))
@@ -108,7 +106,7 @@ export const getCompletionItems = (
 			}
 		}
 	} catch (e) {
-		// console.debug("completion catch", e)
+		console.debug("completion catch", e)
 	} finally {
 		// console.debug("finally handler")
 		completionItems = completionItems.concat(handleFinally())

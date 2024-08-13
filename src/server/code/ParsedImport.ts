@@ -135,4 +135,38 @@ export class ParsedImport extends ParsedCode {
 		// note: we can use the path to find the referenced source document too.
 		return Location.create(URI.file(path).toString(), Range.create(0, 0, 0, 0))
 	}
+
+	public getImportedSymbols(): ParsedCode[] {
+		if (!this.symbols?.length) {
+			console.debug("No symbols found for import", this.from)
+			return []
+		}
+
+		if (!this.documentReference) {
+			console.debug("No document reference found for import", this.from)
+			const importedDocs = this.document.importedDocuments.map((i) => i.sourceDocument.absolutePath)
+			console.debug("Imported documents", importedDocs)
+			return []
+		}
+
+		const doc = this.documentReference.getAllImportables().filter((i) => this.symbols.find((s) => s.name === i.name))
+		const importables = this.documentReference.imports
+			.filter(
+				(i) =>
+					i.documentReference &&
+					i.documentReference.sourceDocument.absolutePath !== this.document.sourceDocument.absolutePath,
+			)
+			.flatMap((i) => i.getImportedSymbols())
+		const result = doc.concat(importables)
+		if (!result.length) {
+			console.debug("No symbols found for import", this.from)
+		} else {
+			console.debug(
+				`Imported symbols in ${this.document.sourceDocument.absolutePath}`,
+				result.map((r) => r.name),
+			)
+		}
+
+		return result
+	}
 }

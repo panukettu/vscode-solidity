@@ -133,20 +133,27 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 	}
 
 	public getAllImportables() {
+		console.debug("getAllImportables")
+
 		const returnItems: ParsedCode[] = []
 		returnItems.push(...this.innerContracts)
+		returnItems.push(...this.innerContracts.flatMap((i) => i.getExtendContracts()))
 		returnItems.push(...this.functions)
 		returnItems.push(...this.structs)
 		returnItems.push(...this.errors)
-		returnItems.push(
-			...this.importedDocuments
-				.filter((i) => this.sourceDocument.project.libs.includes(i.sourceDocument.absolutePath))
-				.flatMap((d) => d.getAllImportables()),
-		)
+		returnItems.push(...this.importedDocuments.flatMap((d) => d.getAllImportables()))
 		returnItems.push(...this.events)
 		returnItems.push(...this.enums)
 		returnItems.push(...this.constants)
 		returnItems.push(...this.customTypes)
+		const imported = this.getImportedSymbols()
+		if (this.sourceDocument.absolutePath.includes("AuthImpl")) {
+			console.debug(
+				"imported",
+				imported.map((x) => x.name),
+			)
+		}
+		returnItems.push(...imported)
 		return returnItems
 	}
 
@@ -484,7 +491,7 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 	}
 
 	public getImportedSymbols() {
-		return this.sourceDocument.imports.flatMap((x) => x.symbols)
+		return this.imports.flatMap((x) => x.getImportedSymbols())
 	}
 
 	public findContractByName(name: string): ParsedContract {
