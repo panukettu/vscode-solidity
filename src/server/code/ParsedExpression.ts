@@ -310,7 +310,7 @@ export class ParsedExpressionCall extends ParsedExpression {
 						this.parent.document,
 						"getAllContracts",
 						(item) => item.getInnerMethodCalls().find((c) => c.name === name),
-						this.parent.document?.innerContracts,
+						this.parent.document?.getAllContracts(),
 					)
 				} catch (e) {
 					try {
