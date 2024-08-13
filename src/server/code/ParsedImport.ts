@@ -138,14 +138,10 @@ export class ParsedImport extends ParsedCode {
 
 	public getImportedSymbols(): ParsedCode[] {
 		if (!this.symbols?.length) {
-			console.debug("No symbols found for import", this.from)
 			return []
 		}
 
 		if (!this.documentReference) {
-			console.debug("No document reference found for import", this.from)
-			const importedDocs = this.document.importedDocuments.map((i) => i.sourceDocument.absolutePath)
-			console.debug("Imported documents", importedDocs)
 			return []
 		}
 
@@ -157,16 +153,6 @@ export class ParsedImport extends ParsedCode {
 					i.documentReference.sourceDocument.absolutePath !== this.document.sourceDocument.absolutePath,
 			)
 			.flatMap((i) => i.getImportedSymbols())
-		const result = doc.concat(importables)
-		if (!result.length) {
-			console.debug("No symbols found for import", this.from)
-		} else {
-			console.debug(
-				`Imported symbols in ${this.document.sourceDocument.absolutePath}`,
-				result.map((r) => r.name),
-			)
-		}
-
-		return result
+		return doc.concat(importables).filter(Boolean)
 	}
 }

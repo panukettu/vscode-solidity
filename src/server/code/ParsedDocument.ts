@@ -133,8 +133,6 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 	}
 
 	public getAllImportables() {
-		console.debug("getAllImportables")
-
 		const returnItems: ParsedCode[] = []
 		returnItems.push(...this.innerContracts)
 		returnItems.push(...this.innerContracts.flatMap((i) => i.getExtendContracts()))
@@ -147,12 +145,6 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		returnItems.push(...this.constants)
 		returnItems.push(...this.customTypes)
 		const imported = this.getImportedSymbols()
-		if (this.sourceDocument.absolutePath.includes("AuthImpl")) {
-			console.debug(
-				"imported",
-				imported.map((x) => x.name),
-			)
-		}
 		returnItems.push(...imported)
 		return returnItems
 	}

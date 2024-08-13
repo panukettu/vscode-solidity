@@ -301,16 +301,16 @@ export class ParsedExpressionCall extends ParsedExpression {
 				const name = ctx.currentOffset > 0 ? ctx.currentItem.name : this.name
 
 				try {
-					const refs = this.parent.getInnerMembers().filter((x) => x.name === name)
+					const refs = this.parent.getInnerMethodCalls().filter((x) => x.name === name)
 					if (refs.length > 0) {
 						this.reference = refs[0]
 						return
 					}
 					this.reference = locate(
 						this.parent.document,
-						"getAllImportables",
+						"getAllContracts",
 						(item) => item.getInnerMethodCalls().find((c) => c.name === name),
-						this.parent.document?.getAllImportables(),
+						this.parent.document?.innerContracts,
 					)
 				} catch (e) {
 					try {
@@ -332,9 +332,7 @@ export class ParsedExpressionCall extends ParsedExpression {
 							this.reference = found[0]
 						} else {
 							const found = this.parent.findTypeInScope(this.name)
-							if (found) {
-								this.reference = found
-							}
+							if (found) this.reference = found
 							throw new Error(`No reference found for ${this.name}`)
 						}
 					}
@@ -577,7 +575,7 @@ export function locate<Item, Result>(
 			}
 		}
 	}
-	for (const item of document.getAllImportables()) {
+	for (const item of document.getAllContracts()) {
 		const result = check(item as Item)
 		if (result) {
 			return result
