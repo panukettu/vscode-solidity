@@ -173,7 +173,7 @@ export class Project {
 	}
 
 	public findRemappingForFile(filePath: string): Remapping | undefined {
-		return this.findRemappingsForFile(filePath, 0)?.[0]
+		return this.findRemappingsForFile(filePath, 3)?.[0]
 	}
 
 	public findRemappingsForFile(filePath: string, count: number): Remapping[] {

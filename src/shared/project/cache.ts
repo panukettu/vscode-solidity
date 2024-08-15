@@ -1,6 +1,9 @@
 import { existsSync } from "node:fs"
+import type { ParsedCode } from "@server/code/ParsedCode"
+import type { ParsedImport } from "@server/code/ParsedImport"
 
 type ImportPath = string
+
 type Source = string
 
 const cache = {
@@ -8,6 +11,7 @@ const cache = {
 	project: new Set<Source>(),
 	libs: new Set<Source>(),
 	resolved: new Map<ImportPath, Source>(),
+	imports: new WeakMap<ParsedImport, ParsedCode[]>(),
 }
 
 export const filesCache = {
@@ -39,7 +43,7 @@ export const filesCache = {
 	},
 }
 
-export type CacheKey = Exclude<keyof typeof cache, "resolved">
+export type CacheKey = Exclude<keyof typeof cache, "resolved" | "imports">
 export function found(res: ReturnType<typeof filesCache.tryResolve>) {
 	return typeof res === "string"
 }
@@ -51,4 +55,23 @@ export function toCache(files: Source[], scope?: CacheKey) {
 	})
 	filesCache.lastSize = filesCache.all.size
 	return files
+}
+
+export const importCache = {
+	get: (id: ParsedImport) => {
+		return cache.imports.get(id)
+	},
+	visit: (item: ParsedImport) => {
+		if (cache.imports.has(item)) return cache.imports.get(item)
+
+		if (!item.documentReference) {
+			cache.imports.set(item, [])
+			return []
+		}
+		const items = item.documentReference
+			.getAllImportables((i) => !cache.imports.has(i) && !!item.symbols?.find((s) => s.name === i.name))
+			.filter((s, i, v) => !!s && v.indexOf(s) === i)
+		cache.imports.set(item, items)
+		return items
+	},
 }

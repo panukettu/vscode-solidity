@@ -12,6 +12,7 @@ import { openProblemsPane } from "@client/commands/diagnostics"
 function server(context: vscode.ExtensionContext): LanguageClient {
 	const serverModule = path.join(__dirname, "./server.js")
 	const debugOptions = { execArgv: ["--nolazy", "--inspect=6009"] }
+
 	const serverOptions: ServerOptions = {
 		run: {
 			module: serverModule,

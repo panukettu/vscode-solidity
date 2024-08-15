@@ -1,3 +1,4 @@
+import { importCache } from "@shared/project/cache"
 import { createDetails } from "@shared/util"
 import { Location, Range } from "vscode-languageserver"
 import { URI } from "vscode-uri"
@@ -97,14 +98,11 @@ export class ParsedImport extends ParsedCode {
 	}
 
 	public initialiseDocumentReference(parsedDocuments: ParsedDocument[]) {
-		for (let index = 0; index < parsedDocuments.length; index++) {
-			const element = parsedDocuments[index]
-			if (element.sourceDocument.absolutePath === this.document.sourceDocument.resolveImportPath(this.from)) {
-				this.documentReference = element
-				if (this.document.importedDocuments.indexOf(element) === -1) {
-					this.document.addImportedDocument(element)
-				}
-			}
+		const pathToThis = this.document.sourceDocument.resolveImportPath(this.from)
+		const found = parsedDocuments.find((x) => x.sourceDocument.absolutePath === pathToThis)
+		if (found) {
+			this.documentReference = found
+			this.document.addImportedDocument(this.documentReference)
 		}
 	}
 
@@ -124,9 +122,9 @@ export class ParsedImport extends ParsedCode {
 
 	public getRelativePath(from: string): string {
 		if (!this.document?.sourceDocument) return ""
-		const result = this.document.sourceDocument.resolveImportPath(this.from)
-		if (result.startsWith(".")) return result
-		return `./${result}`
+		const pathToThis = this.document.sourceDocument.resolveImportPath(this.from)
+		if (pathToThis.startsWith(".")) return pathToThis
+		return `./${pathToThis}`
 	}
 
 	public getReferenceLocation(): Location {
@@ -137,22 +135,6 @@ export class ParsedImport extends ParsedCode {
 	}
 
 	public getImportedSymbols(): ParsedCode[] {
-		if (!this.symbols?.length) {
-			return []
-		}
-
-		if (!this.documentReference) {
-			return []
-		}
-
-		const doc = this.documentReference.getAllImportables().filter((i) => this.symbols.find((s) => s.name === i.name))
-		const importables = this.documentReference.imports
-			.filter(
-				(i) =>
-					i.documentReference &&
-					i.documentReference.sourceDocument.absolutePath !== this.document.sourceDocument.absolutePath,
-			)
-			.flatMap((i) => i.getImportedSymbols())
-		return doc.concat(importables).filter(Boolean)
+		return importCache.visit(this)
 	}
 }

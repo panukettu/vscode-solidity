@@ -371,7 +371,6 @@ const importer: ActionDefinition = {
 				.imports.map((d, i) => ({
 					import: d,
 					isRelative: d.document.sourceDocument.isImportLocal(d.from),
-					relative: d.getRelativePath(doc.path),
 					location: DocUtil.toPath(d.getReferenceLocation().uri),
 					index: i,
 				}))
@@ -428,7 +427,9 @@ const importer: ActionDefinition = {
 			if (diagnostic.code !== "7576") {
 				return createFuzzyNameFix(doc, diagnostic, doc.wordRange())
 			}
-		} catch (e) {
+		} catch (e: any) {
+			// stack
+			console.debug("Error creating fix", (e as Error).stack)
 			console.debug("Create fix", e)
 		}
 	},

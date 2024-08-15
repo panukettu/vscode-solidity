@@ -132,20 +132,18 @@ export class ParsedDocument extends ParsedCode implements IParsedExpressionConta
 		return results
 	}
 
-	public getAllImportables() {
+	public getAllImportables(f?: (i: ParsedImport) => boolean) {
 		const returnItems: ParsedCode[] = []
 		returnItems.push(...this.innerContracts)
 		returnItems.push(...this.innerContracts.flatMap((i) => i.getExtendContracts()))
 		returnItems.push(...this.functions)
 		returnItems.push(...this.structs)
 		returnItems.push(...this.errors)
-		returnItems.push(...this.importedDocuments.flatMap((d) => d.getAllImportables()))
 		returnItems.push(...this.events)
 		returnItems.push(...this.enums)
 		returnItems.push(...this.constants)
 		returnItems.push(...this.customTypes)
-		const imported = this.getImportedSymbols()
-		returnItems.push(...imported)
+		returnItems.push(...this.imports.filter((i) => !f || f(i)).flatMap((x) => x.getImportedSymbols()))
 		return returnItems
 	}
 
