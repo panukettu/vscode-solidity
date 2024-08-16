@@ -39,7 +39,7 @@ export default defineConfig(async (opts) => {
 					"viem",
 			  ],
 		treeshake: true,
-		splitting: true,
+		splitting: false,
 		tsconfig: "./tsconfig.json",
 		minify: true,
 		clean: true,

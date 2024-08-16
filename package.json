@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.9.8",
+	"version": "0.9.9",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -83,7 +83,7 @@
 		"@types/lodash.throttle": "^4.1.9",
 		"@types/node": "^20.14.9",
 		"@types/vscode": "^1.84.2",
-		"@vscode/vsce": "^2.29.0",
+		"@vscode/vsce": "^2.32.0",
 		"class-utils": "^0.3.6",
 		"esbuild": "0.19.2",
 		"esbuild-plugin-copy": "^2.1.1",
