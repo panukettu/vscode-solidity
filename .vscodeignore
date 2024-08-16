@@ -3,6 +3,7 @@
 out/test/**
 test/**
 src/**
+temp
 **/*.map
 *.vsix
 .gitignore
@@ -15,3 +16,4 @@ dist
 pnpm-lock.yaml
 scripts/**
 syntaxes/solidity.bak
+biome.json

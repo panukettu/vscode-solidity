@@ -9,15 +9,12 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.9.7",
+	"version": "0.9.8",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
 		"vscode": "^1.84.2"
 	},
-	"files": [
-		"/out"
-	],
 	"contributors": [
 		"Juan Blanco",
 		"panukettu"
@@ -41,6 +38,7 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"package": "vsce package",
+		"release": "pnpx @vscode/vsce publish --no-dependencies",
 		"prepublishOnly": "npm run compile",
 		"build:cli": "tsup src/server.ts -d dist/cli && sh scripts/add_shebang.sh dist/cli/server.js",
 		"format": "npx @biomejs/biome format --write ./src",
