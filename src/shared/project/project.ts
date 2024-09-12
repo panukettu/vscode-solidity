@@ -32,6 +32,7 @@ export class Project {
 	private globPath: string
 	public contracts: SourceDocumentCollection
 	constructor(config: SolidityConfig, rootPath: string) {
+		filesCache.clearAll()
 		this.rootPath = rootPath
 		this.libs = config.project.libs.map(formatPath)
 		this.excludes = config.project.exclude.map(formatPath)

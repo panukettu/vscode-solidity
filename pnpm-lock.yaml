@@ -9,8 +9,8 @@ dependencies:
     specifier: ^2.2.5
     version: 2.2.5
   '@pkxp/solparse-exp-jb':
-    specifier: 3.0.4
-    version: 3.0.4
+    specifier: 3.1.1
+    version: 3.1.1
   axios:
     specifier: ^1.7.2
     version: 1.7.2
@@ -30,8 +30,8 @@ dependencies:
     specifier: ^1.3.1
     version: 1.3.1(prettier@3.3.2)
   solc:
-    specifier: ^0.8.26
-    version: 0.8.26
+    specifier: ^0.8.27
+    version: 0.8.27
   solhint:
     specifier: ^5.0.3
     version: 5.0.3(typescript@5.5.3)
@@ -838,8 +838,8 @@ packages:
     dev: true
     optional: true
 
-  /@pkxp/solparse-exp-jb@3.0.4:
-    resolution: {integrity: sha512-R/euMiyFFaZF4WoZj3jQSZ0gTskjKvNks3BDdeB3MbU5MpY4N4U6yhwCWnapy7OZuaLxSbFq8a5bk68fLHYdZQ==}
+  /@pkxp/solparse-exp-jb@3.1.1:
+    resolution: {integrity: sha512-I4D0bvKDJq6LxXX35IVIWTCtJou2rJKk+fSBd3lyBE5k5knQhPt0pKuzCIt8PUypNu4xui1PO+7PWuZq0lGSlg==}
     hasBin: true
     dependencies:
       peggy: 1.2.0
@@ -3354,8 +3354,8 @@ packages:
       is-fullwidth-code-point: 3.0.0
     dev: false
 
-  /solc@0.8.26:
-    resolution: {integrity: sha512-yiPQNVf5rBFHwN6SIf3TUUvVAFKcQqmSUFeq+fb6pNRCo0ZCgpYOZDi3BVoezCPIAcKrVYd/qXlBLUP9wVrZ9g==}
+  /solc@0.8.27:
+    resolution: {integrity: sha512-BNxMol2tUAbkH7HKlXBcBqrGi2aqgv+uMHz26mJyTtlVgWmBA4ktiw0qVKHfkjf2oaHbwtbtaSeE2dhn/gTAKw==}
     engines: {node: '>=10.0.0'}
     hasBin: true
     dependencies:

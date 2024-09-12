@@ -289,7 +289,6 @@ export class ParsedCode {
 				remapping?.createImportFromFile(absolutePath) ??
 				absolutePath.replace(this.document.sourceDocument.project.rootPath, ""),
 		}
-		console.debug("remapping", completionItem.data?.remappedPath)
 		return completionItem
 	}
 

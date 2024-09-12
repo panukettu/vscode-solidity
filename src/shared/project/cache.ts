@@ -40,6 +40,7 @@ export const filesCache = {
 		cache.project.clear()
 		cache.libs.clear()
 		cache.resolved.clear()
+		cache.imports = new WeakMap<ParsedImport, ParsedCode[]>()
 	},
 }
 
