@@ -37,16 +37,16 @@ function server(context: vscode.ExtensionContext): LanguageClient {
 			// Synchronize the setting section 'solidity' to the server
 			configurationSection: "solidity",
 
-			// Notify the server about file changes to '.sol.js files contain in the workspace (TODO node, linter)
+			// Notify the server about file changes to related files contain in the workspace (TODO node, linter)
 			fileEvents: [
 				vscode.workspace.createFileSystemWatcher(
 					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "*solhint.json"),
 				),
 				vscode.workspace.createFileSystemWatcher(
-					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "foundry.toml"),
+					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "**/foundry.toml"),
 				),
 				vscode.workspace.createFileSystemWatcher(
-					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "hardhat.config.*"),
+					new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "*hardhat.config.*"),
 				),
 			],
 		},

@@ -3,6 +3,7 @@ import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
 import * as toml from "@iarna/toml"
+import { Glob } from "glob"
 import * as yaml from "yaml-js"
 import type { FoundryConfig, FoundryConfigParsed, FoundryCoreConfig } from "../types"
 import * as util from "../util"
@@ -29,6 +30,15 @@ export function findFirstRootProjectFile(rootPath: string, currentDocument: stri
 		currentDocument,
 		rootPath,
 	)
+}
+
+export function findProjectFile(rootPath: string) {
+	const result = new Glob(path.join(rootPath, `**/{${projectFilesAtRoot.join(",")}}`), { sync: true })
+	const foundry = result.found.find((f) => f.includes(foundryConfigFileName))
+	if (foundry) return path.dirname(foundry)
+	const hardhat = result.found.find((f) => f.includes(hardhatConfigFileName))
+	if (hardhat) return path.dirname(hardhat)
+	return rootPath
 }
 
 function readYamlSync(filePath: string) {

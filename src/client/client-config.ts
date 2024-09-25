@@ -1,3 +1,4 @@
+import path from "node:path"
 import * as vscode from "vscode"
 import type { ContractLevelSolcOutput, SolcInput } from "../shared/compiler/types-solc"
 import { CompilerType } from "../shared/enums"
@@ -53,23 +54,28 @@ export class Config {
 	public static getMonoRepoSupport(): boolean {
 		return vscode.workspace.getConfiguration("solidity").get<boolean>("project.monorepo")
 	}
+	public static getWorkspaceInfo() {
+		const rootOverride = vscode.workspace.getConfiguration("solidity").get<string>("project.root")
+		const monoRepoSupport = Config.getMonoRepoSupport()
+		return { rootOverride, monoRepoSupport }
+	}
 	public static shouldOpenProblemsPane(): boolean {
 		return vscode.workspace.getConfiguration("solidity").get<boolean>("validation.autoOpenProblems")
 	}
 }
 
-export function getCurrentProjectInWorkspaceRootFsPath() {
+export function getRootPath() {
 	const rootPath = getRootFsPath()
-	if (!Config.getMonoRepoSupport()) return rootPath
+	if (!rootPath) throw new Error("Please open a folder in Visual Studio Code as a workspace")
+
+	const { rootOverride, monoRepoSupport } = Config.getWorkspaceInfo()
+	if (rootOverride) return path.join(rootPath, rootOverride)
+	if (!monoRepoSupport) return rootPath
 
 	return findFirstRootProjectFile(rootPath, vscode.window.activeTextEditor.document.uri.fsPath) ?? rootPath
 }
 
-export function getRootFsPath() {
-	return getCurrentWorkspaceRootFolder()
-}
-
-export function getCurrentWorkspaceRootFolder() {
+function getRootFsPath() {
 	const editor = vscode.window.activeTextEditor
 	const currentDocument = editor.document.uri
 	if (!currentDocument) return vscode.workspace.rootPath

@@ -165,6 +165,7 @@ export interface SolidityConfig {
 		remappingsWindows: string[]
 		remappingsUnix: string[]
 		monorepo: boolean
+		root: string
 	}
 	// localSolcVersion: string
 	// remoteSolcVersion: string

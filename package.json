@@ -9,7 +9,7 @@
 		"diamond",
 		"solhint"
 	],
-	"version": "0.9.10",
+	"version": "0.9.11",
 	"publisher": "0xp",
 	"license": "MIT",
 	"engines": {
@@ -287,6 +287,11 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Enables multiple project roots. Project is deduced using these files: remappings.txt, truffle-config.js, brownie-config.yaml, foundry.toml, hardhat.config.js, dappfile"
+				},
+				"solidity.project.root": {
+					"type": "string",
+					"default": "",
+					"description": "Set custom root for project, overrides deduced project root. Default is empty or no override."
 				},
 				"solidity.project.useForgeRemappings": {
 					"type": "boolean",

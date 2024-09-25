@@ -105,29 +105,52 @@
 			"prefix": "spdx_pragma",
 			"description": "spdxpragma",
 			"scope": "solidity",
-			"body": ["// SPDX-License-Identifier: ${2:MIT}", "pragma solidity ${1:^0.8.19};"]
+			"body": [
+				"// SPDX-License-Identifier: ${2:MIT}",
+				"pragma solidity ${1:^0.8.27};"
+			]
 		},
 		"hardhat console import": {
 			"prefix": "hhc",
 			"description": "hhc",
 			"scope": "solidity",
-			"body": ["import \"hardhat/console.sol\";"]
+			"body": [
+				"import \"hardhat/console.sol\";"
+			]
 		},
 		"natspec function": {
 			"prefix": "natfunc",
 			"description": "natfunc",
 			"scope": "solidity",
-			"body": ["/**", "* @notice $1", "* @dev $2", "* @param $3", "*/"]
+			"body": [
+				"/**",
+				"* @notice $1",
+				"* @dev $2",
+				"* @param $3",
+				"*/"
+			]
 		},
 		"natspec contract": {
 			"prefix": "natcontract",
 			"description": "natspec contract",
 			"scope": "solidity",
-			"body": ["/** ", "* @title $1", "* @author $2", "* @notice $3", "* @dev $4", "*/"]
+			"body": [
+				"/** ",
+				"* @title $1",
+				"* @author $2",
+				"* @notice $3",
+				"* @dev $4",
+				"*/"
+			]
 		},
 		"natspec variable": {
 			"prefix": "natvariablee",
-			"body": ["/** ", "* @notice $1", "* @dev $2", "*/"],
+			"body": [
+				"/** ",
+				"* @notice $1",
+				"* @dev $2",
+				"*/"
+			],
 			"description": "natspec for state variable"
 		},
 		"solidityTips": {
@@ -139,25 +162,33 @@
 			"prefix": "console_log",
 			"description": "Print uint, string, bool or address values. Max 4.",
 			"scope": "solidity",
-			"body": ["console.log(\"${2:value: %s}\", ${1:\"value\"});"]
+			"body": [
+				"console.log(\"${2:value: %s}\", ${1:\"value\"});"
+			]
 		},
 		"forge: log common types": {
 			"prefix": "console2_log",
 			"description": "Print uint, string, bool or address values. Max 4.",
 			"scope": "solidity",
-			"body": ["console2.log(\"${2:value: %s}\", ${1:\"value\"});"]
+			"body": [
+				"console2.log(\"${2:value: %s}\", ${1:\"value\"});"
+			]
 		},
 		"forge: log named decimal value": {
 			"prefix": "log_decimal_uint_emit_forge",
 			"description": "Logs a formatted decimal value with some label.",
 			"scope": "solidity",
-			"body": ["emit log_named_decimal_uint(\"${3:$1}\", ${1:value}, ${2:18});"]
+			"body": [
+				"emit log_named_decimal_uint(\"${3:$1}\", ${1:value}, ${2:18});"
+			]
 		},
 		"forge: assert equal": {
 			"prefix": "assert_equals_forge_test",
 			"description": "assertequalsforge",
 			"scope": "solidity",
-			"body": ["assertEq(${1:val}, ${2:val2}, \"${3:$1}\");"]
+			"body": [
+				"assertEq(${1:val}, ${2:val2}, \"${3:$1}\");"
+			]
 		},
 		"forge: test function": {
 			"prefix": "function_forge_test",
@@ -198,7 +229,7 @@
 				"// SPDX-License-Identifier: MIT",
 				"pragma solidity ^0.8.0;",
 				"",
-				"// solhint-disable state-visibility, max-states-count, var-name-mixedcase, no-global-import, const-name-snakecase, no-empty-blocks, no-console",
+				"// solhint-disable",
 				"",
 				"import \"forge-std/Test.sol\";",
 				"",

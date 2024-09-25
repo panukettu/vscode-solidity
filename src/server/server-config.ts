@@ -1,13 +1,20 @@
+import path from "node:path"
 import { Multisolc } from "@shared/compiler/multisolc"
 import { mergeUnique } from "@shared/compiler/utils"
 import { CompilerType } from "@shared/enums"
 import { filesCache } from "@shared/project/cache"
 import { Project } from "@shared/project/project"
-import { getFoundryConfig, loadRemappings } from "@shared/project/project-utils"
+import {
+	findFirstRootProjectFile,
+	findProjectFile,
+	getFoundryConfig,
+	loadRemappings,
+} from "@shared/project/project-utils"
 import { SERVER_COMMANDS_LIST } from "@shared/server-commands"
 import type { SolidityConfig } from "@shared/types"
 import packageJson from "package.json"
 import * as vscode from "vscode-languageserver/node"
+import { URI } from "vscode-uri"
 import { connection } from "../server"
 import { replaceRemappings } from "../shared/util"
 import SolhintService from "./linter/solhint"
@@ -42,6 +49,7 @@ export const settings: ExtendedSettings = {
 	workspaceFolders: [],
 	linter: null,
 	rootPath: "",
+	initialized: false,
 }
 
 let serverConfig: SolidityConfig = defaultConfig()
@@ -130,6 +138,7 @@ export async function handleInitialized() {
 
 export async function updateConfig(newConfig: SolidityConfig) {
 	serverConfig = newConfig
+
 	if (serverConfig.linter.type === "solhint") {
 		settings.linter = new SolhintService(settings.rootPath, serverConfig.linter.rules)
 		settings.linter.setIdeRules(serverConfig.linter.rules)
@@ -148,6 +157,12 @@ async function createConfig() {
 		}
 		const results = (await connection.sendRequest("workspace/configuration", params)) as [Partial<SolidityConfig>]
 		const [cfg] = results
+
+		if (cfg.project.root && !settings.rootPath.includes(cfg.project.root)) {
+			settings.rootPath = path.join(settings.rootPath, cfg.project.root)
+		} else if (cfg.project.monorepo) {
+			settings.rootPath = findProjectFile(settings.rootPath)
+		}
 
 		const foundry = getFoundryConfig(settings.rootPath)
 		cfg.project.libs = mergeUnique(cfg.project?.libs, foundry?.profile?.libs)

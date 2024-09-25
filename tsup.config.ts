@@ -14,7 +14,7 @@ export default defineConfig(async (opts) => {
 		format: "cjs",
 		outDir: "./out/src",
 		platform: "node",
-		sourcemap: true,
+		sourcemap: false,
 		bundle: true,
 		noExternal: opts.watch
 			? []

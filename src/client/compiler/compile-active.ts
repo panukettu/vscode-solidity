@@ -1,5 +1,5 @@
 import * as path from "node:path"
-import { Config, getCurrentProjectInWorkspaceRootFsPath, getCurrentWorkspaceRootFolder } from "@client/client-config"
+import { Config, getRootPath } from "@client/client-config"
 import * as vscode from "vscode"
 
 import type { ClientState } from "@client/client-state"
@@ -22,13 +22,7 @@ export async function compileActiveFile(
 		return
 	}
 
-	// Check if is folder, if not stop we need to output to a bin folder on rootPath
-	if (!getCurrentWorkspaceRootFolder()) {
-		vscode.window.showWarningMessage("You need to open a folder (or workspace) :(")
-		return
-	}
-
-	const project = new Project(Config.all(), getCurrentProjectInWorkspaceRootFsPath())
+	const project = new Project(Config.all(), getRootPath())
 	const document = project.addSource(editor.document.fileName, editor.document.getText())
 
 	try {

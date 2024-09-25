@@ -5,7 +5,7 @@ import axios from "axios"
 import * as fse from "fs-extra"
 import * as vscode from "vscode"
 import { SourceDocumentCollection } from "../../shared/project/sourceDocuments"
-import { Config, getCurrentProjectInWorkspaceRootFsPath } from "../client-config"
+import { Config, getRootPath } from "../client-config"
 
 // biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export class Etherscan {
@@ -100,12 +100,7 @@ export class Etherscan {
 		const data = info.result[0]
 		if (data.SourceCode === "") throw "Contract has not been verified or found"
 
-		const savePath = path.join(
-			getCurrentProjectInWorkspaceRootFsPath(),
-			Config.getDownloadsDir(),
-			chain,
-			data.ContractName,
-		)
+		const savePath = path.join(getRootPath(), Config.getDownloadsDir(), chain, data.ContractName)
 		fse.ensureDirSync(savePath)
 
 		fs.writeFileSync(path.join(savePath, `${data.ContractName}.abi.json`), data.ABI)

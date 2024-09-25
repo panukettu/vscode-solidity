@@ -10,6 +10,7 @@ export type ExtendedSettings = {
 	workspaceFolders: vscode.WorkspaceFolder[]
 	linter: Linter | null
 	rootPath: string
+	initialized: boolean
 }
 
 export interface Linter {

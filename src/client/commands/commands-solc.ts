@@ -1,4 +1,4 @@
-import { getCurrentWorkspaceRootFolder } from "@client/client-config"
+import { getRootPath } from "@client/client-config"
 import type { ClientState } from "@client/client-state"
 import { CLIENT_COMMAND_LIST } from "@client/commands/commands-list"
 import { compileActiveFile } from "@client/compiler/compile-active"
@@ -48,7 +48,7 @@ export function registerSolcCommands(state: ClientState) {
 
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.downloadSolcAndSetAsLocal"], async () => {
-			state.compilers.downloadSolcAndSetAsLocal(vscode.ConfigurationTarget.Workspace, getCurrentWorkspaceRootFolder())
+			state.compilers.downloadSolcAndSetAsLocal(vscode.ConfigurationTarget.Workspace, getRootPath())
 		}),
 	)
 
@@ -72,8 +72,7 @@ export function registerSolcCommands(state: ClientState) {
 
 	state.context.subscriptions.push(
 		vscode.commands.registerCommand(CLIENT_COMMAND_LIST["solidity.downloadRemoteSolcVersion"], async () => {
-			const root = getCurrentWorkspaceRootFolder()
-			state.compilers.downloadRemoteVersion(root)
+			state.compilers.downloadRemoteVersion(getRootPath())
 		}),
 	)
 

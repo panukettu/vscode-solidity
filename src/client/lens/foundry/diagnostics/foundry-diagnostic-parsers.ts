@@ -1,4 +1,4 @@
-import { getCurrentProjectInWorkspaceRootFsPath } from "@client/client-config"
+import { getRootPath } from "@client/client-config"
 import type { Lens } from "@client/client-types"
 import { forgeOutputErrorToDiagnostic } from "@server/providers/utils/diagnostics"
 import { labelRegexp, solcOutputRegexp } from "@shared/regexp"
@@ -95,7 +95,7 @@ export function parseOutputCompilerErrors(output: string): DiagnosticWithFileNam
 
 	let match: string[] | null = null
 	while ((match = regexp.exec(output)) !== null) {
-		errors.push(forgeOutputErrorToDiagnostic(match, getCurrentProjectInWorkspaceRootFsPath()))
+		errors.push(forgeOutputErrorToDiagnostic(match, getRootPath()))
 	}
 
 	return errors

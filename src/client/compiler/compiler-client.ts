@@ -1,6 +1,6 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { Config, getCurrentProjectInWorkspaceRootFsPath, getRootFsPath } from "@client/client-config"
+import { Config, getRootPath } from "@client/client-config"
 import type { BaseCommandArgs } from "@client/client-types"
 import { clearDiagnostics } from "@client/commands/diagnostics"
 import { Multisolc } from "@shared/compiler/multisolc"
@@ -182,7 +182,7 @@ export class ClientCompilers {
 		this.outputChannel.show(true)
 		const cfg =
 			solc ??
-			Multisolc.getSettings(new Project(Config.all(), getRootFsPath()), {
+			Multisolc.getSettings(new Project(Config.all(), getRootPath()), {
 				type: override,
 			})
 
@@ -275,7 +275,7 @@ export class ClientCompilers {
 		excludePath?: string[],
 		sourcePath?: string,
 	): Array<string> {
-		const rootPath = getCurrentProjectInWorkspaceRootFsPath()
+		const rootPath = getRootPath()
 		const binPath = path.join(rootPath, buildDir)
 		fsex.ensureDirSync(binPath)
 

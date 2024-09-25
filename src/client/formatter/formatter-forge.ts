@@ -1,5 +1,5 @@
 import * as cp from "node:child_process"
-import { getCurrentProjectInWorkspaceRootFsPath } from "@client/client-config"
+import { getRootPath } from "@client/client-config"
 import * as vscode from "vscode"
 
 export async function formatDocument(
@@ -9,8 +9,7 @@ export async function formatDocument(
 	const firstLine = document.lineAt(0)
 	const lastLine = document.lineAt(document.lineCount - 1)
 	const fullTextRange = new vscode.Range(firstLine.range.start, lastLine.range.end)
-	const rootPath = getCurrentProjectInWorkspaceRootFsPath()
-	const formatted = await formatDocumentInternal(document.getText(), rootPath)
+	const formatted = await formatDocumentInternal(document.getText(), getRootPath())
 	return [vscode.TextEdit.replace(fullTextRange, formatted)]
 }
 

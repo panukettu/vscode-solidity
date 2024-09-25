@@ -1,5 +1,5 @@
-import * as path from "path"
-import { getCurrentProjectInWorkspaceRootFsPath } from "@client/client-config"
+import * as path from "node:path"
+import { getRootPath } from "@client/client-config"
 import * as prettier from "prettier"
 import * as vscode from "vscode"
 
@@ -7,10 +7,8 @@ export async function formatDocument(
 	document: vscode.TextDocument,
 	context: vscode.ExtensionContext,
 ): Promise<vscode.TextEdit[]> {
-	const rootPath = getCurrentProjectInWorkspaceRootFsPath()
-
 	const fileInfo = await prettier.getFileInfo(document.uri.fsPath, {
-		ignorePath: path.join(rootPath, ".prettierignore"),
+		ignorePath: path.join(getRootPath(), ".prettierignore"),
 	})
 
 	if (!fileInfo.ignored) {
