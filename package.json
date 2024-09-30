@@ -473,19 +473,19 @@
 				"category": "Solidity"
 			},
 			{
-				"title": "Preview Hash",
+				"title": "Keccak256",
 				"enablement": "resourceExtname == .sol",
 				"command": "solidity.input.keccak256",
 				"category": "Solidity"
 			},
 			{
-				"title": "Encode Data",
+				"title": "ABI Encode",
 				"enablement": "resourceExtname == .sol",
 				"command": "solidity.input.encode",
 				"category": "Solidity"
 			},
 			{
-				"title": "Decode Data",
+				"title": "ABI Decode",
 				"enablement": "resourceExtname == .sol",
 				"command": "solidity.input.decode",
 				"category": "Solidity"
@@ -513,13 +513,13 @@
 				"category": "Solidity"
 			},
 			{
-				"title": "Disable Tracing",
+				"title": "Disable Test Tracing",
 				"command": "solidity.test.disableTracing",
 				"enablement": "config.solidity.test.verbosity > 4",
 				"category": "Solidity"
 			},
 			{
-				"title": "Enable Tracing",
+				"title": "Enable Test Tracing",
 				"command": "solidity.test.enableTracing",
 				"enablement": "config.solidity.test.verbosity < 5",
 				"category": "Solidity"
@@ -567,25 +567,25 @@
 				"category": "Solidity"
 			},
 			{
-				"title": "Compile Active",
+				"title": "Compile Active File",
 				"enablement": "editorLangId == 'solidity'",
 				"category": "Solidity",
 				"command": "solidity.compile.active"
 			},
 			{
-				"title": "Compile Active (remote solc)",
+				"title": "Compile Active (Remote)",
 				"enablement": "editorLangId == 'solidity'",
 				"command": "solidity.compile.activeWithRemoteSolc",
 				"category": "Solidity"
 			},
 			{
-				"title": "Compile Active (local file)",
+				"title": "Compile Active (Local)",
 				"enablement": "editorLangId == 'solidity'",
 				"command": "solidity.compile.activeWithLocalSolc",
 				"category": "Solidity"
 			},
 			{
-				"title": "Compile Active (npm)",
+				"title": "Compile Active (NPM)",
 				"enablement": "editorLangId == 'solidity'",
 				"command": "solidity.compile.activeWithNPMSolc",
 				"category": "Solidity"
@@ -597,42 +597,42 @@
 				"category": "Solidity"
 			},
 			{
-				"title": "Compiler Info",
+				"title": "Print Compiler Info",
 				"command": "solidity.peekActiveCompilers",
 				"category": "Solidity"
 			},
 			{
-				"title": "Get Solc Versions",
+				"title": "Print Solc Versions",
 				"command": "solidity.peekSolcReleases",
 				"category": "Solidity"
 			},
 			{
-				"title": "Set workspace solc (Remote)",
+				"title": "Set Workspace Solc (Remote)",
 				"command": "solidity.selectWorkspaceRemoteSolcVersion",
 				"category": "Solidity"
 			},
 			{
-				"title": "Set global solc (Remote)",
+				"title": "Set Global Solc (Remote)",
 				"command": "solidity.selectGlobalRemoteSolcVersion",
 				"category": "Solidity"
 			},
 			{
-				"title": "Download compiler",
+				"title": "Download Solc",
 				"command": "solidity.downloadRemoteSolcVersion",
 				"category": "Solidity"
 			},
 			{
-				"title": "Download and set workspace compiler",
+				"title": "Download & Set Solc As Local",
 				"command": "solidity.downloadSolcAndSetAsLocal",
 				"category": "Solidity"
 			},
 			{
-				"title": "Set workspace solc location",
+				"title": "Set Solc Location",
 				"command": "solidity.changeSolcType",
 				"category": "Solidity"
 			},
 			{
-				"title": "Download sources from etherscan",
+				"title": "Download Sources From Etherscan",
 				"command": "solidity.downloadVerifiedSmartContractEtherscan",
 				"category": "Solidity"
 			}

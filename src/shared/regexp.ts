@@ -53,7 +53,8 @@ export const dotStartWordsRegexp = /(\w+)(?=\()/g
 export const mappingStartWordsREgexp = /(\w+)(?=\[)/g
 export const mappingWordsRegexp = /([a-zA-Z0-9_()]+)\[([^\]]*)\](?:\[([^\]]*)\])*(?!\.)(?=\;?$)/s
 
-export const keccak256Regexp = () => new RegExp(/(?<=keccak256\(")(.*?)(?="\))/g)
+export const keccak256Regexp = () => new RegExp(/[=|\(|$]?keccak256\(["|'](.*?)["|']\)(?=\)?;|\).*?{)/g)
+// export const keccak256Regexp = () => new RegExp(/keccak256\(["|'](.*?)(?="\))/g)
 
 export const nameRegexp = new RegExp(/(?<=\W)(\w+)(?=\()/gs)
 
