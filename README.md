@@ -8,17 +8,15 @@ _Disclaimer_: bugs likely
 
 - new config, `solidity.project.root`: override project root folder, eg. "packages/contracts"
 - improved `solidity.project.monorepo`: tries to find foundry.toml of the active solidity file in editor and uses that directory as root
-
-1. `solidity.project.root` directly set (inner)root folder so in this case "packages/contracts"
-2. `solidity.project.monorepo` if set to true, tries to find a foundry.toml and sets that directory as root
+- fix, keccak256 on hover trying to hash non-constant input
 
 ### 0.9.10
 
 - new command, find by selector: finds error/function from workspace by its 4-byte selector
-- new config, project.downloads: set folder for etherscan command output.
-- new config, solidity.lsp.enabled: enable/disable the language server.
-- new config, solidity.validation.autoOpenProblems: opens problem panel if diagnostics were sent from compilation.
-- new config, solidity.validation.ignoreErrorCodes: ignores some error codes from compiler.
+- new config, `project.downloads`: set folder for etherscan command output.
+- new config, `solidity.lsp.enabled`: enable/disable the language server.
+- new config, `solidity.validation.autoOpenProblems`: opens problem panel if diagnostics were sent from compilation.
+- new config, `solidity.validation.ignoreErrorCodes`: ignores some error codes from compiler.
 
 ### 0.9.1
 
